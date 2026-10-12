@@ -50,6 +50,18 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 - **E2E avec sessions en base** : le `globalSetup` Playwright crée des sessions Auth.js pour les comptes de démo, sans passer par un fournisseur OAuth.
 - **Tests d'intégration base désactivables** (`SKIP_DB_TESTS=1`) : la CI Windows n'a pas de Postgres ; la CI Linux les exécute.
 
+## Économie (phase 4)
+
+- **Registre des Jetons en ajout seul** (`LedgerEntry`) : chaque modification de solde passe par `applyLedger`, dans la transaction de l'action. Le débit est un `UPDATE … WHERE balance + delta >= 0` atomique, doublé des contraintes `CHECK` sur `User.balance` et `LedgerEntry.balanceAfter`. `npm run audit:ledger` vérifie SUM(delta) = solde pour chaque joueur ; la CI le lance après les tests e2e.
+- **Actions d'un joueur sérialisées** par un verrou sur sa ligne `User` (ouverture, recyclage, réclamation de quête) : deux onglets ou un double clic ne peuvent ni payer deux fois, ni recycler deux fois le même exemplaire, ni réclamer deux fois une récompense (tests de concurrence en base).
+- **Recyclage = suppression de l'exemplaire** ; le registre garde la trace (nombre de cartes par tier). Seuls les exemplaires « possédés » se recyclent (pas ceux en vente ou misés).
+- **« Tous les doublons sauf un »** garde la plus belle finition (1re édition > holo > reverse > normale), puis le plus ancien. Par défaut, les doublons Légendaire et Mythique sont décochés : ils valent davantage au marché et en duel. La liste est recalculée côté serveur au moment de l'action.
+- **Set complété = toutes ses cartes tirables possédées** : les 1 642 cartes sans image ne sortent jamais d'un booster et rendraient 62 sets impossibles à finir. La progression affichée suit la même règle. Bonus versé une seule fois (`SetCompletion`), même si des cartes sont recyclées ensuite.
+- **Boosters de set** : proposés pour les sets d'au moins 10 cartes tirables, même tirage que le booster gratuit (garantie, redistribution des tiers absents) restreint au set. Pochettes aux couleurs dérivées de l'id du set et logo officiel servi par TCGdex (WebP, repli PNG).
+- **Quêtes du jour créées à la première visite**, identiques pour tous les joueurs un jour donné, remise à zéro à minuit heure de Paris. « Gagner 1 duel » attend la phase 6 ; d'ici là, la troisième quête est « Découvrir 3 nouvelles cartes » (40 Jetons). La récompense se réclame d'un clic (moment de satisfaction plutôt qu'un crédit silencieux).
+- **Jetons de démo inscrits au registre** (motif `seed`) : 600 pour demo-collection, 2 500 pour demo-marchand.
+- **Menu joueur** : la déconnexion passe dans le menu de l'avatar pour laisser la place au solde dans l'en-tête mobile.
+
 ## Versions
 
 - **Next.js 15.5, Prisma 6.19, TypeScript 5.9, Vitest 3, ESLint 9** plutôt que les dernières majeures (Next 16, Prisma 7, TS 7) : versions éprouvées, documentation stable. Migration à reconsidérer en phase 8.

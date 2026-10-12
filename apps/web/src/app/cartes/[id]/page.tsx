@@ -1,9 +1,10 @@
-import { FINISH_LABELS_FR, TIER_LABELS_FR, type Finish } from "@pokeflex/config";
+import { FINISH_LABELS_FR, gameConfig, TIER_LABELS_FR, type Finish } from "@pokeflex/config";
 import { ChevronLeft, ChevronRight, Palette } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CardTile } from "@/components/catalog/card-tile";
+import { MyCopies } from "@/components/economy/my-copies";
 import { EnergyIcon } from "@/components/energy-icon";
 import { TierBadge } from "@/components/tier-badge";
 import { TiltCard } from "@/components/tilt-card";
@@ -130,31 +131,10 @@ export default async function CardPage({ params }: { params: Params }) {
           </header>
 
           {copies && (
-            <div
-              className={
-                copies.length > 0
-                  ? "flex flex-wrap items-center gap-2 rounded-xl border border-lime/40 bg-lime/5 p-3 text-sm"
-                  : "rounded-xl border border-dashed border-line p-3 text-sm text-muted"
-              }
-            >
-              {copies.length > 0 ? (
-                <>
-                  <span className="font-semibold text-lime">
-                    Dans ta collection : ×{copies.length}
-                  </span>
-                  {(Object.keys(FINISH_LABELS_FR) as Finish[])
-                    .map((f) => [f, copies.filter((c) => c.finish === f).length] as const)
-                    .filter(([, n]) => n > 0)
-                    .map(([f, n]) => (
-                      <span key={f} className="rounded-full bg-elev px-2 py-0.5 text-xs">
-                        {FINISH_LABELS_FR[f]} ×{n}
-                      </span>
-                    ))}
-                </>
-              ) : (
-                "Tu n'as pas encore cette carte."
-              )}
-            </div>
+            <MyCopies
+              copies={copies.map((c) => ({ ...c, obtainedAt: c.obtainedAt.toISOString() }))}
+              value={gameConfig.economy.recycleValue[card.tier]}
+            />
           )}
 
           {card.abilities.length > 0 && (

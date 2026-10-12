@@ -109,11 +109,23 @@ export const gameConfig = {
 
   quests: {
     perDay: 3,
+    /** Les quêtes changent à minuit dans ce fuseau. */
+    timeZone: "Europe/Paris",
+    /**
+     * Modèles de quêtes. Chaque jour, `perDay` quêtes sont choisies parmi celles qui sont actives
+     * (tirage déterministe par jour). « Gagner 1 duel » s'activera avec les duels (phase 6).
+     */
     templates: [
-      { kind: "open_boosters", target: 5, reward: 30, labelFr: "Ouvrir 5 boosters" },
-      { kind: "recycle_cards", target: 20, reward: 30, labelFr: "Recycler 20 cartes" },
-      { kind: "win_duel", target: 1, reward: 50, labelFr: "Gagner 1 duel" },
+      { kind: "open_boosters", target: 5, reward: 30, labelFr: "Ouvrir 5 boosters", enabled: true },
+      { kind: "recycle_cards", target: 20, reward: 30, labelFr: "Recycler 20 cartes", enabled: true },
+      { kind: "new_cards", target: 3, reward: 40, labelFr: "Découvrir 3 nouvelles cartes", enabled: true },
+      { kind: "win_duel", target: 1, reward: 50, labelFr: "Gagner 1 duel", enabled: false },
     ],
+  },
+
+  /** Boosters de set : seuls les sets avec assez de cartes tirables sont proposés. */
+  setBoosters: {
+    minDroppableCards: 10,
   },
 
   market: {

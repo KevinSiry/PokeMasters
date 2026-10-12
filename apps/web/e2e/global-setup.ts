@@ -12,11 +12,18 @@ const port = Number(process.env.E2E_PORT ?? 3000);
 
 export default async function globalSetup() {
   mkdirSync(AUTH_DIR, { recursive: true });
-  for (const handle of ["demo-dresseur", "demo-collection"]) {
+  for (const handle of ["demo-dresseur", "demo-collection", "demo-marchand"]) {
     const user = await prisma.user.findUnique({ where: { handle } });
     if (!user) throw new Error(`Compte ${handle} absent : lance npm run db:seed avant les tests e2e.`);
     if (handle === "demo-dresseur") {
       await prisma.user.update({ where: { id: user.id }, data: { boosterStock: 6, boosterAnchorAt: new Date() } });
+    }
+    if (handle === "demo-marchand" && user.balance < 1000) {
+      // Les parcours économie dépensent des Jetons : on recharge, inscrit au registre comme tout mouvement.
+      await prisma.$transaction(async (tx) => {
+        const u = await tx.user.update({ where: { id: user.id }, data: { balance: { increment: 1000 } } });
+        await tx.ledgerEntry.create({ data: { userId: user.id, delta: 1000, balanceAfter: u.balance, reason: "admin" } });
+      });
     }
     const token = randomBytes(32).toString("hex");
     const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);

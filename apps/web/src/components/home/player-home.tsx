@@ -5,13 +5,15 @@ import { BoosterPackArt } from "@/components/booster/booster-pack";
 import { CardTile } from "@/components/catalog/card-tile";
 import { ProgressRing } from "@/components/progress";
 import { Button } from "@/components/ui/button";
+import { QuestsPanel } from "@/components/economy/quests-panel";
 import { getCollectionTotals, getRecentPulls } from "@/lib/collection";
+import { getDailyQuests } from "@/lib/economy/quests";
 import type { CurrentPlayer } from "@/lib/player";
 import { HomeBoosterStatus } from "./home-booster-status";
 
 /** Accueil d'un joueur connecté : son booster, sa progression, ses dernières cartes. */
 export async function PlayerHome({ player }: { player: CurrentPlayer }) {
-  const [totals, recent] = await Promise.all([getCollectionTotals(player.id), getRecentPulls(player.id)]);
+  const [totals, recent, daily] = await Promise.all([getCollectionTotals(player.id), getRecentPulls(player.id), getDailyQuests(player.id)]);
   const has = player.boosters.available > 0;
 
   return (
@@ -55,12 +57,14 @@ export async function PlayerHome({ player }: { player: CurrentPlayer }) {
               <span className="text-sm text-muted"> / {totals.catalog.toLocaleString("fr-FR")} cartes</span>
             </p>
             <p className="text-sm text-muted">
-              {totals.copies.toLocaleString("fr-FR")} exemplaires · {totals.setsCompleted} set{totals.setsCompleted > 1 ? "s" : ""} complet
+              {totals.copies.toLocaleString("fr-FR")} exemplaires · {totals.setsCompleted} set{totals.setsCompleted > 1 ? "s" : ""} complété
               {totals.setsCompleted > 1 ? "s" : ""}
             </p>
           </div>
         </Link>
       </div>
+
+      <QuestsPanel quests={daily.quests} resetAt={daily.resetAt} />
 
       <section aria-labelledby="recent" className="grid min-w-0 gap-4">
         <div className="flex items-baseline justify-between gap-4">

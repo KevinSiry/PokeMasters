@@ -1,7 +1,7 @@
 /**
  * Seed de démo : quelques comptes de test.
- * Idempotent (upsert sur le handle). Les collections pré-remplies arriveront en phase 3,
- * une fois le catalogue importé.
+ * Idempotent (upsert sur le handle) : collections simulées et Jetons de départ
+ * ne sont ajoutés qu'une fois.
  *
  * Lancer : npm run db:seed
  */
@@ -13,9 +13,9 @@ import { type Prisma, prisma } from "../src/index";
 
 /** `boosters` : nombre de boosters déjà « ouverts » par le seed pour remplir la collection. */
 export const DEMO_USERS = [
-  { handle: "demo-dresseur", name: "Dresseur Démo", boosterStock: gameConfig.boosters.maxStock, boosters: 0 },
-  { handle: "demo-collection", name: "Collectionneuse Démo", boosterStock: 3, boosters: 120 },
-  { handle: "demo-marchand", name: "Marchand Démo", boosterStock: 0, boosters: 60 },
+  { handle: "demo-dresseur", name: "Dresseur Démo", boosterStock: gameConfig.boosters.maxStock, boosters: 0, jetons: 0 },
+  { handle: "demo-collection", name: "Collectionneuse Démo", boosterStock: 3, boosters: 120, jetons: 600 },
+  { handle: "demo-marchand", name: "Marchand Démo", boosterStock: 0, boosters: 60, jetons: 2500 },
 ] as const;
 
 /** Remplit la collection d'un compte de démo en simulant des ouvertures (graine fixe : reproductible). */
@@ -37,6 +37,16 @@ async function seedCollection(userId: string, boosters: number, seed: number) {
   }
   await prisma.cardCopy.createMany({ data });
   return data.length;
+}
+
+/** Jetons de démo, inscrits au registre comme tout mouvement (une seule fois). */
+async function seedJetons(userId: string, amount: number) {
+  if (amount <= 0 || (await prisma.ledgerEntry.count({ where: { userId } })) > 0) return 0;
+  await prisma.$transaction(async (tx) => {
+    const user = await tx.user.update({ where: { id: userId }, data: { balance: { increment: amount } } });
+    await tx.ledgerEntry.create({ data: { userId, delta: amount, balanceAfter: user.balance, reason: "seed" } });
+  });
+  return amount;
 }
 
 /**
@@ -75,6 +85,8 @@ async function main() {
     });
     const copies = await seedCollection(user.id, u.boosters, 1000 + seedIndex);
     if (copies) console.log(`  ${u.name} : ${copies} cartes en collection.`);
+    const jetons = await seedJetons(user.id, u.jetons);
+    if (jetons) console.log(`  ${u.name} : ${jetons} Jetons.`);
   }
   console.log(`Seed terminé : ${DEMO_USERS.length} comptes de démo.`);
 }

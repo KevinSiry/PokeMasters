@@ -72,6 +72,8 @@ Sans import, `npm run db:seed` charge un petit échantillon (Set de Base et 151)
 
 Connecte-toi (en développement, avec un compte de démo), puis ouvre l'onglet **Boosters** : un booster gratuit se recharge toutes les 10 minutes, jusqu'à 6 en réserve (réglable dans `config/game.ts`). Les cartes tirées rejoignent ta **Collection** (progression par set, Pokédex par génération, illustrateurs). Le compte **demo-collection** a déjà 600 cartes pour voir une collection remplie.
 
+Les **Jetons** (sans valeur réelle) se gagnent en recyclant des cartes, en terminant les quêtes du jour et en complétant des sets. Ils servent à acheter des boosters d'un set précis (onglet Boosters, « Boosters de set »). L'historique est dans le menu de l'avatar, « Mes Jetons ».
+
 ### 6. Brancher la connexion Twitch et Discord
 
 **Twitch**
@@ -101,6 +103,7 @@ Redémarre `npm run dev`. Les boutons apparaissent automatiquement pour chaque f
 | `npm run db:deploy` | Appliquer les migrations existantes |
 | `npm run db:seed` | (Re)créer les comptes de démo (et l'échantillon de catalogue si la base est vide) |
 | `npm run sync:catalog` | Importer / synchroniser le catalogue TCGdex |
+| `npm run audit:ledger` | Vérifier que chaque solde de Jetons est égal à la somme de son registre |
 | `npm run db:reset` | Vider la base et tout réappliquer |
 | `npm run db:studio` | Explorer la base dans le navigateur |
 

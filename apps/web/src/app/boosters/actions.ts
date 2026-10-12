@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
-import { BoosterError, openFreeBooster, type BoosterResult } from "@/lib/boosters";
+import { BoosterError, openBooster, openFreeBooster, type BoosterResult } from "@/lib/boosters";
 
 export type OpenBoosterResponse = { ok: true; result: BoosterResult } | { ok: false; error: string };
 
@@ -17,6 +17,21 @@ export async function openBoosterAction(): Promise<OpenBoosterResponse> {
   } catch (err) {
     if (err instanceof BoosterError) return { ok: false, error: err.message };
     console.error("[boosters] ouverture impossible", err);
+    return { ok: false, error: "L'ouverture a échoué, réessaie dans un instant." };
+  }
+}
+
+/** Intention : « acheter et ouvrir un booster de ce set ». Prix, solde et tirage sont décidés par le serveur. */
+export async function openSetBoosterAction(setId: string): Promise<OpenBoosterResponse> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Connecte-toi pour ouvrir des boosters." };
+  try {
+    const result = await openBooster(session.user.id, { kind: "set", setId: String(setId) });
+    revalidatePath("/", "layout");
+    return { ok: true, result };
+  } catch (err) {
+    if (err instanceof BoosterError) return { ok: false, error: err.message };
+    console.error("[boosters] ouverture de set impossible", err);
     return { ok: false, error: "L'ouverture a échoué, réessaie dans un instant." };
   }
 }
