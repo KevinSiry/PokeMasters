@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { categoryCode, finishesOf, localIdSortKey, priceEurOf, toCardRecord, typeCode } from "./normalize";
+import { categoryCode, finishesOf, localIdSortKey, needsResync, priceEurOf, toCardRecord, typeCode } from "./normalize";
 import { cardDetailSchema } from "./schemas";
 
 // Réponse réelle de GET /v2/fr/cards/swsh3-136 (allégée), relevée le 2026-10-12.
@@ -91,5 +91,31 @@ describe("toCardRecord", () => {
     expect(withFallback).toMatchObject({ image: "https://x/en/1", imageLang: "en", droppable: true });
     const none = toCardRecord({ detail: noImage, lang: "fr", nameFr: "Fouinar", nameEn: null });
     expect(none).toMatchObject({ image: null, imageLang: null, droppable: false });
+  });
+});
+
+describe("needsResync", () => {
+  // Set 30th-c (Collection Classique 30ᵉ Anniversaire) : publié le 2026-09-16 sans aucune image.
+  const cards = [
+    { id: "30th-c-025", image: null },
+    { id: "30th-c-026", image: null },
+  ];
+  const noEn = new Map<string, { image?: string | null }>();
+
+  it("réimporte un set absent ou qui a gagné des cartes", () => {
+    expect(needsResync(undefined, cards, noEn)).toBe(true);
+    expect(needsResync({ cards: 1, withImage: 0 }, cards, noEn)).toBe(true);
+  });
+
+  it("ignore un set inchangé, même sans images", () => {
+    expect(needsResync({ cards: 2, withImage: 0 }, cards, noEn)).toBe(false);
+  });
+
+  it("réimporte quand TCGdex publie enfin les images, en FR ou en EN", () => {
+    const fr = [cards[0]!, { id: "30th-c-026", image: "https://assets.tcgdex.net/fr/me/30th-c/026" }];
+    expect(needsResync({ cards: 2, withImage: 0 }, fr, noEn)).toBe(true);
+    const en = new Map([["30th-c-026", { image: "https://assets.tcgdex.net/en/me/30th-c/026" }]]);
+    expect(needsResync({ cards: 2, withImage: 0 }, cards, en)).toBe(true);
+    expect(needsResync({ cards: 2, withImage: 1 }, cards, en)).toBe(false);
   });
 });
