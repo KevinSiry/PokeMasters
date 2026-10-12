@@ -48,9 +48,6 @@ model User {
   bids        Bid[]
   purchases   Sale[]           @relation("buyer")
   sales       Sale[]           @relation("seller")
-  duelsAsA    Duel[]           @relation("duelA")
-  duelsAsB    Duel[]           @relation("duelB")
-  duelStakes  DuelStake[]
 }
 
 // ───────── Modèles standard Auth.js (adaptateur Prisma) ─────────
@@ -238,10 +235,9 @@ enum Finish {
 enum CopyStatus {
   owned
   listed
-  staked
 }
 
-/// Un exemplaire possédé = une ligne. Un exemplaire listé au marché ou misé en duel change de statut.
+/// Un exemplaire possédé = une ligne. Un exemplaire listé au marché change de statut.
 model CardCopy {
   id          String     @id @default(cuid())
   ownerId     String
@@ -250,12 +246,11 @@ model CardCopy {
   card        Card       @relation(fields: [cardId], references: [id])
   finish      Finish     @default(normal)
   status      CopyStatus @default(owned)
-  /// booster | set_booster | market | duel | seed
+  /// booster | set_booster | market | seed
   obtainedVia String
   openingId   String?
   obtainedAt  DateTime   @default(now())
   listings    Listing[]
-  duelStakes  DuelStake[]
 
   @@index([ownerId, cardId])
   @@index([ownerId, obtainedAt])
@@ -288,6 +283,7 @@ enum LedgerReason {
   set_booster
   set_bonus
   quest
+  /// Historique uniquement : les duels ont été retirés du jeu.
   duel_win
   duel_draw
   duel_loss
@@ -421,93 +417,4 @@ model Sale {
 
   @@index([cardId, createdAt])
   @@index([createdAt])
-}
-
-// ───────── Duels quiz (phase 6) ─────────
-
-enum DuelKind {
-  /// Défi lancé à un joueur précis.
-  challenge
-  /// Duel rapide : deux joueurs de la file d'attente.
-  quick
-  /// Entraînement contre le Professeur (sans mise ni récompense).
-  training
-}
-
-enum DuelStatus {
-  /// Défi envoyé, en attente de l'adversaire.
-  pending
-  /// Les deux mises sont posées, en attente que les deux joueurs entrent dans l'arène.
-  ready
-  active
-  finished
-  cancelled
-  declined
-  expired
-}
-
-model Duel {
-  id         String     @id @default(cuid())
-  kind       DuelKind
-  status     DuelStatus @default(pending)
-  /// Joueur A : celui qui lance le défi (ou le premier de la file).
-  playerAId  String
-  playerA    User       @relation("duelA", fields: [playerAId], references: [id], onDelete: Cascade)
-  /// Joueur B : null pour un entraînement contre le Professeur.
-  playerBId  String?
-  playerB    User?      @relation("duelB", fields: [playerBId], references: [id], onDelete: Cascade)
-  /// Graine du générateur de questions (rejouable en test).
-  seed       String?
-  /// Questions avec leurs bonnes réponses : jamais envoyées au client avant la révélation.
-  questions  Json?
-  scoreA     Int        @default(0)
-  scoreB     Int        @default(0)
-  /// a | b | draw
-  outcome    String?
-  /// Joueur qui a abandonné ou ne s'est pas reconnecté à temps.
-  forfeitBy  String?
-  rewardA    Int?
-  rewardB    Int?
-  createdAt  DateTime   @default(now())
-  /// Échéance d'un défi en attente, ou de l'entrée dans l'arène une fois prêt.
-  expiresAt  DateTime?
-  startedAt  DateTime?
-  finishedAt DateTime?
-  stakes     DuelStake[]
-  answers    DuelAnswer[]
-
-  @@index([playerAId, createdAt])
-  @@index([playerBId, createdAt])
-  @@index([status, expiresAt])
-}
-
-/// Carte misée : l'exemplaire passe en statut `staked` le temps du duel et nourrit les questions.
-model DuelStake {
-  id      String    @id @default(cuid())
-  duelId  String
-  duel    Duel      @relation(fields: [duelId], references: [id], onDelete: Cascade)
-  userId  String
-  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  /// Null si l'exemplaire a été recyclé après le duel : l'historique reste lisible par `cardId`.
-  copyId  String?
-  copy    CardCopy? @relation(fields: [copyId], references: [id], onDelete: SetNull)
-  cardId  String
-
-  @@index([duelId])
-  @@index([copyId])
-}
-
-model DuelAnswer {
-  duelId     String
-  duel       Duel     @relation(fields: [duelId], references: [id], onDelete: Cascade)
-  /// Id du joueur, ou « bot » pour le Professeur.
-  userId     String
-  qIndex     Int
-  /// Null : pas de réponse dans le temps imparti.
-  choice     Int?
-  correct    Boolean
-  answeredMs Int
-  points     Int
-
-  @@id([duelId, userId, qIndex])
 }

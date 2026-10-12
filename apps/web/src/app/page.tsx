@@ -1,5 +1,5 @@
 import { gameConfig, TIERS } from "@pokeflex/config";
-import { Layers, Swords, Sparkles } from "lucide-react";
+import { Layers, Sparkles, Store } from "lucide-react";
 import Link from "next/link";
 import { TierBadge } from "@/components/tier-badge";
 import { TiltCard } from "@/components/tilt-card";
@@ -28,9 +28,9 @@ const STEPS = [
     body: "Toutes les cartes sorties depuis 1999, rangées par série et par set. Complète ton Pokédex de cartes, chasse les reverse et les holos.",
   },
   {
-    icon: Swords,
-    title: "Échange et affronte",
-    body: "Revends tes doubles contre des Jetons au marché, et mise tes cartes en duel de quiz contre d'autres joueurs.",
+    icon: Store,
+    title: "Achète et revends",
+    body: "Revends tes doubles contre des Jetons au marché, à prix fixe ou aux enchères, et trouve la carte qui manque à ton set.",
   },
 ] as const;
 

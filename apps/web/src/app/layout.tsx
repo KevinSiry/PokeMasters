@@ -5,7 +5,6 @@ import "@fontsource/space-mono/700.css";
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import { BottomNav } from "@/components/main-nav";
-import { RealtimeListener } from "@/components/realtime-listener";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { Toaster } from "@/components/toaster";
@@ -44,7 +43,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <SiteFooter />
         <BottomNav loggedIn={Boolean(player)} />
         <Toaster />
-        {player && <RealtimeListener />}
       </body>
     </html>
   );

@@ -54,17 +54,17 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 
 - **Registre des Jetons en ajout seul** (`LedgerEntry`) : chaque modification de solde passe par `applyLedger`, dans la transaction de l'action. Le débit est un `UPDATE … WHERE balance + delta >= 0` atomique, doublé des contraintes `CHECK` sur `User.balance` et `LedgerEntry.balanceAfter`. `npm run audit:ledger` vérifie SUM(delta) = solde pour chaque joueur ; la CI le lance après les tests e2e.
 - **Actions d'un joueur sérialisées** par un verrou sur sa ligne `User` (ouverture, recyclage, réclamation de quête) : deux onglets ou un double clic ne peuvent ni payer deux fois, ni recycler deux fois le même exemplaire, ni réclamer deux fois une récompense (tests de concurrence en base).
-- **Recyclage = suppression de l'exemplaire** ; le registre garde la trace (nombre de cartes par tier). Seuls les exemplaires « possédés » se recyclent (pas ceux en vente ou misés).
-- **« Tous les doublons sauf un »** garde la plus belle finition (1re édition > holo > reverse > normale), puis le plus ancien. Par défaut, les doublons Légendaire et Mythique sont décochés : ils valent davantage au marché et en duel. La liste est recalculée côté serveur au moment de l'action.
+- **Recyclage = suppression de l'exemplaire** ; le registre garde la trace (nombre de cartes par tier). Seuls les exemplaires « possédés » se recyclent (pas ceux en vente).
+- **« Tous les doublons sauf un »** garde la plus belle finition (1re édition > holo > reverse > normale), puis le plus ancien. Par défaut, les doublons Légendaire et Mythique sont décochés : ils valent davantage au marché. La liste est recalculée côté serveur au moment de l'action.
 - **Set complété = toutes ses cartes tirables possédées** : les 1 642 cartes sans image ne sortent jamais d'un booster et rendraient 62 sets impossibles à finir. La progression affichée suit la même règle. Bonus versé une seule fois (`SetCompletion`), même si des cartes sont recyclées ensuite.
 - **Boosters de set** : proposés pour les sets d'au moins 10 cartes tirables, même tirage que le booster gratuit (garantie, redistribution des tiers absents) restreint au set. Pochettes aux couleurs dérivées de l'id du set et logo officiel servi par TCGdex (WebP, repli PNG).
-- **Quêtes du jour créées à la première visite**, identiques pour tous les joueurs un jour donné, remise à zéro à minuit heure de Paris. « Gagner 1 duel » attend la phase 6 ; d'ici là, la troisième quête est « Découvrir 3 nouvelles cartes » (40 Jetons). La récompense se réclame d'un clic (moment de satisfaction plutôt qu'un crédit silencieux).
+- **Quêtes du jour créées à la première visite**, identiques pour tous les joueurs un jour donné, remise à zéro à minuit heure de Paris. Trois modèles : ouvrir 5 boosters, recycler 20 cartes, découvrir 3 nouvelles cartes. La récompense se réclame d'un clic (moment de satisfaction plutôt qu'un crédit silencieux).
 - **Jetons de démo inscrits au registre** (motif `seed`) : 600 pour demo-collection, 2 500 pour demo-marchand.
 - **Menu joueur** : la déconnexion passe dans le menu de l'avatar pour laisser la place au solde dans l'en-tête mobile.
 
 ## Marché (phase 5)
 
-- **Services partagés dans `packages/server`** : la logique en base (registre, quêtes, boosters, recyclage, marché) quitte `apps/web` pour être appelée aussi par le serveur temps réel (clôture des enchères, duels en phase 6).
+- **Services partagés dans `packages/server`** : la logique en base (registre, quêtes, boosters, recyclage, marché) quitte `apps/web` pour être appelée aussi par le serveur temps réel (clôture des enchères).
 - **Annonce = un exemplaire précis**, mis de côté (`listed`) tant qu'elle est active. Index unique partiel : un exemplaire n'a qu'une annonce active. L'exemplaire garde sa finition et rejoint l'acheteur à la vente.
 - **Frais de mise en vente de 5 % (minimum 1 Jeton), non remboursés** si l'annonce est retirée : ils freinent le spam d'annonces et retirent des Jetons de l'économie. 20 annonces actives au plus par joueur, prix de 1 à 1 000 000.
 - **Enchères de 1 h, 12 h ou 24 h**. Une offre réserve les Jetons de l'enchérisseur (`bid_hold`) ; ils lui sont rendus dès qu'il est dépassé (`bid_release`). Pas d'achat immédiat sur une enchère. Incrément minimal : 5 % de l'offre en cours (au moins 1). Une offre dans la dernière minute repousse la fin d'une minute (anti-snipe).
@@ -73,19 +73,9 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 - **Historique des ventes conservé** même si l'exemplaire est recyclé ensuite (`Listing.copyId` passe à NULL). La cote d'une carte = prix moyen des ventes des 30 derniers jours ; le prix suggéré à la mise en vente en découle (sinon 3 × la valeur de recyclage).
 - **Annonces de démo** : le seed met en vente 16 cartes de demo-marchand (doublons puis cartes rares, une sur quatre aux enchères), frais payés au registre.
 
-## Duels quiz (phase 6)
+## Duels retirés
 
-- **Serveur autoritaire et chronométré** : le serveur temps réel envoie chaque question sans la bonne réponse, avec une échéance sur son horloge ; une réponse reçue après l'échéance est refusée. Le client corrige l'affichage du chrono avec l'écart d'horloge mesuré. Les questions (et leurs réponses) sont tirées et enregistrées en base avant la première question, avec leur graine : un duel est rejouable en test.
-- **Générateur pur** (`packages/game/src/duel.ts`) : 8 gabarits (type, PV, faiblesse, illustrateur, set, attaque, coût de retraite, n° de Pokédex), répartis équitablement entre les 6 cartes misées, jamais deux fois le même gabarit sur une carte. Un gabarit est ignoré si la carte n'a pas la donnée. Mauvaises réponses plausibles : PV et numéros proches, sets de la même série d'abord, attaques et illustrateurs tirés du catalogue.
-- **Questions avec image : illustration seule.** Le bas de la carte porte le nom de l'illustrateur et le symbole du set ; l'arène ne montre que le haut de la carte. Les questions sans image nomment la carte et son set (un Pikachu n'a pas les mêmes PV partout).
-- **Score** : 100 points par bonne réponse plus un bonus de vitesse jusqu'à 50, linéaire. Révélation dès que les deux ont répondu, sinon à la fin des 15 s.
-- **Mises** : 3 cartes différentes par joueur, bloquées (`staked`) pendant le duel et toujours rendues ; elles nourrissent les questions. `winnerTakesStake` (désactivé) ferait gagner une carte de la mise adverse. Trois cartes au hasard sont proposées d'emblée pour ne pas freiner le lancement.
-- **Trois façons de jouer** : défi à un joueur par son pseudo (15 min pour accepter), duel rapide (file d'attente en mémoire du serveur temps réel) et entraînement contre le Professeur Chen (sans mise, sans Jetons, sans quête), pour essayer seul.
-- **Récompenses** : 60 / 25 / 10 Jetons, 10 duels récompensés par jour (heure de Paris), rien pour celui qui abandonne. La quête « Gagner 1 duel » est activée : elle entre dans le tirage des 3 quêtes du jour.
-- **Déconnexion** : 30 s pour revenir (reconnexion automatique, l'arène reprend où elle en était), sinon forfait. Un défi accepté laisse 2 min aux deux joueurs pour entrer dans l'arène, sinon il est annulé et les cartes rendues. Un redémarrage du serveur temps réel annule les duels en cours et rend les cartes.
-- **État des duels en mémoire** dans un seul processus temps réel (Redis non nécessaire tant qu'il n'y a qu'une instance) ; la base reste la source de vérité des mises, scores et Jetons.
-- **Notifications en direct** : un défi reçu, accepté ou refusé s'affiche en toast sur toutes les pages. Le navigateur prévient le serveur temps réel après l'action ; celui-ci vérifie en base avant de relayer.
-- **Navigation** : onglet Duels ajouté ; la barre du bas mobile passe à 6 onglets pour un joueur connecté (lisible à 360 px).
+- **Les duels quiz ont été retirés du jeu** (décision de Kevin, 2026-10-12), après leur fusion en phase 6. Tables, écrans, onglet, quête « Gagner 1 duel » et moteur temps réel sont supprimés ; une migration rend les cartes encore misées et efface les quêtes de duel non réclamées. Les lignes de registre `duel_*` restent pour que l'historique des Jetons reste juste.
 
 ## Docker Compose (phase 5)
 

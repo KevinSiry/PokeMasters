@@ -119,7 +119,6 @@ export const gameConfig = {
       { kind: "open_boosters", target: 5, reward: 30, labelFr: "Ouvrir 5 boosters", enabled: true },
       { kind: "recycle_cards", target: 20, reward: 30, labelFr: "Recycler 20 cartes", enabled: true },
       { kind: "new_cards", target: 3, reward: 40, labelFr: "Découvrir 3 nouvelles cartes", enabled: true },
-      { kind: "win_duel", target: 1, reward: 50, labelFr: "Gagner 1 duel", enabled: true },
     ],
   },
 
@@ -143,33 +142,6 @@ export const gameConfig = {
     minBidIncrementRate: 0.05,
     /** Fenêtre du prix moyen affiché sur une carte. */
     averagePriceWindowMs: 30 * 24 * HOUR,
-  },
-
-  duels: {
-    stakeSize: 3,
-    questionCount: 10,
-    choicesPerQuestion: 4,
-    questionTimeMs: 15_000,
-    reconnectGraceMs: 30_000,
-    pointsPerCorrect: 100,
-    /** Bonus vitesse maximal (réponse instantanée), décroissant linéairement jusqu'à 0. */
-    maxSpeedBonus: 50,
-    rewards: { win: 60, draw: 25, loss: 10 },
-    rewardedDuelsPerDay: 10,
-    /** Le gagnant remporte une carte misée par l'adversaire. Désactivé par défaut. */
-    winnerTakesStake: false,
-    /** Un défi sans réponse expire au bout de ce délai (les cartes misées reviennent). */
-    challengeTtlMs: 15 * MINUTE,
-    /** Une fois les deux mises posées, délai pour que les deux joueurs entrent dans l'arène. */
-    joinWindowMs: 2 * MINUTE,
-    /** Défis en attente envoyés par un même joueur. */
-    maxPendingChallenges: 5,
-    /** Compte à rebours avant la première question. */
-    countdownMs: 3_000,
-    /** Pause sur la bonne réponse entre deux questions. */
-    revealMs: 2_800,
-    /** Entraînement contre le Professeur : sans mise, sans Jetons, sans quête. */
-    bot: { name: "Professeur Chen", accuracy: 0.65, minAnswerMs: 2_500, maxAnswerMs: 10_000 },
   },
 
   social: {
