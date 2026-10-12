@@ -2,7 +2,7 @@
 export interface NavItem {
   href: string;
   label: string;
-  icon: "home" | "catalogue" | "search";
+  icon: "home" | "catalogue" | "search" | "booster" | "collection";
   /** Réservé aux joueurs connectés. */
   auth?: boolean;
 }
@@ -10,6 +10,8 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Accueil", icon: "home" },
   { href: "/catalogue", label: "Catalogue", icon: "catalogue" },
+  { href: "/boosters", label: "Boosters", icon: "booster", auth: true },
+  { href: "/collection", label: "Collection", icon: "collection", auth: true },
   { href: "/recherche", label: "Recherche", icon: "search" },
 ];
 

@@ -21,7 +21,9 @@ export async function POST(req: NextRequest) {
   const expires = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
   await prisma.session.create({ data: { sessionToken, userId: user.id, expires } });
 
-  const res = NextResponse.redirect(new URL("/", req.url), { status: 303 });
+  const suite = String(form.get("suite") ?? "/");
+  const target = suite.startsWith("/") && !suite.startsWith("//") ? suite : "/";
+  const res = NextResponse.redirect(new URL(target, req.url), { status: 303 });
   res.cookies.set("authjs.session-token", sessionToken, {
     httpOnly: true,
     sameSite: "lax",

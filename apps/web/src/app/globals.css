@@ -171,6 +171,7 @@
 /* ───────── Vignettes de cartes ─────────
  * Couleur du tier exposée en --tier pour le liseré, le halo et le pictogramme.
  */
+.pf-tile { --tier: var(--color-accent); }
 [data-tier="common"] { --tier: var(--color-tier-common); }
 [data-tier="uncommon"] { --tier: var(--color-tier-uncommon); }
 [data-tier="rare"] { --tier: var(--color-tier-rare); }
@@ -250,4 +251,103 @@
   .pf-shimmer { animation: none; }
   .pf-tile-frame { transition: none; }
   .pf-tile:hover .pf-tile-frame { transform: none; }
+}
+
+/* ───────── Booster : pochette, dos de carte, effets d'ouverture ───────── */
+.pf-pack {
+  position: relative;
+  aspect-ratio: 5 / 8.2;
+  border-radius: 14px;
+  background:
+    radial-gradient(120% 70% at 50% 38%, rgb(255 255 255 / 0.12), transparent 60%),
+    linear-gradient(160deg, #3A1D8C 0%, #6A45F0 32%, #C42A5A 68%, #FF8A5C 100%);
+  box-shadow:
+    inset 0 0 0 2px rgb(255 255 255 / 0.14),
+    inset 0 -40px 60px -30px rgb(0 0 0 / 0.5),
+    0 30px 60px -24px rgb(0 0 0 / 0.9),
+    0 0 80px -20px color-mix(in srgb, var(--color-accent) 60%, transparent);
+  overflow: hidden;
+  /* Bords sertis en haut et en bas, comme une vraie pochette. */
+  -webkit-mask:
+    radial-gradient(6px at 50% 0, transparent 98%, #000) 50% 0 / 12px 51% repeat-x,
+    radial-gradient(6px at 50% 100%, transparent 98%, #000) 50% 100% / 12px 51% repeat-x;
+  mask:
+    radial-gradient(6px at 50% 0, transparent 98%, #000) 50% 0 / 12px 51% repeat-x,
+    radial-gradient(6px at 50% 100%, transparent 98%, #000) 50% 100% / 12px 51% repeat-x;
+}
+.pf-pack::before {
+  /* Motif prismatique en losanges. */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(45deg, rgb(255 255 255 / 0.05) 0 2px, transparent 2px 14px),
+    repeating-linear-gradient(-45deg, rgb(255 255 255 / 0.05) 0 2px, transparent 2px 14px);
+  pointer-events: none;
+}
+.pf-pack::after {
+  /* Reflet métallisé qui balaie la pochette. */
+  content: "";
+  position: absolute;
+  inset: -40%;
+  background: linear-gradient(105deg, transparent 40%, rgb(255 255 255 / 0.45) 50%, transparent 60%);
+  transform: translateX(-60%);
+  animation: pf-sheen 3.6s ease-in-out infinite;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+.pf-pack[data-empty="true"] {
+  filter: grayscale(0.85) brightness(0.55);
+}
+.pf-pack[data-empty="true"]::after {
+  animation: none;
+}
+@keyframes pf-sheen {
+  0%, 35% { transform: translateX(-60%); }
+  70%, 100% { transform: translateX(60%); }
+}
+
+.pf-card-back {
+  position: relative;
+  aspect-ratio: 63 / 88;
+  border-radius: var(--radius-card);
+  background:
+    radial-gradient(circle at 50% 50%, rgb(139 108 255 / 0.55), transparent 55%),
+    repeating-conic-gradient(from 0deg at 50% 50%, #1D1238 0deg 10deg, #24174A 10deg 20deg),
+    #1A1033;
+  box-shadow: inset 0 0 0 5px #2B1E57, inset 0 0 0 7px color-mix(in srgb, var(--color-coral) 70%, transparent), 0 20px 40px -18px rgb(0 0 0 / 0.9);
+  overflow: hidden;
+}
+.pf-card-back::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(125deg, transparent 30%, rgb(255 255 255 / 0.16) 45%, transparent 60%);
+  pointer-events: none;
+}
+
+/* Lumière qui filtre par les bords avant la révélation d'une carte rare. */
+.pf-leak {
+  animation: pf-leak 0.45s ease-in-out infinite alternate;
+}
+@keyframes pf-leak {
+  from { box-shadow: 0 0 18px 2px color-mix(in srgb, var(--tier) 55%, transparent), 0 0 0 2px var(--tier); }
+  to { box-shadow: 0 0 60px 14px color-mix(in srgb, var(--tier) 85%, transparent), 0 0 0 3px var(--tier); }
+}
+
+/* Rayons tournants derrière une carte Légendaire ou Mythique. */
+.pf-rays {
+  background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--tier) 55%, transparent) 0deg 8deg, transparent 8deg 22deg);
+  -webkit-mask: radial-gradient(circle, #000 20%, transparent 68%);
+  mask: radial-gradient(circle, #000 20%, transparent 68%);
+  animation: pf-spin 9s linear infinite;
+}
+.pf-rays[data-tier="mythic"] {
+  background: repeating-conic-gradient(from 0deg, rgb(255 111 181 / 0.55) 0deg 7deg, transparent 7deg 15deg, rgb(122 215 255 / 0.55) 15deg 22deg, transparent 22deg 30deg, rgb(255 216 107 / 0.6) 30deg 37deg, transparent 37deg 45deg);
+}
+@keyframes pf-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-pack::after, .pf-leak, .pf-rays { animation: none; }
 }

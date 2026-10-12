@@ -58,6 +58,8 @@ jobs:
   windows:
     name: Installation et tests unitaires (Windows)
     runs-on: windows-latest
+    env:
+      SKIP_DB_TESTS: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

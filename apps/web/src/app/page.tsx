@@ -4,6 +4,7 @@ import Link from "next/link";
 import { TierBadge } from "@/components/tier-badge";
 import { TiltCard } from "@/components/tilt-card";
 import { Button } from "@/components/ui/button";
+import { PlayerHome } from "@/components/home/player-home";
 import { getCurrentPlayerSafe } from "@/lib/player";
 
 // Trois cartes du Set de Base (1999), servies par le CDN TCGdex.
@@ -35,6 +36,7 @@ const STEPS = [
 
 export default async function HomePage() {
   const player = await getCurrentPlayerSafe();
+  if (player) return <PlayerHome player={player} />;
 
   return (
     <>
@@ -48,28 +50,13 @@ export default async function HomePage() {
             Ouvre, collectionne et échange les vraies cartes du jeu, du Set de Base aux séries les plus récentes.
           </p>
           <div className="flex flex-wrap gap-3">
-            {player ? (
-              <Button size="lg" disabled title="L'ouverture des boosters arrive à la phase 3">
-                Ouvrir un booster
-              </Button>
-            ) : (
               <Button asChild size="lg">
                 <Link href="/connexion">Commencer à collectionner</Link>
               </Button>
-            )}
             <Button asChild size="lg" variant="secondary">
               <Link href="/catalogue">Explorer le catalogue</Link>
             </Button>
           </div>
-          {player && (
-            <p className="text-sm text-muted">
-              Salut {player.displayName}. Tu as{" "}
-              <strong className="text-fg">
-                {player.boosters.available} booster{player.boosters.available > 1 ? "s" : ""}
-              </strong>{" "}
-              en réserve. L&apos;ouverture arrive avec la prochaine mise à jour.
-            </p>
-          )}
         </div>
 
         <div className="relative mx-auto flex w-full max-w-md items-end justify-center py-6" aria-label="Exemples de cartes">

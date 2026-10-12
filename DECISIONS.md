@@ -37,6 +37,19 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 - **Échantillon de catalogue dans le seed** (Set de Base + 151, données réelles exportées par `npm run fixture:export`) : la CI et une première découverte hors ligne ont des cartes à montrer.
 - **Navigation mobile** : barre d'onglets en bas de l'écran (zone du pouce), liens dans l'en-tête sur ordinateur.
 
+## Boosters et collection (phase 3)
+
+- **Tirage entièrement côté serveur, avant toute animation** : la transaction verrouille la ligne du joueur (`SELECT … FOR UPDATE`), consomme le booster, tire les cartes et crée les exemplaires ; le client ne fait que révéler un résultat déjà enregistré. Quatre ouvertures simultanées avec un seul booster en stock donnent un seul succès (test d'intégration).
+- **Meilleure carte révélée en dernier** : les emplacements sont triés par tier. Garantie d'au moins une Peu commune ; un tier absent du pool redistribue son poids.
+- **Finition tirée parmi les variantes réelles** de la carte (normale, reverse, holo, 1re édition) selon les poids de `config/game.ts` ; sans variante connue, finition normale.
+- **Pools de tirage en mémoire** (ids par tier, rafraîchis toutes les 10 minutes) : l'ouverture ne scanne pas 21 000 cartes. Le tier enregistré est celui du tirage.
+- **Animation avec `motion`** (ex-Framer Motion) : machine d'états charge → déchirure → révélation → récapitulatif, suspense et lueur proportionnels à la rareté, flash et rayons pour Légendaire et Mythique, retour haptique, clavier (Espace, Entrée, flèche droite), balayage, « Tout révéler ». Tout est respecté en mouvement réduit.
+- **Dos de carte original PokeFlex** : aucun visuel officiel n'est copié.
+- **Pokédex de cartes par génération** : un Pokémon compte comme « vu » dès qu'une de ses cartes est possédée ; les cartes non possédées s'affichent en silhouette.
+- **Collections de démo simulées par le seed** (RNG à graine fixe : 120 boosters pour demo-collection, 60 pour demo-marchand) afin de voir la collection, le Pokédex et plus tard le marché remplis.
+- **E2E avec sessions en base** : le `globalSetup` Playwright crée des sessions Auth.js pour les comptes de démo, sans passer par un fournisseur OAuth.
+- **Tests d'intégration base désactivables** (`SKIP_DB_TESTS=1`) : la CI Windows n'a pas de Postgres ; la CI Linux les exécute.
+
 ## Versions
 
 - **Next.js 15.5, Prisma 6.19, TypeScript 5.9, Vitest 3, ESLint 9** plutôt que les dernières majeures (Next 16, Prisma 7, TS 7) : versions éprouvées, documentation stable. Migration à reconsidérer en phase 8.
