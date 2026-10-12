@@ -4,7 +4,6 @@
 import { gameConfig } from "@pokeflex/config";
 import { auditLedger, prisma } from "@pokeflex/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createChallenge } from "./duels";
 import {
   blockUser,
   createGuild,
@@ -150,7 +149,6 @@ describe.skipIf(skip)("social (Postgres)", () => {
     expect((await getFriends(a.id)).friends).toHaveLength(0);
     expect(await code(sendDirectMessage(a.id, b.id, "coucou"))).toBe("blocked");
     expect(await code(sendFriendRequest(a.id, b.handle))).toBe("blocked");
-    expect(await code(createChallenge(a.id, b.handle, []))).toBe("blocked");
     await reportUser(b.id, a.id, "insult", "pas sympa");
     expect(await code(reportUser(b.id, a.id, "insult"))).toBe("already");
     await unblockUser(b.id, a.id);

@@ -246,11 +246,11 @@ export async function getPublicProfile(handle: string, viewerId?: string | null)
     },
   });
   if (!user) return null;
-  const [cards, sets, duels, showcase, friends, relation] = await Promise.all([
+  const [cards, sets, sales, showcase, friends, relation] = await Promise.all([
     prisma.$queryRaw<{ distinct: bigint; copies: bigint }[]>`
       SELECT count(DISTINCT "cardId") AS distinct, count(*) AS copies FROM "CardCopy" WHERE "ownerId" = ${user.id}`,
     prisma.setCompletion.count({ where: { userId: user.id } }),
-    duelRecord(user.id),
+    prisma.sale.count({ where: { sellerId: user.id } }),
     showcaseCards(user.id, user.showcase),
     prisma.friendship.count({ where: { userId: user.id, status: "accepted" } }),
     viewerId ? relationBetween(viewerId, user.id) : Promise.resolve(null),
@@ -265,7 +265,7 @@ export async function getPublicProfile(handle: string, viewerId?: string | null)
       copies: Number(cards[0]?.copies ?? 0),
       setsCompleted: sets,
       friends,
-      ...duels,
+      sales,
     },
     showcase,
     relation,
@@ -273,19 +273,6 @@ export async function getPublicProfile(handle: string, viewerId?: string | null)
 }
 
 export type PublicProfile = NonNullable<Awaited<ReturnType<typeof getPublicProfile>>>;
-
-async function duelRecord(userId: string) {
-  const rows = await prisma.$queryRaw<{ wins: bigint; played: bigint }[]>`
-    SELECT
-      count(*) FILTER (WHERE ("playerAId" = ${userId} AND outcome = 'a') OR ("playerBId" = ${userId} AND outcome = 'b')) AS wins,
-      count(*) AS played
-    FROM "Duel"
-    WHERE status = 'finished' AND kind <> 'training' AND ("playerAId" = ${userId} OR "playerBId" = ${userId})`;
-  return {
-    duelWins: Number(rows[0]?.wins ?? 0),
-    duelsPlayed: Number(rows[0]?.played ?? 0),
-  };
-}
 
 /** Joueurs par pseudo ou nom, hors soi-même et hors blocages. */
 export async function searchPlayers(viewerId: string | null, q: string, take = 10): Promise<PlayerRef[]> {
@@ -914,7 +901,7 @@ export async function getGuildMessages(guildId: string, take = 60): Promise<Chat
 
 // ───────── Classements ─────────
 
-export const LEADERBOARD_KINDS = ["collection", "sets", "duels"] as const;
+export const LEADERBOARD_KINDS = ["collection", "sets", "market"] as const;
 export type LeaderboardKind = (typeof LEADERBOARD_KINDS)[number];
 
 export interface LeaderboardEntry extends PlayerRef {
@@ -932,10 +919,7 @@ async function computeLeaderboard(kind: LeaderboardKind, take: number) {
         ? await prisma.$queryRaw<{ userId: string; value: bigint }[]>`
             SELECT "userId", count(*) AS value FROM "SetCompletion" GROUP BY "userId" ORDER BY value DESC LIMIT ${take}`
         : await prisma.$queryRaw<{ userId: string; value: bigint }[]>`
-            SELECT w AS "userId", count(*) AS value FROM (
-              SELECT CASE outcome WHEN 'a' THEN "playerAId" WHEN 'b' THEN "playerBId" END AS w
-              FROM "Duel" WHERE status = 'finished' AND kind <> 'training' AND outcome IN ('a', 'b')
-            ) t WHERE w IS NOT NULL GROUP BY w ORDER BY value DESC LIMIT ${take}`;
+            SELECT "sellerId" AS "userId", count(*) AS value FROM "Sale" GROUP BY "sellerId" ORDER BY value DESC LIMIT ${take}`;
   const users = await prisma.user.findMany({
     where: { id: { in: rows.map((r) => r.userId) } },
     select: playerSelect,

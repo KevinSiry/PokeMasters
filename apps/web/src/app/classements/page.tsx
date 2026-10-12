@@ -1,5 +1,5 @@
 import { getLeaderboard, LEADERBOARD_KINDS, type LeaderboardEntry, type LeaderboardKind } from "@pokeflex/server";
-import { Crown, Layers, Swords, Trophy } from "lucide-react";
+import { Crown, Layers, Store, Trophy } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PlayerAvatar } from "@/components/player-avatar";
@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Classements",
-  description: "Les meilleurs dresseurs de PokeFlex : plus grandes collections, sets complétés et victoires en duel.",
+  description: "Les meilleurs dresseurs de PokeFlex : plus grandes collections, sets complétés et meilleurs vendeurs du marché.",
 };
 
 const KINDS: Record<
@@ -32,11 +32,11 @@ const KINDS: Record<
     icon: Trophy,
     blurb: "Sets entièrement complétés.",
   },
-  duels: {
-    label: "Duels",
-    unit: (n) => `victoire${n > 1 ? "s" : ""}`,
-    icon: Swords,
-    blurb: "Victoires en duel (hors entraînement).",
+  market: {
+    label: "Marché",
+    unit: (n) => `vente${n > 1 ? "s" : ""}`,
+    icon: Store,
+    blurb: "Cartes vendues au marché.",
   },
 };
 

@@ -1,5 +1,5 @@
 import { getPublicProfile } from "@pokeflex/server";
-import { CalendarDays, Layers, Pencil, Shield, Swords, Trophy, Users } from "lucide-react";
+import { CalendarDays, Layers, Pencil, Shield, Store, Trophy, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -42,12 +42,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ handle:
   const statItems = [
     { icon: Layers, label: "Cartes différentes", value: stats.distinctCards },
     { icon: Trophy, label: "Sets complétés", value: stats.setsCompleted },
-    {
-      icon: Swords,
-      label: "Duels gagnés",
-      value: stats.duelWins,
-      hint: stats.duelsPlayed > 0 ? `sur ${stats.duelsPlayed}` : undefined,
-    },
+    { icon: Store, label: "Ventes au marché", value: stats.sales },
     { icon: Users, label: "Amis", value: stats.friends },
   ];
 
@@ -107,7 +102,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ handle:
         </div>
         {profile.bio && <p className="max-w-[65ch] text-sm whitespace-pre-line">{frenchSpacing(profile.bio)}</p>}
         <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {statItems.map(({ icon: Icon, label, value, hint }) => (
+          {statItems.map(({ icon: Icon, label, value }) => (
             <div key={label} className="grid gap-0.5 rounded-xl border border-line bg-bg/60 px-3 py-2.5">
               <dt className="flex items-center gap-1.5 text-[11px] text-muted">
                 <Icon aria-hidden="true" className="size-3.5" />
@@ -115,7 +110,6 @@ export default async function PlayerPage({ params }: { params: Promise<{ handle:
               </dt>
               <dd className="font-display text-xl font-bold font-tabular">
                 {value.toLocaleString("fr-FR")}
-                {hint && <span className="ml-1 text-xs font-normal text-muted">{hint}</span>}
               </dd>
             </div>
           ))}

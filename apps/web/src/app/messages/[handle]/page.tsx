@@ -1,6 +1,6 @@
 import { gameConfig } from "@pokeflex/config";
 import { getConversation, getPlayerByHandle, relationBetween } from "@pokeflex/server";
-import { ArrowLeft, Swords } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -44,14 +44,6 @@ export default async function ConversationPage({ params }: { params: Promise<{ h
             <span className="truncate text-xs text-muted">@{other.handle}</span>
           </span>
         </Link>
-        {!blocked && (
-          <Button asChild size="sm" variant="secondary">
-            <Link href={`/duels?defi=${encodeURIComponent(other.handle ?? "")}`}>
-              <Swords aria-hidden="true" />
-              <span className="hidden sm:inline">Défier</span>
-            </Link>
-          </Button>
-        )}
       </header>
       <DmChat key={other.id} me={player.id} other={other} initial={messages} maxLength={gameConfig.social.messageMaxLength} blocked={blocked} />
     </section>

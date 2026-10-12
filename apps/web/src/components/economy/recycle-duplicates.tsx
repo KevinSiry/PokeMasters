@@ -17,7 +17,7 @@ import { cn, formatJetons } from "@/lib/utils";
 
 type Row = { tier: Tier; count: number; value: number };
 
-/** Par défaut on garde les doublons Légendaire et Mythique : ils valent cher au marché et en duel. */
+/** Par défaut on garde les doublons Légendaire et Mythique : ils valent cher au marché. */
 const DEFAULT_TIERS: Tier[] = ["common", "uncommon", "rare", "epic"];
 
 function CountUp({ to }: { to: number }) {

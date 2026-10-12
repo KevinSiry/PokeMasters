@@ -56,7 +56,7 @@ export function DmChat({ me, other, initial, maxLength, blocked }: { me: string;
         <span>
           Dis bonjour à <strong className="text-fg">{other.name}</strong> !
           <br />
-          Propose un échange ou lance-lui un défi.
+          Parle-lui de ta collection ou d'une carte qui t'intéresse.
         </span>
       }
       onSend={async (body) => {

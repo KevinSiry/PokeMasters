@@ -15,8 +15,8 @@ test.describe("social", () => {
   test("les classements s'affichent", async ({ page }) => {
     await page.goto("/classements");
     await expect(page.getByRole("heading", { name: "Classements" })).toBeVisible();
-    await page.getByRole("link", { name: "Duels" }).last().click();
-    await expect(page).toHaveURL(/type=duels/);
+    await page.getByRole("navigation", { name: "Catégories" }).getByRole("link", { name: "Marché" }).click();
+    await expect(page).toHaveURL(/type=market/);
   });
 
   test.describe("joueurs connectés", () => {

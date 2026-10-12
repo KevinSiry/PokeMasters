@@ -1,6 +1,6 @@
 # PokeFlex
 
-Fan game web **non officiel et non commercial** de collection de cartes Pokémon. Toutes les cartes sorties depuis 1999, un booster gratuit toutes les 10 minutes, un marché entre joueurs et des duels de quiz. Les données et les images viennent de [TCGdex](https://tcgdex.dev).
+Fan game web **non officiel et non commercial** de collection de cartes Pokémon. Toutes les cartes sorties depuis 1999, un booster gratuit toutes les 10 minutes, et un marché entre joueurs. Les données et les images viennent de [TCGdex](https://tcgdex.dev).
 
 > PokeFlex n'est pas affilié à The Pokémon Company, Nintendo, Creatures ou Game Freak. Aucun paiement, aucune publicité ; les Jetons n'ont aucune valeur réelle.
 
@@ -104,8 +104,6 @@ Les **Jetons** (sans valeur réelle) se gagnent en recyclant des cartes, en term
 
 Le **Marché** permet d'acheter et de vendre des cartes entre joueurs, à prix fixe ou aux enchères. Pour vendre, ouvre la fiche d'une carte possédée, section « Dans ta collection », bouton **Vendre**. Tes annonces sont dans « Mes ventes », tes offres dans « Mes enchères ». Le compte **demo-marchand** a déjà 16 cartes en vente pour essayer.
 
-Les **Duels** opposent deux joueurs sur 10 questions à propos des cartes qu'ils misent (3 chacun, toujours rendues), avec 15 secondes par question. Pour essayer seul, lance un **Entraînement** contre le Professeur Chen. Pour un vrai duel en local, ouvre une fenêtre de navigation privée, connecte-toi avec un autre compte de démo, puis défie-le par son pseudo (par exemple `demo-marchand`).
-
 Côté **social**, chaque joueur a un profil public avec une vitrine de 6 cartes (`/joueurs/<pseudo>`). Le menu de l'avatar mène aux **Amis**, aux **Guildes** (chat en direct, fonder coûte 2 000 Jetons) et aux **Classements**, mis à jour toutes les heures ; la bulle de l'en-tête ouvre les **Messages**. Pour essayer à deux, utilise une fenêtre privée avec un autre compte de démo.
 
 ### 6. Brancher la connexion Twitch et Discord
@@ -160,9 +158,9 @@ Toutes dans `.env` à la racine (modèle : `.env.example`).
 
 ```
 apps/web         Next.js (App Router) : pages, connexion, actions serveur
-apps/realtime    Serveur Socket.IO (duels, messagerie) et tâches de fond
+apps/realtime    Serveur Socket.IO (messagerie) et tâches de fond
 packages/db      Schéma Prisma, migrations, seed, client partagé
-packages/game    Logique métier pure et testée (minuteur, tirages, économie, duels)
+packages/game    Logique métier pure et testée (minuteur, tirages, économie)
 config/game.ts   Tous les paramètres d'équilibrage
 ```
 

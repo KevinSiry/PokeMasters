@@ -33,7 +33,7 @@ export default async function FriendsPage() {
             <Users aria-hidden="true" className="size-7 text-lime" />
             Amis
           </h1>
-          <p className="text-sm text-muted">Ajoute des dresseurs pour comparer vos collections, discuter et vous défier.</p>
+          <p className="text-sm text-muted">Ajoute des dresseurs pour comparer vos collections et discuter.</p>
         </div>
         <AddFriend />
       </header>

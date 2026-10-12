@@ -12,15 +12,9 @@ interface DirectMessage {
   author: { id: string; name: string; handle: string | null };
 }
 
-interface DuelUpdate {
-  duelId: string;
-  status: string;
-  from?: string;
-}
-
 /**
  * Notifications en direct pour un joueur connecté, sur toutes les pages :
- * défi reçu, accepté, refusé ou expiré ; message privé ; demande d'ami.
+ * message privé, demande d'ami, exclusion de guilde.
  * Les compteurs de l'en-tête (messages non lus, demandes d'ami) sont rafraîchis au passage.
  */
 export function RealtimeListener({ me }: { me: string }) {
@@ -30,19 +24,6 @@ export function RealtimeListener({ me }: { me: string }) {
   useEffect(() => {
     getSocket();
   }, []);
-
-  useSocketEvent<DuelUpdate>("duel:update", ({ duelId, status }) => {
-    if (pathname === "/duels") router.refresh();
-    if (status === "pending") {
-      toast({ title: "Nouveau défi !", description: "Un joueur te défie en duel quiz.", tone: "info", action: { label: "Voir", href: "/duels" } });
-    } else if (status === "ready") {
-      toast({ title: "Défi accepté !", description: "Ton adversaire t'attend dans l'arène.", action: { label: "Entrer", href: `/duels/${duelId}` } });
-    } else if (status === "declined") {
-      toast({ title: "Défi refusé", description: "Tes cartes misées te sont rendues.", tone: "info" });
-    } else if (status === "expired") {
-      toast({ title: "Défi expiré", description: "Personne n'a répondu : les cartes misées sont rendues.", tone: "info" });
-    }
-  });
 
   useSocketEvent<DirectMessage>("dm:new", (m) => {
     if (m.author.id === me) return;

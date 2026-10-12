@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, GalleryVerticalEnd, Home, Search, Sparkles, Store, Swords, Trophy, type LucideIcon } from "lucide-react";
+import { BookOpen, GalleryVerticalEnd, Home, Search, Sparkles, Store, Trophy, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV_ITEMS, isActive, type NavItem } from "@/lib/nav";
@@ -13,7 +13,6 @@ const ICONS: Record<NavItem["icon"], LucideIcon> = {
   booster: Sparkles,
   collection: GalleryVerticalEnd,
   market: Store,
-  duel: Swords,
   ranking: Trophy,
 };
 

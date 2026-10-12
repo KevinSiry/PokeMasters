@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Gift, PackageOpen, Recycle, Sparkles, Swords } from "lucide-react";
+import { Check, Gift, PackageOpen, Recycle, Sparkles } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
@@ -21,7 +21,7 @@ export interface QuestRow {
   claimed: boolean;
 }
 
-const ICONS: Record<string, typeof Gift> = { open_boosters: PackageOpen, recycle_cards: Recycle, new_cards: Sparkles, win_duel: Swords };
+const ICONS: Record<string, typeof Gift> = { open_boosters: PackageOpen, recycle_cards: Recycle, new_cards: Sparkles };
 
 function useResetIn(resetAt: string) {
   const [now, setNow] = useState<number | null>(null);

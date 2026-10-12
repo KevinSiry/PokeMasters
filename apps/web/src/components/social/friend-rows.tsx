@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, MessageCircle, Swords, UserMinus, X } from "lucide-react";
+import { Check, MessageCircle, UserMinus, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
@@ -50,11 +50,6 @@ export function FriendRow({ player }: { player: Player }) {
       <Button asChild size="sm" variant="ghost" className="w-9 px-0">
         <Link href={`/messages/${player.handle}`} aria-label={`Écrire à ${player.name}`}>
           <MessageCircle aria-hidden="true" />
-        </Link>
-      </Button>
-      <Button asChild size="sm" variant="ghost" className="w-9 px-0">
-        <Link href={`/duels?defi=${encodeURIComponent(player.handle ?? "")}`} aria-label={`Défier ${player.name}`}>
-          <Swords aria-hidden="true" />
         </Link>
       </Button>
       <Button

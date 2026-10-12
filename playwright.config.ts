@@ -28,7 +28,7 @@ export default defineConfig({
       timeout: 120_000,
     },
     {
-      // Serveur temps réel (duels).
+      // Serveur temps réel (messagerie).
       command: "npm run start -w @pokeflex/realtime",
       url: "http://localhost:3001/health",
       reuseExistingServer: !process.env.CI,

@@ -1,6 +1,6 @@
 "use client";
 
-import { Ban, Check, Flag, Loader2, MessageCircle, MoreHorizontal, Swords, UserCheck, UserMinus, UserPlus, X } from "lucide-react";
+import { Ban, Check, Flag, Loader2, MessageCircle, MoreHorizontal, UserCheck, UserMinus, UserPlus, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
@@ -24,7 +24,7 @@ export function pingSocial(to: string) {
   getSocket().emit("social:ping", { to });
 }
 
-/** Boutons d'un profil public : ami, message, défi, et menu (retirer, bloquer, signaler). */
+/** Boutons d'un profil public : ami, message, et menu (retirer, bloquer, signaler). */
 export function ProfileActions({ target, relation }: { target: Target; relation: Relation }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -145,12 +145,6 @@ export function ProfileActions({ target, relation }: { target: Target; relation:
               Message
             </Link>
           </Button>
-          <Button asChild size="sm" variant="secondary">
-            <Link href={`/duels?defi=${encodeURIComponent(target.handle)}`}>
-              <Swords aria-hidden="true" />
-              Défier
-            </Link>
-          </Button>
         </>
       )}
       <div ref={menuRef} className="relative">
@@ -224,7 +218,7 @@ export function ProfileActions({ target, relation }: { target: Target; relation:
         open={confirmBlock}
         onClose={() => setConfirmBlock(false)}
         title={`Bloquer ${target.name} ?`}
-        description="Vous ne pourrez plus vous écrire, vous ajouter en ami ni vous défier. Il n'en est pas averti."
+        description="Vous ne pourrez plus vous écrire, ni vous ajouter en ami. Il n'en est pas averti."
       >
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={() => setConfirmBlock(false)}>

@@ -1,6 +1,6 @@
 import { gameConfig, TIER_LABELS_FR, type Tier } from "@pokeflex/config";
 import type { LedgerReason } from "@pokeflex/db";
-import { Gift, Library, Recycle, Swords, Target, Trophy } from "lucide-react";
+import { Gift, Library, Recycle, Store, Swords, Target, Trophy } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -59,7 +59,7 @@ export default async function JetonsPage({ searchParams }: { searchParams: Searc
     { icon: Recycle, title: "Recycler", text: `De ${gameConfig.economy.recycleValue.common} à ${gameConfig.economy.recycleValue.mythic} Jetons par carte selon la rareté.`, href: "/collection?vue=cartes&tri=duplicates" },
     { icon: Target, title: "Quêtes du jour", text: "Trois quêtes chaque jour, jusqu'à 50 Jetons chacune.", href: "/#quetes" },
     { icon: Trophy, title: "Compléter un set", text: `${gameConfig.economy.setCompletionBonusPerCard} Jetons par carte officielle du set, une fois.`, href: "/collection" },
-    { icon: Swords, title: "Duels", text: "Bientôt : des Jetons à chaque duel quiz.", href: null },
+    { icon: Store, title: "Vendre au marché", text: "Fixe ton prix ou lance une enchère : les autres joueurs paient en Jetons.", href: "/marche" },
   ];
 
   return (

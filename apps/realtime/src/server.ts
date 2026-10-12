@@ -1,30 +1,14 @@
 /**
- * Serveur temps réel PokeFlex : connexion authentifiée, duels quiz (phase 6),
- * messages privés et chat de guilde (phase 7), tâches de fond.
+ * Serveur temps réel PokeFlex : connexion authentifiée, messages privés et chat de guilde,
+ * tâches de fond (enchères, catalogue, classements).
  */
 import { createServer } from "node:http";
 import { gameConfig } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
 import { RateLimiter } from "@pokeflex/game";
-import {
-  abortActiveDuels,
-  assertStakeable,
-  createQuickDuel,
-  DuelError,
-  expireDuels,
-  finishDuel,
-  getDuelParticipants,
-  getMyGuildId,
-  markConversationRead,
-  relationBetween,
-  sendDirectMessage,
-  sendGuildMessage,
-  SocialError,
-  startDuel,
-} from "@pokeflex/server";
+import { getMyGuildId, markConversationRead, relationBetween, sendDirectMessage, sendGuildMessage, SocialError } from "@pokeflex/server";
 import { Server } from "socket.io";
 import { resolveUserId, type SessionLookup } from "./auth";
-import { DuelEngine } from "./duel-engine";
 import { startJobs } from "./jobs";
 
 const port = Number(process.env.REALTIME_PORT ?? 3001);
@@ -41,7 +25,7 @@ const sessions: SessionLookup = {
 const httpServer = createServer((req, res) => {
   if (req.url === "/health") {
     res.writeHead(200, { "content-type": "application/json" });
-    res.end(JSON.stringify({ ok: true, connected: io.engine.clientsCount, duels: engine.activeCount, queue: engine.queueSize }));
+    res.end(JSON.stringify({ ok: true, connected: io.engine.clientsCount }));
     return;
   }
   res.writeHead(404).end();
@@ -54,14 +38,6 @@ interface SocketData {
 type Ack = (res: { ok: true; data?: unknown } | { ok: false; error: string }) => void;
 
 interface ClientEvents {
-  "duel:join": (duelId: string, ack: Ack) => void;
-  "duel:leave": (duelId: string) => void;
-  "duel:answer": (p: { duelId: string; index: number; choice: number }, ack: Ack) => void;
-  "duel:forfeit": (duelId: string, ack: Ack) => void;
-  /** Prévient l'autre joueur qu'un défi a été lancé, accepté, refusé ou annulé (vérifié en base). */
-  "duel:ping": (duelId: string) => void;
-  "queue:join": (p: { copyIds: string[] }, ack: Ack) => void;
-  "queue:leave": () => void;
   /** Message privé : enregistré en base puis poussé au destinataire et aux autres onglets de l'expéditeur. */
   "dm:send": (p: { to: string; body: string }, ack: Ack) => void;
   "dm:read": (p: { with: string }) => void;
@@ -79,25 +55,8 @@ const io = new Server<ClientEvents, Record<string, (...args: never[]) => void>, 
   cors: { origin: webOrigin, credentials: true },
 });
 
-const engine = new DuelEngine(
-  {
-    participants: getDuelParticipants,
-    start: (id) => startDuel(id),
-    finish: (id, input) => finishDuel(id, input),
-    expire: async () => {
-      await expireDuels();
-    },
-    assertStakeable,
-    createQuick: (a, b) => createQuickDuel(a, b),
-  },
-  {
-    toUser: (userId, event, payload) => io.to(`user:${userId}`).emit(event, payload as never),
-    toDuel: (duelId, event, payload) => io.to(`duel:${duelId}`).emit(event, payload as never),
-  },
-);
-
 const errorMessage = (err: unknown) =>
-  err instanceof DuelError || err instanceof SocialError || err instanceof Error ? err.message : "Une erreur est survenue, réessaie.";
+  err instanceof SocialError || err instanceof Error ? err.message : "Une erreur est survenue, réessaie.";
 
 // Premier filet anti-spam en mémoire (la base applique la même règle, pour tous les serveurs).
 const chatLimiter = new RateLimiter(gameConfig.social.messageRate.count, gameConfig.social.messageRate.windowMs);
@@ -120,57 +79,6 @@ io.on("connection", (socket) => {
   // Une room par joueur : on peut lui pousser des événements, quel que soit l'onglet.
   void socket.join(`user:${userId}`);
   socket.emit("hello", { userId } as never);
-  const joined = new Set<string>();
-
-  socket.on("duel:join", async (duelId, ack) => {
-    try {
-      if (typeof duelId !== "string") throw new Error("Duel inconnu.");
-      // L'état renvoyé couvre ce qui a pu être émis avant l'entrée dans la room.
-      const state = await engine.join(userId, duelId);
-      await socket.join(`duel:${duelId}`);
-      if ("you" in state) joined.add(duelId);
-      ack?.({ ok: true, data: state });
-    } catch (err) {
-      ack?.({ ok: false, error: errorMessage(err) });
-    }
-  });
-
-  socket.on("duel:leave", (duelId) => {
-    if (!joined.delete(duelId)) return;
-    void socket.leave(`duel:${duelId}`);
-    engine.leave(userId, duelId);
-  });
-
-  socket.on("duel:answer", (p, ack) => {
-    const res = engine.answer(userId, p?.duelId, Number(p?.index), Number(p?.choice));
-    ack?.(res.ok ? { ok: true } : { ok: false, error: res.reason === "late" ? "Trop tard !" : "Réponse refusée." });
-  });
-
-  socket.on("duel:forfeit", async (duelId, ack) => {
-    try {
-      ack?.({ ok: await engine.forfeit(userId, duelId) } as { ok: true });
-    } catch (err) {
-      ack?.({ ok: false, error: errorMessage(err) });
-    }
-  });
-
-  socket.on("duel:ping", async (duelId) => {
-    const d = await getDuelParticipants(String(duelId)).catch(() => null);
-    if (!d || (d.playerAId !== userId && d.playerBId !== userId)) return;
-    const other = d.playerAId === userId ? d.playerBId : d.playerAId;
-    if (other) io.to(`user:${other}`).emit("duel:update", { duelId: d.id, status: d.status, from: userId } as never);
-  });
-
-  socket.on("queue:join", async (p, ack) => {
-    try {
-      const res = await engine.enqueue(userId, socket.id, Array.isArray(p?.copyIds) ? p.copyIds.map(String) : []);
-      ack?.({ ok: true, data: res });
-    } catch (err) {
-      ack?.({ ok: false, error: errorMessage(err) });
-    }
-  });
-
-  socket.on("queue:leave", () => engine.dequeue(userId, socket.id));
 
   // ───── Messages privés ─────
   socket.on("dm:send", async (p, ack) => {
@@ -247,24 +155,9 @@ io.on("connection", (socket) => {
       io.to(`user:${to}`).emit("social:update", { kind: relation === "friends" ? "friend_accepted" : "friend_request", from: userId } as never);
     }
   });
-
-  socket.on("disconnect", () => {
-    engine.dequeue(userId, socket.id);
-    for (const duelId of joined) engine.leave(userId, duelId);
-    joined.clear();
-  });
 });
 
-// Un redémarrage perd les duels en cours : on les annule et on rend les cartes misées.
-void abortActiveDuels().then((n) => {
-  if (n > 0) console.log(`[duels] ${n} duel(s) interrompu(s) par le redémarrage, cartes rendues`);
-});
-
-const stopJobs = startJobs((expired) => {
-  for (const d of expired) {
-    for (const id of [d.playerAId, d.playerBId]) if (id) io.to(`user:${id}`).emit("duel:update", { duelId: d.id, status: d.status } as never);
-  }
-});
+const stopJobs = startJobs();
 
 httpServer.listen(port, () => {
   console.log(`[realtime] prêt sur http://localhost:${port} (origine autorisée : ${webOrigin})`);

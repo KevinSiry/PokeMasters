@@ -17,7 +17,7 @@ export const cryptoRng: Rng = {
   },
 };
 
-/** Générateur déterministe (mulberry32) pour les tests et le générateur de questions de duel. */
+/** Générateur déterministe (mulberry32) pour les tests. */
 export function seededRng(seed: number): Rng {
   let a = seed >>> 0;
   const next = () => {

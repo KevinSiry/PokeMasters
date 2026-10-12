@@ -8,12 +8,11 @@
  *
  * Toutes les heures : instantané des classements.
  *
- * Toutes les 15 s : clôture des enchères échues (le marché rattrape aussi à l'affichage)
- * et expiration des défis de duel restés sans réponse.
+ * Clôture des enchères échues toutes les 15 s (le marché rattrape aussi à l'affichage).
  */
 import { gameConfig } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
-import { closeDueAuctions, expireDuels, lastLeaderboardAt, takeLeaderboardSnapshots } from "@pokeflex/server";
+import { closeDueAuctions, lastLeaderboardAt, takeLeaderboardSnapshots } from "@pokeflex/server";
 import { createTcgdexClient, syncCatalog } from "@pokeflex/tcgdex";
 
 const DAY = 24 * 60 * 60_000;
@@ -45,10 +44,8 @@ async function dailyCatalogSync() {
   log(`prix rafraîchis : ${prices.cards}`);
 }
 
-export type ExpiredDuel = Awaited<ReturnType<typeof expireDuels>>[number];
-
-/** Clôture des enchères échues et expiration des défis, toutes les 15 secondes. */
-function startSweeper(onDuelsExpired: (duels: ExpiredDuel[]) => void) {
+/** Clôture des enchères échues, toutes les 15 secondes. */
+function startAuctionCloser() {
   let running = false;
   const tick = async () => {
     if (running) return;
@@ -58,12 +55,6 @@ function startSweeper(onDuelsExpired: (duels: ExpiredDuel[]) => void) {
       if (closed > 0) console.log(`[marche] ${closed} enchère(s) clôturée(s)`);
     } catch (err) {
       console.error("[marche] clôture des enchères impossible", err instanceof Error ? err.message : err);
-    }
-    try {
-      const expired = await expireDuels();
-      if (expired.length > 0) onDuelsExpired(expired);
-    } catch (err) {
-      console.error("[duels] expiration des défis impossible", err instanceof Error ? err.message : err);
     } finally {
       running = false;
     }
@@ -96,8 +87,8 @@ function startLeaderboards() {
   };
 }
 
-export function startJobs(onDuelsExpired: (duels: ExpiredDuel[]) => void = () => {}) {
-  const stopSweeper = startSweeper(onDuelsExpired);
+export function startJobs() {
+  const stopSweeper = startAuctionCloser();
   const stopBoards = startLeaderboards();
   const stopAuctions = () => {
     stopSweeper();
