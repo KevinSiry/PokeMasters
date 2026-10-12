@@ -1,0 +1,14 @@
+{
+  "name": "@pokeflex/config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./game.ts",
+  "types": "./game.ts",
+  "exports": {
+    ".": "./game.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  }
+}

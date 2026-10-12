@@ -1,0 +1,158 @@
+@import "tailwindcss";
+
+/*
+ * PokeFlex — direction « Arcade prisme ».
+ * Noir violacé, dégradé violet → corail pour l'action, citron vert pour les Jetons
+ * et le focus. Les valeurs sont vérifiées (contraste AA) par src/lib/theme.test.ts.
+ */
+@theme {
+  --color-bg: #0B0716;
+  --color-surface: #170F2A;
+  --color-elev: #231842;
+  --color-line: #2E2152;
+  --color-fg: #F4F1FF;
+  --color-muted: #B3A9D6;
+  --color-accent: #8B6CFF;
+  --color-accent-strong: #6A45F0;
+  --color-coral: #FF5C85;
+  --color-coral-strong: #C42A5A;
+  --color-lime: #B8F35C;
+  --color-danger: #FF6B6B;
+
+  --color-tier-common: #9AA3B5;
+  --color-tier-uncommon: #5CC98A;
+  --color-tier-rare: #4EA8F5;
+  --color-tier-epic: #B57CF7;
+  --color-tier-legendary: #F5A524;
+  --color-tier-mythic: #FFD86B;
+
+  --font-display: "Unbounded Variable", "Arial Black", system-ui, sans-serif;
+  --font-sans: "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Space Mono", ui-monospace, Consolas, monospace;
+
+  --radius-card: 0.9rem;
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-bg text-fg font-sans antialiased;
+    min-height: 100dvh;
+    /* Halo d'ambiance très discret derrière le contenu. */
+    background-image:
+      radial-gradient(60rem 30rem at 85% -10%, color-mix(in srgb, var(--color-accent) 16%, transparent), transparent 70%),
+      radial-gradient(40rem 24rem at -10% 10%, color-mix(in srgb, var(--color-coral) 9%, transparent), transparent 70%);
+    background-attachment: fixed;
+  }
+  h1, h2, h3 {
+    text-wrap: balance;
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-lime);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+  ::selection {
+    background: var(--color-accent-strong);
+    color: var(--color-fg);
+  }
+}
+
+@utility font-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@utility text-prism {
+  background: linear-gradient(90deg, var(--color-accent), var(--color-coral));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ───────── Cartes : inclinaison + reflets holo selon le tier ─────────
+ * Variables pilotées par <TiltCard> : --rx/--ry (rotation), --mx/--my (position du reflet, en %).
+ */
+.pf-card {
+  --rx: 0deg;
+  --ry: 0deg;
+  --mx: 50%;
+  --my: 50%;
+  position: relative;
+  aspect-ratio: 63 / 88;
+  border-radius: var(--radius-card);
+  transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry));
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.pf-card[data-active="true"] {
+  transition-duration: 0.06s;
+}
+.pf-card > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  display: block;
+}
+.pf-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  mix-blend-mode: color-dodge;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.pf-card[data-tier="rare"]::after,
+.pf-card[data-tier="epic"]::after,
+.pf-card[data-tier="legendary"]::after,
+.pf-card[data-tier="mythic"]::after {
+  opacity: 0.35;
+}
+.pf-card[data-tier="rare"]::after {
+  background: radial-gradient(circle at var(--mx) var(--my), rgb(255 255 255 / 0.55), transparent 45%);
+}
+.pf-card[data-tier="epic"]::after,
+.pf-card[data-tier="legendary"]::after {
+  background:
+    radial-gradient(circle at var(--mx) var(--my), rgb(255 255 255 / 0.5), transparent 40%),
+    linear-gradient(115deg, transparent 20%, rgb(255 80 160 / 0.5) 35%, rgb(80 200 255 / 0.5) 48%, rgb(140 255 120 / 0.45) 60%, transparent 75%);
+  background-size: 100% 100%, 220% 220%;
+  background-position: 0 0, var(--mx) var(--my);
+}
+.pf-card[data-tier="legendary"]::after {
+  opacity: 0.5;
+}
+.pf-card[data-tier="mythic"]::after {
+  opacity: 0.6;
+  background:
+    radial-gradient(circle at var(--mx) var(--my), rgb(255 255 255 / 0.6), transparent 38%),
+    repeating-linear-gradient(115deg, rgb(255 111 181 / 0.55) 0 6%, rgb(122 215 255 / 0.55) 6% 12%, rgb(156 255 138 / 0.5) 12% 18%, rgb(255 216 107 / 0.55) 18% 24%);
+  background-size: 100% 100%, 300% 300%;
+  animation: pf-prism 6s linear infinite;
+}
+.pf-card[data-tier="mythic"] {
+  box-shadow: 0 0 0 2px var(--color-tier-mythic), 0 0 38px -6px color-mix(in srgb, var(--color-tier-mythic) 70%, transparent);
+}
+@keyframes pf-prism {
+  to {
+    background-position: 0 0, 300% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-card {
+    transform: none !important;
+    transition: none;
+  }
+  .pf-card[data-tier="mythic"]::after {
+    animation: none;
+  }
+}
