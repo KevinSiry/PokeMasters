@@ -6,12 +6,14 @@
  * pas de cron système (rien à installer sous Windows), et redémarrer le serveur ne
  * relance pas une synchro déjà faite dans la journée.
  *
+ * Toutes les heures : instantané des classements.
+ *
  * Toutes les 15 s : clôture des enchères échues (le marché rattrape aussi à l'affichage)
  * et expiration des défis de duel restés sans réponse.
  */
 import { gameConfig } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
-import { closeDueAuctions, expireDuels } from "@pokeflex/server";
+import { closeDueAuctions, expireDuels, lastLeaderboardAt, takeLeaderboardSnapshots } from "@pokeflex/server";
 import { createTcgdexClient, syncCatalog } from "@pokeflex/tcgdex";
 
 const DAY = 24 * 60 * 60_000;
@@ -71,8 +73,36 @@ function startSweeper(onDuelsExpired: (duels: ExpiredDuel[]) => void) {
   return () => clearInterval(timer);
 }
 
+export function shouldSnapshotLeaderboards(last: Date | null, now: Date, everyMs: number): boolean {
+  return !last || now.getTime() - last.getTime() >= everyMs;
+}
+
+/** Classements figés toutes les heures (vérification toutes les 5 minutes, survit aux redémarrages). */
+function startLeaderboards() {
+  const tick = async () => {
+    try {
+      if (!shouldSnapshotLeaderboards(await lastLeaderboardAt(), new Date(), gameConfig.social.leaderboardRefreshMs)) return;
+      await takeLeaderboardSnapshots();
+      console.log("[classements] instantané pris");
+    } catch (err) {
+      console.error("[classements] instantané impossible", err instanceof Error ? err.message : err);
+    }
+  };
+  const first = setTimeout(tick, 5_000);
+  const timer = setInterval(tick, 5 * 60_000);
+  return () => {
+    clearTimeout(first);
+    clearInterval(timer);
+  };
+}
+
 export function startJobs(onDuelsExpired: (duels: ExpiredDuel[]) => void = () => {}) {
-  const stopAuctions = startSweeper(onDuelsExpired);
+  const stopSweeper = startSweeper(onDuelsExpired);
+  const stopBoards = startLeaderboards();
+  const stopAuctions = () => {
+    stopSweeper();
+    stopBoards();
+  };
   if (process.env.CATALOG_AUTO_SYNC === "false") return stopAuctions;
   let running = false;
   const tick = async () => {

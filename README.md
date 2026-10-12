@@ -106,6 +106,8 @@ Le **Marché** permet d'acheter et de vendre des cartes entre joueurs, à prix f
 
 Les **Duels** opposent deux joueurs sur 10 questions à propos des cartes qu'ils misent (3 chacun, toujours rendues), avec 15 secondes par question. Pour essayer seul, lance un **Entraînement** contre le Professeur Chen. Pour un vrai duel en local, ouvre une fenêtre de navigation privée, connecte-toi avec un autre compte de démo, puis défie-le par son pseudo (par exemple `demo-marchand`).
 
+Côté **social**, chaque joueur a un profil public avec une vitrine de 6 cartes (`/joueurs/<pseudo>`). Le menu de l'avatar mène aux **Amis**, aux **Guildes** (chat en direct, fonder coûte 2 000 Jetons) et aux **Classements**, mis à jour toutes les heures ; la bulle de l'en-tête ouvre les **Messages**. Pour essayer à deux, utilise une fenêtre privée avec un autre compte de démo.
+
 ### 6. Brancher la connexion Twitch et Discord
 
 **Twitch**

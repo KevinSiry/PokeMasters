@@ -1,6 +1,7 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { gameConfig } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
+import { ensureHandle } from "@pokeflex/server";
 import NextAuth, { type DefaultSession } from "next-auth";
 import type { Provider } from "next-auth/providers";
 import Discord from "next-auth/providers/discord";
@@ -32,7 +33,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
   events: {
-    // Nouveau joueur : stock de boosters de départ, minuteur démarré maintenant.
+    // Nouveau joueur : pseudo public, stock de boosters de départ, minuteur démarré maintenant.
     async createUser({ user }) {
       if (!user.id) return;
       await prisma.user.update({
@@ -43,6 +44,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           balance: gameConfig.economy.startingBalance,
         },
       });
+      await ensureHandle(user.id);
     },
   },
 });

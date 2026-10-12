@@ -42,9 +42,12 @@ export function BoosterTimer({ available, maxStock, nextAt, refillIntervalMs, cl
       >
         {shown}
       </span>
-      <span aria-hidden="true">
-        {shown}/{maxStock}
-        <span className="text-muted"> · </span>
+      <span aria-hidden="true" className="whitespace-nowrap">
+        {/* Sur mobile, le badge donne déjà le stock : on n'affiche que l'état. */}
+        <span className="hidden sm:inline">
+          {shown}/{maxStock}
+          <span className="text-muted"> · </span>
+        </span>
         {full ? <span className="text-lime">plein</span> : <span>{remaining ?? "--:--"}</span>}
       </span>
     </Link>

@@ -34,6 +34,16 @@ export const FINISH_LABELS_FR: Record<Finish, string> = {
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 
+/** Motifs de signalement proposés aux joueurs. */
+export const REPORT_REASONS = {
+  spam: "Spam ou publicité",
+  insult: "Propos insultants ou harcèlement",
+  name: "Pseudo ou avatar inapproprié",
+  cheat: "Triche",
+  other: "Autre",
+} as const;
+export type ReportReason = keyof typeof REPORT_REASONS;
+
 export const gameConfig = {
   boosters: {
     /** Nombre de cartes par booster. */
@@ -176,6 +186,17 @@ export const gameConfig = {
     guildCreationCost: 2000,
     guildMaxMembers: 30,
     showcaseSize: 6,
+    /** Pseudo public : lettres minuscules, chiffres, tiret et tiret bas. */
+    handleMinLength: 3,
+    handleMaxLength: 20,
+    bioMaxLength: 160,
+    messageMaxLength: 500,
+    /** Anti-spam des messages (privés et de guilde) : au plus `count` messages par fenêtre glissante. */
+    messageRate: { count: 6, windowMs: 10_000 },
+    maxFriends: 200,
+    /** Classements figés toutes les heures, 100 premiers joueurs. */
+    leaderboardSize: 100,
+    leaderboardRefreshMs: HOUR,
   },
 
   catalog: {

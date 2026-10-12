@@ -4,6 +4,7 @@ import { signOut } from "@/auth";
 import { BalanceChip } from "@/components/balance-chip";
 import { BoosterTimer } from "@/components/booster-timer";
 import { Logo } from "@/components/logo";
+import { MessagesLink } from "@/components/messages-link";
 import { DesktopNav } from "@/components/main-nav";
 import { UserMenu } from "@/components/user-menu";
 import { Button } from "@/components/ui/button";
@@ -26,9 +27,12 @@ export function SiteHeader({ player }: { player: CurrentPlayer | null }) {
               refillIntervalMs={gameConfig.boosters.refillIntervalMs}
             />
             <BalanceChip balance={player.balance} />
+            <MessagesLink unread={player.unreadMessages} />
             <UserMenu
               name={player.displayName}
+              handle={player.handle}
               image={player.image}
+              friendRequests={player.friendRequests}
               signOutAction={async () => {
                 "use server";
                 await signOut({ redirectTo: "/" });

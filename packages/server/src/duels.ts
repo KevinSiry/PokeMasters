@@ -10,6 +10,7 @@ import { cryptoRng, duelOutcome, duelReward, generateQuiz, nextQuestReset, type 
 import { TYPE_LABELS_FR } from "@pokeflex/tcgdex";
 import { applyLedger, lockUser, lockUsers, type Tx, withTxRetry } from "./ledger";
 import { bumpQuest, type QuestProgressed } from "./quests";
+import { isBlockedEitherWay } from "./social";
 
 const rules = gameConfig.duels;
 
@@ -25,7 +26,8 @@ export class DuelError extends Error {
       | "not_pending"
       | "expired"
       | "not_participant"
-      | "not_ready",
+      | "not_ready"
+      | "blocked",
     message: string,
   ) {
     super(message);
@@ -83,6 +85,7 @@ export async function createChallenge(userId: string, opponentHandle: string, co
   });
   if (!opponent) throw new DuelError("unknown_player", "Aucun joueur ne porte ce nom.");
   if (opponent.id === userId) throw new DuelError("self", "Tu ne peux pas te défier toi-même.");
+  if (await isBlockedEitherWay(userId, opponent.id)) throw new DuelError("blocked", "Tu ne peux pas défier ce joueur.");
 
   return withTxRetry(() =>
     prisma.$transaction(async (tx) => {
@@ -121,6 +124,7 @@ export async function acceptChallenge(userId: string, duelId: string, copyIds: r
       if (duel.playerBId !== userId) throw new DuelError("not_participant", "Ce défi ne t'est pas adressé.");
       if (duel.status !== "pending") throw new DuelError("not_pending", "Ce défi n'est plus en attente.");
       if (duel.expiresAt && duel.expiresAt <= now) throw new DuelError("expired", "Ce défi a expiré.");
+      if (await isBlockedEitherWay(userId, duel.playerAId, tx)) throw new DuelError("blocked", "Tu ne peux pas affronter ce joueur.");
       await stakeCopies(tx, userId, duelId, copyIds);
       await tx.duel.update({ where: { id: duelId }, data: { status: "ready", expiresAt: new Date(now.getTime() + rules.joinWindowMs) } });
       return { duelId, opponentId: duel.playerAId };
@@ -601,6 +605,8 @@ export async function findOpponents(userId: string, q: string, take = 8): Promis
       where: {
         id: { not: userId },
         handle: { not: null },
+        blocks: { none: { blockedId: userId } },
+        blockedBy: { none: { userId } },
         OR: [{ handle: { contains: query, mode: "insensitive" } }, { name: { contains: query, mode: "insensitive" } }],
       },
       select: playerSelect,

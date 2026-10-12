@@ -1,12 +1,24 @@
 "use client";
 
-import { Coins, Info, LogOut, User } from "lucide-react";
+import { Coins, Info, LogOut, Settings, Shield, Trophy, Users } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
-/** Menu du joueur (avatar) : historique des Jetons, à propos, déconnexion. */
-export function UserMenu({ name, image, signOutAction }: { name: string; image: string | null; signOutAction: () => Promise<void> }) {
+/** Menu du joueur (avatar) : profil, social, historique des Jetons, à propos, déconnexion. */
+export function UserMenu({
+  name,
+  handle,
+  image,
+  friendRequests = 0,
+  signOutAction,
+}: {
+  name: string;
+  handle: string;
+  image: string | null;
+  friendRequests?: number;
+  signOutAction: () => Promise<void>;
+}) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
 
@@ -33,9 +45,10 @@ export function UserMenu({ name, image, signOutAction }: { name: string; image: 
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-haspopup="menu"
-        aria-label={`Menu de ${name}`}
-        className="grid size-9 place-items-center rounded-full border border-line bg-elev transition-colors hover:border-accent"
+        aria-label={`Menu de ${name}${friendRequests > 0 ? `, ${friendRequests} demande${friendRequests > 1 ? "s" : ""} d'ami` : ""}`}
+        className="relative grid size-9 place-items-center rounded-full border border-line bg-elev transition-colors hover:border-accent"
       >
+        {friendRequests > 0 && <span aria-hidden="true" className="absolute -top-0.5 -right-0.5 size-3 rounded-full border-2 border-bg bg-coral" />}
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element -- avatar fourni par Twitch/Discord
           <img src={image} alt="" className="size-8 rounded-full" />
@@ -50,11 +63,29 @@ export function UserMenu({ name, image, signOutAction }: { name: string; image: 
         hidden={!open}
         className={cn("absolute top-full right-0 z-50 mt-2 w-60 rounded-2xl border border-line bg-surface p-1.5 shadow-[0_18px_40px_-12px_rgb(0_0_0/0.7)]")}
       >
-        <p className="flex items-center gap-2 px-3 pt-2 pb-2.5 text-sm font-semibold">
-          <User aria-hidden="true" className="size-4 text-muted" />
-          <span className="truncate">{name}</span>
-        </p>
+        <Link role="menuitem" href={`/joueurs/${handle}`} className="grid rounded-xl px-3 pt-2 pb-2.5 hover:bg-elev" onClick={() => setOpen(false)}>
+          <span className="truncate text-sm font-semibold">{name}</span>
+          <span className="truncate text-xs text-muted">@{handle} · voir mon profil</span>
+        </Link>
         <div className="h-px bg-line" />
+        <Link role="menuitem" href="/amis" className={item} onClick={() => setOpen(false)}>
+          <Users aria-hidden="true" />
+          <span className="flex-1">Amis</span>
+          {friendRequests > 0 && <span className="rounded-full bg-coral px-1.5 font-mono text-[11px] font-bold text-bg">{friendRequests}</span>}
+        </Link>
+        <Link role="menuitem" href="/guildes" className={item} onClick={() => setOpen(false)}>
+          <Shield aria-hidden="true" />
+          Guildes
+        </Link>
+        <Link role="menuitem" href="/classements" className={item} onClick={() => setOpen(false)}>
+          <Trophy aria-hidden="true" />
+          Classements
+        </Link>
+        <div className="h-px bg-line" />
+        <Link role="menuitem" href="/profil" className={item} onClick={() => setOpen(false)}>
+          <Settings aria-hidden="true" />
+          Modifier mon profil
+        </Link>
         <Link role="menuitem" href="/jetons" className={item} onClick={() => setOpen(false)}>
           <Coins aria-hidden="true" />
           Mes Jetons

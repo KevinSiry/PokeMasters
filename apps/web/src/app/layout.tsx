@@ -44,7 +44,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <SiteFooter />
         <BottomNav loggedIn={Boolean(player)} />
         <Toaster />
-        {player && <RealtimeListener />}
+        {player && <RealtimeListener me={player.id} />}
       </body>
     </html>
   );

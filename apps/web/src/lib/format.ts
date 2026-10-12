@@ -17,3 +17,8 @@ export function formatEur(n: number | null | undefined): string | null {
 export function plural(n: number, one: string, many = `${one}s`): string {
   return `${new Intl.NumberFormat("fr-FR").format(n)} ${n > 1 ? many : one}`;
 }
+
+/** Espace insécable avant « ? ! : ; » (typographie française) : la ponctuation ne part jamais seule à la ligne. */
+export function frenchSpacing(s: string): string {
+  return s.replace(/ ([?!:;»])/g, " $1").replace(/« /g, "« ");
+}

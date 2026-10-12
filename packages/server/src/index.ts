@@ -5,3 +5,4 @@ export * from "./recycle";
 export * from "./boosters";
 export * from "./market";
 export * from "./duels";
+export * from "./social";

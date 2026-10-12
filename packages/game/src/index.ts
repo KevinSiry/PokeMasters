@@ -6,3 +6,4 @@ export * from "./economy";
 export * from "./quests";
 export * from "./market";
 export * from "./duel";
+export * from "./social";

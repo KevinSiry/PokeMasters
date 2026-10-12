@@ -28,7 +28,7 @@ export function request<T = unknown>(event: string, payload: unknown, timeoutMs 
   const s = getSocket();
   return new Promise((resolve) => {
     s.timeout(timeoutMs).emit(event, payload, (err: Error | null, res: AckResult<T>) => {
-      resolve(err ? { ok: false, error: "Le serveur de duel ne répond pas. Vérifie ta connexion." } : res);
+      resolve(err ? { ok: false, error: "Le serveur temps réel ne répond pas. Vérifie ta connexion." } : res);
     });
   });
 }

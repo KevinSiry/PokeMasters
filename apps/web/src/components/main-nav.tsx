@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, GalleryVerticalEnd, Home, Search, Sparkles, Store, Swords, type LucideIcon } from "lucide-react";
+import { BookOpen, GalleryVerticalEnd, Home, Search, Sparkles, Store, Swords, Trophy, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV_ITEMS, isActive, type NavItem } from "@/lib/nav";
@@ -14,6 +14,7 @@ const ICONS: Record<NavItem["icon"], LucideIcon> = {
   collection: GalleryVerticalEnd,
   market: Store,
   duel: Swords,
+  ranking: Trophy,
 };
 
 function useItems(loggedIn: boolean) {
@@ -30,7 +31,7 @@ export function DesktopNav({ loggedIn }: { loggedIn: boolean }) {
         {items.map((item) => {
           const active = isActive(pathname, item.href);
           return (
-            <li key={item.href}>
+            <li key={item.href} className={cn(item.wideOnly && "hidden lg:block")}>
               <Link
                 href={item.href}
                 aria-current={active ? "page" : undefined}
@@ -52,7 +53,7 @@ export function DesktopNav({ loggedIn }: { loggedIn: boolean }) {
 /** Barre d'onglets fixée en bas de l'écran sur mobile (zone du pouce). */
 export function BottomNav({ loggedIn }: { loggedIn: boolean }) {
   const pathname = usePathname();
-  const items = useItems(loggedIn).filter((i) => !(loggedIn && i.guestOnlyOnMobile));
+  const items = useItems(loggedIn).filter((i) => !i.wideOnly && !(loggedIn && i.guestOnlyOnMobile));
   return (
     <nav
       aria-label="Navigation principale"
