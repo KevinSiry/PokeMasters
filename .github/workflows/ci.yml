@@ -41,6 +41,7 @@ jobs:
       - run: npm ci
       - run: npx prisma validate --schema packages/db/prisma/schema.prisma
       - run: npm run db:deploy
+      - run: npm run db:seed
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test

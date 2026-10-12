@@ -1,7 +1,7 @@
 {
   "name": "pokeflex",
   "private": true,
-  "description": "PokeFlex — fan game non commercial de collection de cartes Pokémon (données TCGdex).",
+  "description": "PokeFlex \u2014 fan game non commercial de collection de cartes Pok\u00e9mon (donn\u00e9es TCGdex).",
   "workspaces": [
     "apps/*",
     "packages/*",
@@ -28,7 +28,9 @@
     "db:seed": "tsx --env-file-if-exists=.env packages/db/prisma/seed.ts",
     "db:studio": "prisma studio --schema packages/db/prisma/schema.prisma",
     "setup": "tsx scripts/setup.ts",
-    "postinstall": "prisma generate --schema packages/db/prisma/schema.prisma"
+    "postinstall": "prisma generate --schema packages/db/prisma/schema.prisma",
+    "sync:catalog": "tsx --env-file-if-exists=.env scripts/sync-catalog.ts",
+    "fixture:export": "tsx --env-file-if-exists=.env scripts/export-fixture.ts"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

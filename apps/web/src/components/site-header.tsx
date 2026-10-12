@@ -4,6 +4,7 @@ import Link from "next/link";
 import { signOut } from "@/auth";
 import { BoosterTimer } from "@/components/booster-timer";
 import { Logo } from "@/components/logo";
+import { DesktopNav } from "@/components/main-nav";
 import { Button } from "@/components/ui/button";
 import { formatJetons } from "@/lib/utils";
 import type { CurrentPlayer } from "@/lib/player";
@@ -12,7 +13,10 @@ export function SiteHeader({ player }: { player: CurrentPlayer | null }) {
   return (
     <header className="sticky top-0 z-40 border-b border-line/70 bg-bg/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4">
-        <Logo />
+        <div className="flex items-center gap-6">
+          <Logo />
+          <DesktopNav loggedIn={Boolean(player)} />
+        </div>
         {player ? (
           <div className="flex items-center gap-2 sm:gap-3">
             <BoosterTimer

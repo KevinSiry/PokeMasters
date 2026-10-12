@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export function SiteFooter() {
   return (
-    <footer className="mt-24 border-t border-line/70">
+    <footer className="mt-24 border-t border-line/70 pb-20 md:pb-0">
       <div className="mx-auto grid max-w-6xl gap-4 px-4 py-10 text-sm text-muted sm:grid-cols-[1fr_auto] sm:items-start">
         <p className="max-w-prose leading-relaxed">
           PokeFlex est un projet de fan <strong className="text-fg">non officiel et non commercial</strong>, non affilié

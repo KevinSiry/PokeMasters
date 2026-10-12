@@ -8,6 +8,7 @@ import { createServer } from "node:http";
 import { prisma } from "@pokeflex/db";
 import { Server } from "socket.io";
 import { resolveUserId, type SessionLookup } from "./auth";
+import { startJobs } from "./jobs";
 
 const port = Number(process.env.REALTIME_PORT ?? 3001);
 const webOrigin = process.env.APP_URL ?? "http://localhost:3000";
@@ -58,11 +59,14 @@ io.on("connection", (socket) => {
   socket.emit("hello", { userId: socket.data.userId });
 });
 
+const stopJobs = startJobs();
+
 httpServer.listen(port, () => {
   console.log(`[realtime] prêt sur http://localhost:${port} (origine autorisée : ${webOrigin})`);
 });
 
 const shutdown = async () => {
+  stopJobs();
   await io.close();
   await prisma.$disconnect();
   process.exit(0);

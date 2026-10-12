@@ -24,6 +24,19 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 - **Couleurs testées** : `apps/web/src/lib/theme.ts` est la source des jetons ; un test vérifie les contrastes AA et la concordance avec `globals.css`.
 - **Images de cartes** : `<img>` direct sur `assets.tcgdex.net` (jamais re-hébergées, pas d'optimisation Next.js qui les copierait), avec visuel de remplacement si l'image manque ou échoue.
 
+## Catalogue (phase 2)
+
+- **Import REST carte par carte**, en FR puis repli EN : l'API GraphQL de TCGdex rejette les cartes sans rareté (champ non nul), elle n'est pas fiable pour un import complet. Concurrence 4, retry exponentiel avec gigue sur réseau/429/5xx ; l'import complet prend environ 4 minutes.
+- **Union FR + EN par set** : une carte qui n'existe pas en français est importée en anglais (`lang = en`, badge « EN »). Les sets sans version française sont importés en anglais. Les logos de set manquants en FR reprennent le logo anglais, et une image de carte manquante en FR reprend l'image anglaise si elle existe.
+- **Une carte sans aucune image n'est jamais tirée** (`droppable = false`) : l'ouverture d'un booster ne doit jamais montrer de carte vide. Elle reste visible au catalogue avec un visuel de remplacement.
+- **Correspondance des raretés dans `config/rarities.ts`** (versionnée, relue en PR) plutôt qu'une table éditable : une rareté inconnue tombe sur Commune et apparaît « non classée » dans `reports/rarities.md`. `npm run sync:catalog -- --retier` recalcule les tiers après une modification. Mapping validé par Kevin le 2026-10-12 (Promo en Rare, Magnifique rare et Ultra Rare en Légendaire, Mythique réservé aux Illustration spéciale, Hyper, Chromatique ultra, Méga Hyper, Noir Blanc et Secret).
+- **Promos en Rare** : très hétérogènes (McDonald's, kits…) ; le bonus prix fait monter les plus recherchées.
+- **Prix** : tendance Cardmarket (EUR), sinon moyenne. Sert uniquement au bonus de tier, jamais affiché comme un prix d'achat.
+- **Synchro quotidienne dans le serveur temps réel** (vérification horaire, garde « dernière synchro réussie > 24 h » en base) plutôt que BullMQ + cron : rien à installer sous Windows, et un redémarrage ne relance pas une synchro déjà faite. Désactivable avec `CATALOG_AUTO_SYNC=false`.
+- **Recherche** : `pg_trgm` + `unaccent` (fonction `pf_unaccent` immuable pour l'index GIN) sur les noms FR et EN. « charizard », « dracofeu » ou « electhor » trouvent la bonne carte.
+- **Échantillon de catalogue dans le seed** (Set de Base + 151, données réelles exportées par `npm run fixture:export`) : la CI et une première découverte hors ligne ont des cartes à montrer.
+- **Navigation mobile** : barre d'onglets en bas de l'écran (zone du pouce), liens dans l'en-tête sur ordinateur.
+
 ## Versions
 
 - **Next.js 15.5, Prisma 6.19, TypeScript 5.9, Vitest 3, ESLint 9** plutôt que les dernières majeures (Next 16, Prisma 7, TS 7) : versions éprouvées, documentation stable. Migration à reconsidérer en phase 8.
