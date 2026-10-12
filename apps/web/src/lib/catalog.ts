@@ -34,6 +34,8 @@ export interface CardTile {
   category: "pokemon" | "trainer" | "energy";
   types: string[];
   lang: "fr" | "en";
+  /** Tirable en booster (a une image) : seules ces cartes comptent pour compléter un set. */
+  droppable: boolean;
 }
 
 export const cardTileSelect = {
@@ -45,6 +47,7 @@ export const cardTileSelect = {
   category: true,
   types: true,
   lang: true,
+  droppable: true,
 } satisfies Prisma.CardSelect;
 
 /** Toutes les séries (plus récentes d'abord) et leurs sets. */
@@ -169,7 +172,7 @@ export async function searchCards(
   return prisma.$queryRaw<SearchResult[]>`
     WITH q AS (SELECT lower(pf_unaccent(${term})) AS t)
     SELECT c.id, c."localId", c.name, c."nameEn", c.image, c.tier::text AS tier, c.category::text AS category,
-           c.types, c.lang::text AS lang, s.name AS "setName"
+           c.types, c.lang::text AS lang, c.droppable, s.name AS "setName"
     FROM "Card" c JOIN "Set" s ON s.id = c."setId", q
     WHERE lower(pf_unaccent(coalesce(c."nameFr", '') || ' ' || coalesce(c."nameEn", ''))) % q.t
        OR lower(pf_unaccent(coalesce(c."nameFr", '') || ' ' || coalesce(c."nameEn", ''))) LIKE '%' || q.t || '%'

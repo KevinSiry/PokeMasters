@@ -1,10 +1,15 @@
-import { ChevronLeft } from "lucide-react";
+import { gameConfig } from "@pokeflex/config";
+import { prisma } from "@pokeflex/db";
+import { setCompletionBonus } from "@pokeflex/game";
+import { CheckCircle2, ChevronLeft, Sparkles } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CardGrid } from "@/components/catalog/card-grid";
 import { SetLogo } from "@/components/catalog/set-logo";
+import { Jetons } from "@/components/jetons";
 import { ProgressBar } from "@/components/progress";
+import { Button } from "@/components/ui/button";
 import { getSet, getSetCards } from "@/lib/catalog";
 import { getOwnedCounts } from "@/lib/collection";
 import { getCurrentPlayerSafe } from "@/lib/player";
@@ -26,8 +31,17 @@ export default async function SetPage({ params }: { params: Params }) {
   const set = await getSet(setId);
   if (!set) notFound();
   const [cards, player] = await Promise.all([getSetCards(set.id), getCurrentPlayerSafe()]);
-  const owned = player ? await getOwnedCounts(player.id, set.id) : null;
-  const ownedCount = owned ? cards.filter((c) => owned[c.id]).length : 0;
+  const [owned, completion] = player
+    ? await Promise.all([
+        getOwnedCounts(player.id, set.id),
+        prisma.setCompletion.findUnique({ where: { userId_setId: { userId: player.id, setId: set.id } } }),
+      ])
+    : [null, null];
+  // Seules les cartes tirables (avec image) comptent pour compléter un set.
+  const collectable = cards.filter((c) => c.droppable);
+  const ownedCount = owned ? collectable.filter((c) => owned[c.id]).length : 0;
+  const bonus = setCompletionBonus(set.cardCountOfficial, gameConfig.economy.setCompletionBonusPerCard);
+  const hasBooster = collectable.length >= gameConfig.setBoosters.minDroppableCards;
 
   return (
     <div className="grid grid-cols-1 gap-8 py-6 sm:py-10">
@@ -72,15 +86,37 @@ export default async function SetPage({ params }: { params: Params }) {
               </div>
             )}
           </dl>
-          {owned && cards.length > 0 && (
+          {owned && collectable.length > 0 && (
             <div className="grid max-w-md gap-1.5 pt-1">
               <div className="flex justify-between text-sm">
                 <span className="text-muted">Ta progression</span>
-                <span className={ownedCount >= cards.length ? "font-mono font-bold text-lime" : "font-mono font-bold"}>
-                  {ownedCount}/{cards.length}
+                <span className={ownedCount >= collectable.length ? "font-mono font-bold text-lime" : "font-mono font-bold"}>
+                  {ownedCount}/{collectable.length}
                 </span>
               </div>
-              <ProgressBar value={ownedCount} max={cards.length} label="Complétion du set" />
+              <ProgressBar value={ownedCount} max={collectable.length} label="Complétion du set" />
+              <p className="text-xs text-muted">
+                {completion ? (
+                  <span className="inline-flex items-center gap-1 text-lime">
+                    <CheckCircle2 aria-hidden="true" className="size-3.5" />
+                    Set complété le {formatDateFr(completion.completedAt)} · bonus de <Jetons value={completion.bonus} /> reçu
+                  </span>
+                ) : (
+                  <>
+                    Complète-le pour gagner <Jetons value={bonus} className="text-fg" /> (une fois)
+                  </>
+                )}
+              </p>
+            </div>
+          )}
+          {player && hasBooster && (
+            <div className="pt-1">
+              <Button asChild size="md">
+                <Link href={`/boosters/sets/${set.id}`}>
+                  <Sparkles aria-hidden="true" />
+                  Booster de ce set · <Jetons value={gameConfig.boosters.setBoosterPrice} />
+                </Link>
+              </Button>
             </div>
           )}
         </div>

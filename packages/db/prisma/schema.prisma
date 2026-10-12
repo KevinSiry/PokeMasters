@@ -37,10 +37,13 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  accounts Account[]
-  sessions Session[]
-  copies   CardCopy[]
-  openings BoosterOpening[]
+  accounts    Account[]
+  sessions    Session[]
+  copies      CardCopy[]
+  openings    BoosterOpening[]
+  ledger      LedgerEntry[]
+  completions SetCompletion[]
+  quests      DailyQuest[]
 }
 
 // ───────── Modèles standard Auth.js (adaptateur Prisma) ─────────
@@ -122,9 +125,9 @@ model Serie {
 }
 
 model Set {
-  id                String    @id
+  id                String          @id
   serieId           String
-  serie             Serie     @relation(fields: [serieId], references: [id])
+  serie             Serie           @relation(fields: [serieId], references: [id])
   name              String
   nameEn            String?
   logo              String?
@@ -132,9 +135,10 @@ model Set {
   releaseDate       DateTime?
   cardCountOfficial Int
   cardCountTotal    Int
-  lang              Lang      @default(fr)
-  syncedAt          DateTime  @default(now())
+  lang              Lang            @default(fr)
+  syncedAt          DateTime        @default(now())
   cards             Card[]
+  completions       SetCompletion[]
 
   @@index([serieId, releaseDate])
   @@index([releaseDate])
@@ -262,4 +266,70 @@ model BoosterOpening {
   createdAt DateTime @default(now())
 
   @@index([userId, createdAt])
+}
+
+// ───────── Économie [P4] ─────────
+
+enum LedgerReason {
+  seed
+  admin
+  recycle
+  set_booster
+  set_bonus
+  quest
+  duel_win
+  duel_draw
+  duel_loss
+  market_fee
+  market_sale
+  market_purchase
+  bid_hold
+  bid_release
+  guild_create
+}
+
+/// Source de vérité des Jetons, en ajout seul. Chaque modification de `User.balance` écrit une ligne
+/// dans la même transaction : SUM(delta) = balance (vérifié par `npm run audit:ledger`).
+model LedgerEntry {
+  id           BigInt       @id @default(autoincrement())
+  userId       String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  delta        Int
+  balanceAfter Int
+  reason       LedgerReason
+  /// Objet lié : "set", "quest", "opening", "listing"…
+  refType      String?
+  refId        String?
+  /// Détails affichés dans l'historique (nombre de cartes recyclées par tier…).
+  meta         Json?
+  createdAt    DateTime     @default(now())
+
+  @@index([userId, createdAt])
+}
+
+/// Set complété par un joueur : le bonus n'est versé qu'une fois, même si des cartes sont recyclées ensuite.
+model SetCompletion {
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  setId       String
+  set         Set      @relation(fields: [setId], references: [id])
+  bonus       Int
+  completedAt DateTime @default(now())
+
+  @@id([userId, setId])
+}
+
+/// Quêtes du jour, créées à la première visite de la journée (fuseau de `config.quests.timeZone`).
+model DailyQuest {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  day       DateTime  @db.Date
+  kind      String
+  target    Int
+  reward    Int
+  progress  Int       @default(0)
+  claimedAt DateTime?
+
+  @@unique([userId, day, kind])
 }

@@ -7,6 +7,7 @@ import type { Metadata, Viewport } from "next";
 import { BottomNav } from "@/components/main-nav";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { Toaster } from "@/components/toaster";
 import { getCurrentPlayerSafe } from "@/lib/player";
 
 export const metadata: Metadata = {
@@ -41,6 +42,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </main>
         <SiteFooter />
         <BottomNav loggedIn={Boolean(player)} />
+        <Toaster />
       </body>
     </html>
   );

@@ -1,9 +1,10 @@
 import { FINISH_LABELS_FR } from "@pokeflex/config";
-import { ChevronDown, Sparkles } from "lucide-react";
+import { CheckCircle2, ChevronDown, Sparkles } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CardTile } from "@/components/catalog/card-tile";
+import { RecycleDuplicates } from "@/components/economy/recycle-duplicates";
 import { SetLogo } from "@/components/catalog/set-logo";
 import { ProgressBar, ProgressRing } from "@/components/progress";
 import { Button } from "@/components/ui/button";
@@ -53,7 +54,7 @@ export default async function CollectionPage({ searchParams }: { searchParams: S
         <ProgressRing percent={totals.percent} size={92} label="Complétion du catalogue" />
         <div className="grid gap-1">
           <h1 className="font-display text-2xl font-bold sm:text-3xl">Ma collection</h1>
-          <p className="text-sm text-muted">du catalogue complet, toutes séries confondues</p>
+          <p className="text-sm text-muted">des cartes à collectionner, toutes séries confondues</p>
         </div>
           <dl className="col-span-2 grid grid-cols-3 gap-3 text-sm sm:col-start-2 sm:max-w-lg">
             <div>
@@ -68,7 +69,7 @@ export default async function CollectionPage({ searchParams }: { searchParams: S
               <dd className="font-mono text-lg font-bold font-tabular">{totals.copies.toLocaleString("fr-FR")}</dd>
             </div>
             <div>
-              <dt className="text-muted">Sets complets</dt>
+              <dt className="text-muted">Sets complétés</dt>
               <dd className="font-mono text-lg font-bold font-tabular">{totals.setsCompleted}</dd>
             </div>
           </dl>
@@ -138,7 +139,10 @@ async function SetsView({ userId }: { userId: string }) {
                     </span>
                     <span className="grid min-w-0 flex-1 grid-cols-1 gap-1.5">
                       <span className="flex items-baseline justify-between gap-2">
-                        <span className="min-w-0 truncate text-sm font-semibold">{s.name}</span>
+                        <span className="flex min-w-0 items-center gap-1.5">
+                          <span className="min-w-0 truncate text-sm font-semibold">{s.name}</span>
+                          {s.completed && <CheckCircle2 aria-label="Set complété" className="size-4 shrink-0 text-lime" />}
+                        </span>
                         <span className={cn("shrink-0 font-mono text-xs", s.owned >= s.total ? "text-lime" : "text-muted")}>
                           {s.owned}/{s.total}
                         </span>
@@ -160,12 +164,15 @@ async function CardsView({ userId, sort }: { userId: string; sort: CollectionSor
   const cards = await getOwnedCards(userId, sort);
   return (
     <div className="grid grid-cols-1 gap-5">
-      <div className="pf-scroll-x -mx-4 flex gap-2 px-4" role="group" aria-label="Trier">
-        {SORTS.map((s) => (
-          <Link key={s.id} href={`/collection?vue=cartes&tri=${s.id}`} className="pf-chip" aria-current={s.id === sort ? "page" : undefined}>
-            {s.label}
-          </Link>
-        ))}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="pf-scroll-x -mx-4 flex gap-2 px-4 sm:mx-0 sm:px-0" role="group" aria-label="Trier">
+          {SORTS.map((s) => (
+            <Link key={s.id} href={`/collection?vue=cartes&tri=${s.id}`} className="pf-chip" aria-current={s.id === sort ? "page" : undefined}>
+              {s.label}
+            </Link>
+          ))}
+        </div>
+        <RecycleDuplicates />
       </div>
       <ul className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
         {cards.map((c, i) => (

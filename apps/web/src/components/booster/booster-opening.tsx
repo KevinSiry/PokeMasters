@@ -1,17 +1,20 @@
 "use client";
 
 import { FINISH_LABELS_FR, TIER_LABELS_FR, tierRank, type Tier } from "@pokeflex/config";
-import { Layers, Sparkles, Zap } from "lucide-react";
+import { CheckCircle2, Layers, Recycle, Sparkles, Target, Zap } from "lucide-react";
 import { AnimatePresence, motion, useIsPresent, useReducedMotion, type PanInfo } from "motion/react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { openBoosterAction } from "@/app/boosters/actions";
+import { openBoosterAction, openSetBoosterAction } from "@/app/boosters/actions";
+import { CoinBurst } from "@/components/economy/coin-burst";
+import { Jetons } from "@/components/jetons";
 import { BoosterPackArt } from "@/components/booster/booster-pack";
 import { CardBack } from "@/components/booster/card-back";
 import { TIER_ICON } from "@/components/tier-badge";
 import { TiltCard } from "@/components/tilt-card";
 import { Button } from "@/components/ui/button";
 import { cardImageUrl } from "@/lib/card-image";
+import { emitBalance } from "@/lib/balance-events";
 import type { BoosterResult, PulledCard } from "@/lib/boosters";
 import { useBoosterCountdown } from "@/lib/use-booster-countdown";
 import { cn } from "@/lib/utils";
@@ -23,6 +26,9 @@ interface BoosterOpeningProps {
   nextAt: string | null;
   maxStock: number;
   refillIntervalMs: number;
+  balance: number;
+  /** Booster d'un set précis, payé en Jetons. Sans `set` : booster gratuit « Toutes époques ». */
+  set?: { id: string; name: string; logo: string | null; price: number };
 }
 
 const TIER_COLORS: Record<Tier, string[]> = {
@@ -165,7 +171,7 @@ function PullBadges({ card, className, compact }: { card: PulledCard; className?
   );
 }
 
-export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs }: BoosterOpeningProps) {
+export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, balance: initialBalance, set }: BoosterOpeningProps) {
   const reduced = useReducedMotion() ?? false;
   const [phase, setPhase] = useState<Phase>("idle");
   const [result, setResult] = useState<BoosterResult | null>(null);
@@ -175,14 +181,21 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs }
   const [flash, setFlash] = useState(0);
   const [stock, setStock] = useState({ available, nextAt });
   const [error, setError] = useState<string | null>(null);
+  const [balance, setBalance] = useState(initialBalance);
   const [, startTransition] = useTransition();
   const busy = useRef(false);
   const countdown = useBoosterCountdown(stock.available, stock.nextAt, maxStock, refillIntervalMs);
 
   // Le serveur peut renvoyer un nouvel état (navigation, autre onglet) : on s'aligne au repos.
   useEffect(() => {
-    if (phase === "idle") setStock({ available, nextAt });
-  }, [available, nextAt, phase]);
+    if (phase === "idle") {
+      setStock({ available, nextAt });
+      setBalance(initialBalance);
+    }
+  }, [available, nextAt, initialBalance, phase]);
+
+  const canOpen = set ? balance >= set.price : countdown.shown > 0;
+  const packProps = set ? { label: set.name, logo: set.logo, palette: set.id } : {};
 
   const cards = useMemo(() => result?.cards ?? [], [result]);
   const current = cards[index];
@@ -192,12 +205,12 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs }
   );
 
   const open = useCallback(() => {
-    if (busy.current || countdown.shown <= 0) return;
+    if (busy.current || !canOpen) return;
     busy.current = true;
     setError(null);
     setPhase("charging");
     startTransition(async () => {
-      const res = await openBoosterAction();
+      const res = set ? await openSetBoosterAction(set.id) : await openBoosterAction();
       if (!res.ok) {
         setError(res.error);
         setPhase("idle");
@@ -207,6 +220,10 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs }
       preload(res.result.cards);
       setResult(res.result);
       setStock(res.result.boosters);
+      // Le prix est débité tout de suite ; les bonus de set complété s'afficheront au récapitulatif.
+      const bonus = res.result.completedSets.reduce((n, s) => n + s.bonus, 0);
+      setBalance(res.result.balance);
+      if (set) emitBalance(res.result.balance - bonus);
       setIndex(0);
       setFlipped(false);
       setPhase("tearing");
@@ -219,7 +236,7 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs }
         reduced ? 250 : 1250,
       );
     });
-  }, [countdown.shown, reduced]);
+  }, [canOpen, set, reduced]);
 
   const flipCurrent = useCallback(() => {
     if (!current || flipped || suspense) return;
@@ -268,6 +285,10 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs }
     setFlipped(false);
   }
 
+  useEffect(() => {
+    if (phase === "summary" && result && result.completedSets.length > 0) emitBalance(result.balance);
+  }, [phase, result]);
+
   const dim = phase === "reveal" && current && (suspense || flipped) && tierRank(current.tier) >= tierRank("legendary");
 
   return (
@@ -303,21 +324,21 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs }
           <motion.button
             type="button"
             onClick={open}
-            disabled={countdown.shown <= 0 || phase === "charging"}
-            aria-label={countdown.shown > 0 ? "Ouvrir un booster" : "Aucun booster disponible"}
+            disabled={!canOpen || phase === "charging"}
+            aria-label={canOpen ? (set ? `Ouvrir un booster ${set.name}` : "Ouvrir un booster") : set ? "Solde insuffisant" : "Aucun booster disponible"}
             className="relative w-[min(62vw,260px)] cursor-pointer rounded-2xl disabled:cursor-default"
             animate={
               phase === "charging" && !reduced
                 ? { x: [0, -4, 4, -3, 3, 0], rotate: [0, -1.5, 1.5, -1, 1, 0], transition: { duration: 0.4, repeat: Infinity } }
-                : reduced || countdown.shown <= 0
+                : reduced || !canOpen
                   ? {}
                   : { y: [0, -10, 0], transition: { duration: 3.2, repeat: Infinity, ease: "easeInOut" } }
             }
-            whileHover={countdown.shown > 0 && !reduced ? { scale: 1.04, rotate: -1.5 } : undefined}
-            whileTap={countdown.shown > 0 && !reduced ? { scale: 0.97 } : undefined}
+            whileHover={canOpen && !reduced ? { scale: 1.04, rotate: -1.5 } : undefined}
+            whileTap={canOpen && !reduced ? { scale: 0.97 } : undefined}
           >
-            <BoosterPackArt empty={countdown.shown <= 0} />
-            {countdown.shown > 1 && (
+            <BoosterPackArt empty={!canOpen} {...packProps} />
+            {!set && countdown.shown > 1 && (
               <span className="absolute -top-3 -right-3 grid size-11 place-items-center rounded-full bg-lime font-display text-base font-bold text-bg shadow-[0_6px_18px_-4px_var(--color-lime)]">
                 ×{countdown.shown}
               </span>
@@ -325,7 +346,40 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs }
           </motion.button>
 
           <div className="grid justify-items-center gap-3 text-center">
-            {countdown.shown > 0 ? (
+            {set ? (
+              canOpen ? (
+                <>
+                  <Button size="lg" onClick={open} disabled={phase === "charging"} className="min-w-56">
+                    <Sparkles aria-hidden="true" />
+                    {phase === "charging" ? "Ouverture…" : <>Ouvrir · <Jetons value={set.price} /></>}
+                  </Button>
+                  <p className="text-sm text-muted">
+                    Ton solde : <Jetons value={balance} className="text-fg" /> · 5 cartes de ce set, dont au moins une Peu commune
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="font-display text-lg font-bold">Il te manque {set.price - balance} Jetons</p>
+                  <p className="max-w-[40ch] text-sm text-muted">
+                    Recycle tes doublons ou termine tes quêtes du jour pour gagner des Jetons. Ton solde : <Jetons value={balance} className="text-fg" />
+                  </p>
+                  <div className="flex flex-wrap justify-center gap-2 pt-1">
+                    <Button asChild variant="secondary">
+                      <Link href="/collection?vue=cartes&tri=duplicates">
+                        <Recycle aria-hidden="true" />
+                        Recycler mes doublons
+                      </Link>
+                    </Button>
+                    <Button asChild variant="secondary">
+                      <Link href="/#quetes">
+                        <Target aria-hidden="true" />
+                        Quêtes du jour
+                      </Link>
+                    </Button>
+                  </div>
+                </>
+              )
+            ) : countdown.shown > 0 ? (
               <>
                 <Button size="lg" onClick={open} disabled={phase === "charging"} className="min-w-56">
                   <Sparkles aria-hidden="true" />
@@ -346,12 +400,20 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs }
                 <div className="h-2 w-56 overflow-hidden rounded-full bg-elev" aria-hidden="true">
                   <div className="h-full rounded-full bg-gradient-to-r from-accent to-coral" style={{ width: `${Math.round(countdown.progress * 100)}%` }} />
                 </div>
-                <Button asChild variant="secondary" className="mt-2">
-                  <Link href="/collection">
-                    <Layers aria-hidden="true" />
-                    Voir ma collection
-                  </Link>
-                </Button>
+                <div className="mt-2 flex flex-wrap justify-center gap-2">
+                  <Button asChild variant="secondary">
+                    <Link href="/boosters/sets">
+                      <Sparkles aria-hidden="true" />
+                      Boosters de set
+                    </Link>
+                  </Button>
+                  <Button asChild variant="secondary">
+                    <Link href="/collection">
+                      <Layers aria-hidden="true" />
+                      Ma collection
+                    </Link>
+                  </Button>
+                </div>
               </>
             )}
             {error && (
@@ -374,7 +436,7 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs }
             animate={reduced ? { opacity: 0 } : { x: 60, y: -160, rotate: 24, opacity: 0 }}
             transition={{ duration: 0.7, delay: 0.25, ease: [0.3, 0.7, 0.4, 1] }}
           >
-            <BoosterPackArt />
+            <BoosterPackArt {...packProps} />
           </motion.div>
           <motion.div
             className="absolute inset-0"
@@ -383,7 +445,7 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs }
             animate={reduced ? { opacity: 0 } : { y: [0, 0, 70], opacity: [1, 1, 0], scale: [1, 1, 0.95] }}
             transition={{ duration: 1.1, times: [0, 0.55, 1] }}
           >
-            <BoosterPackArt />
+            <BoosterPackArt {...packProps} />
           </motion.div>
           {!reduced && (
             <motion.div
@@ -530,7 +592,7 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs }
           transition={{ duration: 0.3 }}
         >
           <div className="grid justify-items-center gap-2 text-center">
-            <h2 className="font-display text-2xl font-bold sm:text-3xl">Ton booster</h2>
+            <h2 className="font-display text-2xl font-bold sm:text-3xl">{set ? set.name : "Ton booster"}</h2>
             {best && (
               <p className="text-muted">
                 Meilleure carte : <strong className="text-fg">{best.name}</strong> ({TIER_LABELS_FR[best.tier]})
@@ -538,6 +600,37 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs }
               </p>
             )}
           </div>
+          {result.completedSets.map((cs) => (
+            <motion.div
+              key={cs.setId}
+              className="relative grid w-full max-w-md justify-items-center gap-1 overflow-hidden rounded-[var(--radius-card)] border-2 border-[#FFC93C] bg-[radial-gradient(120%_120%_at_50%_0%,rgb(255_201_60/0.28),transparent_60%)] p-5 text-center shadow-[0_0_60px_-12px_#FFC93C]"
+              initial={reduced ? { opacity: 0 } : { scale: 0.7, opacity: 0, rotate: -3 }}
+              animate={{ scale: 1, opacity: 1, rotate: 0 }}
+              transition={{ type: "spring", stiffness: 200, damping: 14, delay: 0.4 }}
+            >
+              <CoinBurst count={18} />
+              <p className="inline-flex items-center gap-1.5 font-mono text-xs font-bold tracking-[0.2em] text-[#FFC93C] uppercase">
+                <CheckCircle2 aria-hidden="true" className="size-4" />
+                Set complété
+              </p>
+              <p className="font-display text-xl font-bold">{cs.name}</p>
+              <p className="text-muted">
+                Bonus : <Jetons value={cs.bonus} signed className="text-[#FFC93C]" />
+              </p>
+            </motion.div>
+          ))}
+          {result.questsDone.length > 0 && (
+            <ul className="flex flex-wrap justify-center gap-2">
+              {result.questsDone.map((q) => (
+                <li key={q.kind}>
+                  <Link href="/#quetes" className="inline-flex items-center gap-2 rounded-full border border-accent/60 bg-accent/10 px-3.5 py-1.5 text-sm hover:bg-accent/20">
+                    <Target aria-hidden="true" className="size-4 text-accent" />
+                    Quête terminée : {q.label} · réclame <Jetons value={q.reward} className="text-[#FFC93C]" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
           <ul className="grid w-full max-w-4xl grid-cols-3 gap-x-3 gap-y-6 sm:grid-cols-5">
             {cards.map((c, i) => (
               <motion.li
@@ -555,7 +648,18 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs }
             ))}
           </ul>
           <div className="flex flex-wrap justify-center gap-3">
-            {countdown.shown > 0 ? (
+            {set ? (
+              canOpen ? (
+                <Button size="lg" onClick={() => { reset(); window.setTimeout(open, 50); }}>
+                  <Sparkles aria-hidden="true" />
+                  Encore un · <Jetons value={set.price} />
+                </Button>
+              ) : (
+                <Button asChild size="lg">
+                  <Link href="/boosters/sets">Autres sets</Link>
+                </Button>
+              )
+            ) : countdown.shown > 0 ? (
               <Button size="lg" onClick={() => { reset(); window.setTimeout(open, 50); }}>
                 <Sparkles aria-hidden="true" />
                 Ouvrir le suivant ({countdown.shown})

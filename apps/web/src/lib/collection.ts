@@ -13,22 +13,21 @@ export const getOwnedCounts = cache(async (userId: string, setId?: string): Prom
   return Object.fromEntries(rows.map((r) => [r.cardId, r._count._all]));
 });
 
+/** Totaux de la collection. Le catalogue « à collectionner » ne compte que les cartes tirables. */
 export const getCollectionTotals = cache(async (userId: string) => {
-  const [[row], catalog] = await Promise.all([
-    prisma.$queryRaw<{ unique: bigint; copies: bigint; sets_done: bigint }[]>`
-      WITH owned AS (SELECT DISTINCT "cardId" FROM "CardCopy" WHERE "ownerId" = ${userId})
-      SELECT (SELECT count(*) FROM owned) AS unique,
-             (SELECT count(*) FROM "CardCopy" WHERE "ownerId" = ${userId}) AS copies,
-             (SELECT count(*) FROM (
-                SELECT c."setId" FROM "Card" c LEFT JOIN owned o ON o."cardId" = c.id
-                GROUP BY c."setId" HAVING count(o."cardId") = count(*)) done) AS sets_done`,
-    prisma.card.count(),
+  const [[row], catalog, setsCompleted] = await Promise.all([
+    prisma.$queryRaw<{ unique: bigint; copies: bigint }[]>`
+      SELECT (SELECT count(DISTINCT cc."cardId") FROM "CardCopy" cc JOIN "Card" c ON c.id = cc."cardId" AND c.droppable
+              WHERE cc."ownerId" = ${userId}) AS unique,
+             (SELECT count(*) FROM "CardCopy" WHERE "ownerId" = ${userId}) AS copies`,
+    prisma.card.count({ where: { droppable: true } }),
+    prisma.setCompletion.count({ where: { userId } }),
   ]);
   const unique = Number(row?.unique ?? 0);
   return {
     unique,
     copies: Number(row?.copies ?? 0),
-    setsCompleted: Number(row?.sets_done ?? 0),
+    setsCompleted,
     catalog,
     percent: catalog ? (unique / catalog) * 100 : 0,
   };
@@ -43,9 +42,10 @@ export interface SetProgress {
   releaseDate: Date | null;
   total: number;
   owned: number;
+  completed: boolean;
 }
 
-/** Avancement par set (tous les sets, plus récents d'abord). */
+/** Avancement par set (cartes tirables uniquement, plus récents d'abord). */
 export const getSetProgress = cache(
   async (userId: string): Promise<SetProgress[]> => {
     const rows = await prisma.$queryRaw<(Omit<SetProgress, "total" | "owned"> & { total: bigint; owned: bigint })[]>`
