@@ -4,7 +4,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CardGrid } from "@/components/catalog/card-grid";
 import { SetLogo } from "@/components/catalog/set-logo";
+import { ProgressBar } from "@/components/progress";
 import { getSet, getSetCards } from "@/lib/catalog";
+import { getOwnedCounts } from "@/lib/collection";
+import { getCurrentPlayerSafe } from "@/lib/player";
 import { formatDateFr, plural } from "@/lib/format";
 
 type Params = Promise<{ setId: string }>;
@@ -22,7 +25,9 @@ export default async function SetPage({ params }: { params: Params }) {
   const { setId } = await params;
   const set = await getSet(setId);
   if (!set) notFound();
-  const cards = await getSetCards(set.id);
+  const [cards, player] = await Promise.all([getSetCards(set.id), getCurrentPlayerSafe()]);
+  const owned = player ? await getOwnedCounts(player.id, set.id) : null;
+  const ownedCount = owned ? cards.filter((c) => owned[c.id]).length : 0;
 
   return (
     <div className="grid grid-cols-1 gap-8 py-6 sm:py-10">
@@ -67,13 +72,24 @@ export default async function SetPage({ params }: { params: Params }) {
               </div>
             )}
           </dl>
+          {owned && cards.length > 0 && (
+            <div className="grid max-w-md gap-1.5 pt-1">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted">Ta progression</span>
+                <span className={ownedCount >= cards.length ? "font-mono font-bold text-lime" : "font-mono font-bold"}>
+                  {ownedCount}/{cards.length}
+                </span>
+              </div>
+              <ProgressBar value={ownedCount} max={cards.length} label="Complétion du set" />
+            </div>
+          )}
         </div>
       </header>
 
       {cards.length === 0 ? (
         <p className="text-muted">Aucune carte importée pour ce set ({plural(set.cardCountTotal, "carte")} attendues).</p>
       ) : (
-        <CardGrid cards={cards} />
+        <CardGrid cards={cards} owned={owned} />
       )}
     </div>
   );

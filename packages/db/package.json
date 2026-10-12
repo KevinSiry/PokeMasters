@@ -14,5 +14,8 @@
   "dependencies": {
     "@pokeflex/config": "*",
     "@prisma/client": "6.19.3"
+  },
+  "devDependencies": {
+    "@pokeflex/game": "*"
   }
 }

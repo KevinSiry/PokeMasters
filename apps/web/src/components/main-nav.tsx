@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, Home, Search, type LucideIcon } from "lucide-react";
+import { BookOpen, GalleryVerticalEnd, Home, Search, Sparkles, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV_ITEMS, isActive, type NavItem } from "@/lib/nav";
@@ -10,6 +10,8 @@ const ICONS: Record<NavItem["icon"], LucideIcon> = {
   home: Home,
   catalogue: BookOpen,
   search: Search,
+  booster: Sparkles,
+  collection: GalleryVerticalEnd,
 };
 
 function useItems(loggedIn: boolean) {

@@ -9,6 +9,8 @@ import { TierBadge } from "@/components/tier-badge";
 import { TiltCard } from "@/components/tilt-card";
 import { cardImageUrl } from "@/lib/card-image";
 import { getCard, getSamePokemon, getSetNeighbours } from "@/lib/catalog";
+import { getMyCopies } from "@/lib/collection";
+import { getCurrentPlayerSafe } from "@/lib/player";
 import { formatDateFr, formatEur } from "@/lib/format";
 
 type Params = Promise<{ id: string }>;
@@ -39,10 +41,12 @@ export default async function CardPage({ params }: { params: Params }) {
   const { id } = await params;
   const card = await getCard(decodeURIComponent(id));
   if (!card) notFound();
-  const [nav, same] = await Promise.all([
+  const [nav, same, player] = await Promise.all([
     getSetNeighbours(card.setId, card.sortKey, card.id),
     getSamePokemon(card.dexIds, card.id),
+    getCurrentPlayerSafe(),
   ]);
+  const copies = player ? await getMyCopies(player.id, card.id) : null;
   const finishes = (Object.keys(FINISH_LABELS_FR) as Finish[]).filter((f) => card.variants?.[f]);
   const price = formatEur(card.priceEurTrend);
 
@@ -124,6 +128,34 @@ export default async function CardPage({ params }: { params: Params }) {
               </p>
             )}
           </header>
+
+          {copies && (
+            <div
+              className={
+                copies.length > 0
+                  ? "flex flex-wrap items-center gap-2 rounded-xl border border-lime/40 bg-lime/5 p-3 text-sm"
+                  : "rounded-xl border border-dashed border-line p-3 text-sm text-muted"
+              }
+            >
+              {copies.length > 0 ? (
+                <>
+                  <span className="font-semibold text-lime">
+                    Dans ta collection : ×{copies.length}
+                  </span>
+                  {(Object.keys(FINISH_LABELS_FR) as Finish[])
+                    .map((f) => [f, copies.filter((c) => c.finish === f).length] as const)
+                    .filter(([, n]) => n > 0)
+                    .map(([f, n]) => (
+                      <span key={f} className="rounded-full bg-elev px-2 py-0.5 text-xs">
+                        {FINISH_LABELS_FR[f]} ×{n}
+                      </span>
+                    ))}
+                </>
+              ) : (
+                "Tu n'as pas encore cette carte."
+              )}
+            </div>
+          )}
 
           {card.abilities.length > 0 && (
             <Section title="Talents">

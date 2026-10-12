@@ -8,9 +8,9 @@ import { getCurrentPlayerSafe } from "@/lib/player";
 export const metadata: Metadata = { title: "Connexion" };
 
 const DEMO_ACCOUNTS = [
-  { handle: "demo-dresseur", label: "Dresseur Démo (6 boosters)" },
-  { handle: "demo-collection", label: "Collectionneuse Démo (3 boosters)" },
-  { handle: "demo-marchand", label: "Marchand Démo (0 booster)" },
+  { handle: "demo-dresseur", label: "Dresseur Démo · 6 boosters, collection vide" },
+  { handle: "demo-collection", label: "Collectionneuse Démo · 600 cartes" },
+  { handle: "demo-marchand", label: "Marchand Démo · 300 cartes, 0 booster" },
 ];
 
 function TwitchIcon() {
@@ -29,8 +29,14 @@ function DiscordIcon() {
   );
 }
 
-export default async function ConnexionPage() {
-  if (await getCurrentPlayerSafe()) redirect("/");
+/** Page de retour après connexion : uniquement un chemin interne. */
+function safeNext(raw: string | undefined): string {
+  return raw && raw.startsWith("/") && !raw.startsWith("//") ? raw : "/";
+}
+
+export default async function ConnexionPage({ searchParams }: { searchParams: Promise<{ suite?: string }> }) {
+  const next = safeNext((await searchParams).suite);
+  if (await getCurrentPlayerSafe()) redirect(next);
   const anyProvider = configuredProviders.twitch || configuredProviders.discord;
 
   return (
@@ -47,7 +53,7 @@ export default async function ConnexionPage() {
           <form
             action={async () => {
               "use server";
-              await signIn("twitch", { redirectTo: "/" });
+              await signIn("twitch", { redirectTo: next });
             }}
           >
             <Button type="submit" variant="secondary" size="lg" className="w-full [&_svg]:size-5">
@@ -60,7 +66,7 @@ export default async function ConnexionPage() {
           <form
             action={async () => {
               "use server";
-              await signIn("discord", { redirectTo: "/" });
+              await signIn("discord", { redirectTo: next });
             }}
           >
             <Button type="submit" variant="secondary" size="lg" className="w-full [&_svg]:size-5">
@@ -82,6 +88,7 @@ export default async function ConnexionPage() {
         <div className="grid gap-3 rounded-[var(--radius-card)] border border-dashed border-lime/50 p-6">
           <h2 className="font-display text-sm font-bold text-lime">Comptes de démo (développement uniquement)</h2>
           <form method="post" action="/api/dev/login" className="grid gap-2">
+            <input type="hidden" name="suite" value={next} />
             {DEMO_ACCOUNTS.map((a) => (
               <Button key={a.handle} type="submit" name="handle" value={a.handle} variant="ghost" className="justify-start">
                 {a.label}

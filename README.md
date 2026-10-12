@@ -68,6 +68,10 @@ Ensuite, le serveur temps réel (`npm run dev`) vérifie chaque jour s'il y a de
 
 Sans import, `npm run db:seed` charge un petit échantillon (Set de Base et 151) pour découvrir le jeu.
 
+### Jouer
+
+Connecte-toi (en développement, avec un compte de démo), puis ouvre l'onglet **Boosters** : un booster gratuit se recharge toutes les 10 minutes, jusqu'à 6 en réserve (réglable dans `config/game.ts`). Les cartes tirées rejoignent ta **Collection** (progression par set, Pokédex par génération, illustrateurs). Le compte **demo-collection** a déjà 600 cartes pour voir une collection remplie.
+
 ### 6. Brancher la connexion Twitch et Discord
 
 **Twitch**

@@ -39,6 +39,8 @@ model User {
 
   accounts Account[]
   sessions Session[]
+  copies   CardCopy[]
+  openings BoosterOpening[]
 }
 
 // ───────── Modèles standard Auth.js (adaptateur Prisma) ─────────
@@ -187,6 +189,7 @@ model Card {
   /// Exclure du tirage (carte sans image, etc.).
   droppable      Boolean      @default(true)
   syncedAt       DateTime     @default(now())
+  copies         CardCopy[]
 
   @@index([setId, sortKey])
   @@index([tier, droppable])
@@ -208,4 +211,55 @@ model SyncRun {
   error      String?
 
   @@index([kind, startedAt])
+}
+
+// ───────── Collection (phase 3) ─────────
+
+enum Finish {
+  normal
+  reverse
+  holo
+  firstEdition
+}
+
+enum CopyStatus {
+  owned
+  listed
+  staked
+}
+
+/// Un exemplaire possédé = une ligne. Un exemplaire listé au marché ou misé en duel change de statut.
+model CardCopy {
+  id          String     @id @default(cuid())
+  ownerId     String
+  owner       User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  cardId      String
+  card        Card       @relation(fields: [cardId], references: [id])
+  finish      Finish     @default(normal)
+  status      CopyStatus @default(owned)
+  /// booster | set_booster | market | duel | seed
+  obtainedVia String
+  openingId   String?
+  obtainedAt  DateTime   @default(now())
+
+  @@index([ownerId, cardId])
+  @@index([ownerId, obtainedAt])
+  @@index([cardId])
+}
+
+/// Audit de chaque ouverture : le tirage est figé côté serveur avant toute animation.
+model BoosterOpening {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// all_eras | set
+  kind      String
+  setId     String?
+  cardIds   String[]
+  tiers     Tier[]
+  finishes  Finish[]
+  cost      Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
