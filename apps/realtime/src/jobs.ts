@@ -6,11 +6,12 @@
  * pas de cron système (rien à installer sous Windows), et redémarrer le serveur ne
  * relance pas une synchro déjà faite dans la journée.
  *
- * Clôture des enchères échues toutes les 15 s (le marché rattrape aussi à l'affichage).
+ * Toutes les 15 s : clôture des enchères échues (le marché rattrape aussi à l'affichage)
+ * et expiration des défis de duel restés sans réponse.
  */
 import { gameConfig } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
-import { closeDueAuctions } from "@pokeflex/server";
+import { closeDueAuctions, expireDuels } from "@pokeflex/server";
 import { createTcgdexClient, syncCatalog } from "@pokeflex/tcgdex";
 
 const DAY = 24 * 60 * 60_000;
@@ -42,8 +43,10 @@ async function dailyCatalogSync() {
   log(`prix rafraîchis : ${prices.cards}`);
 }
 
-/** Clôture des enchères échues, toutes les 15 secondes. */
-function startAuctionCloser() {
+export type ExpiredDuel = Awaited<ReturnType<typeof expireDuels>>[number];
+
+/** Clôture des enchères échues et expiration des défis, toutes les 15 secondes. */
+function startSweeper(onDuelsExpired: (duels: ExpiredDuel[]) => void) {
   let running = false;
   const tick = async () => {
     if (running) return;
@@ -53,6 +56,12 @@ function startAuctionCloser() {
       if (closed > 0) console.log(`[marche] ${closed} enchère(s) clôturée(s)`);
     } catch (err) {
       console.error("[marche] clôture des enchères impossible", err instanceof Error ? err.message : err);
+    }
+    try {
+      const expired = await expireDuels();
+      if (expired.length > 0) onDuelsExpired(expired);
+    } catch (err) {
+      console.error("[duels] expiration des défis impossible", err instanceof Error ? err.message : err);
     } finally {
       running = false;
     }
@@ -62,8 +71,8 @@ function startAuctionCloser() {
   return () => clearInterval(timer);
 }
 
-export function startJobs() {
-  const stopAuctions = startAuctionCloser();
+export function startJobs(onDuelsExpired: (duels: ExpiredDuel[]) => void = () => {}) {
+  const stopAuctions = startSweeper(onDuelsExpired);
   if (process.env.CATALOG_AUTO_SYNC === "false") return stopAuctions;
   let running = false;
   const tick = async () => {

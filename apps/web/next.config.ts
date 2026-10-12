@@ -10,7 +10,7 @@ loadEnvConfig(rootDir);
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   // Les paquets internes sont publiés en TypeScript source.
-  transpilePackages: ["@pokeflex/config", "@pokeflex/db", "@pokeflex/game", "@pokeflex/server"],
+  transpilePackages: ["@pokeflex/config", "@pokeflex/db", "@pokeflex/game", "@pokeflex/server", "@pokeflex/tcgdex"],
   outputFileTracingRoot: rootDir,
   poweredByHeader: false,
   images: {
