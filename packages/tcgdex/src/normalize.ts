@@ -201,3 +201,18 @@ export function toSetRecord(set: SetDetail, lang: "fr" | "en", nameEn: string | 
 export function isExcludedSerie(serieId: string): boolean {
   return (gameConfig.catalog.excludedSeries as readonly string[]).includes(serieId);
 }
+
+/**
+ * Mode `new-sets` : faut-il réimporter un set déjà en base ?
+ * Oui s'il a gagné des cartes, ou si TCGdex propose maintenant plus d'images que ce
+ * qu'on a stocké (les scans d'un set récent arrivent souvent après ses données).
+ */
+export function needsResync(
+  stored: { cards: number; withImage: number } | undefined,
+  cards: { id: string; image?: string | null }[],
+  enCards: ReadonlyMap<string, { image?: string | null }>,
+): boolean {
+  if (!stored || stored.cards < cards.length) return true;
+  const available = cards.filter((c) => c.image ?? enCards.get(c.id)?.image).length;
+  return available > stored.withImage;
+}
