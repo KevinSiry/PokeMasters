@@ -5,7 +5,7 @@
  * Toute rareté absente de ce tableau tombe sur `fallbackTier` et apparaît dans
  * `reports/rarities.md` (généré par `npm run sync:catalog`) pour être classée ici.
  *
- * Statut : provisoire, en attente de validation par Kevin (voir DECISIONS.md).
+ * Statut : validé par Kevin le 2026-10-12 (voir DECISIONS.md).
  */
 import type { Tier } from "./game";
 
