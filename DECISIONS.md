@@ -73,6 +73,14 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 - **Historique des ventes conservé** même si l'exemplaire est recyclé ensuite (`Listing.copyId` passe à NULL). La cote d'une carte = prix moyen des ventes des 30 derniers jours ; le prix suggéré à la mise en vente en découle (sinon 3 × la valeur de recyclage).
 - **Annonces de démo** : le seed met en vente 16 cartes de demo-marchand (doublons puis cartes rares, une sur quatre aux enchères), frais payés au registre.
 
+## Docker Compose (phase 5)
+
+- **`docker compose up --build` lance tout le jeu** (Postgres, Redis, site, temps réel) sans Node.js ni `.env` sur la machine. Une seule image sert au site, au temps réel et au service `init` (migrations, échantillon de catalogue, comptes de démo), qui s'exécute avant les deux autres à chaque démarrage ; tout y est idempotent.
+- **Image `node:22-bookworm` complète** plutôt que `slim` : OpenSSL y est déjà, ce que Prisma exige, sans `apt-get` au build.
+- **Comptes de démo autorisés sur un build de production servi sur localhost** (`APP_URL` en localhost, 127.0.0.1 ou ::1). Un site en ligne a une autre adresse : la connexion de démo y reste impossible même si `ALLOW_DEV_LOGIN` est posé par erreur.
+- **Catalogue complet à la demande** (`docker compose run --rm init npm run sync:catalog`) : l'import prend du temps, l'échantillon suffit pour essayer. Synchro quotidienne désactivée par défaut dans Docker (`CATALOG_AUTO_SYNC`).
+- La CI construit l'image et vérifie que le jeu répond après `docker compose up`.
+
 ## Versions
 
 - **Next.js 15.5, Prisma 6.19, TypeScript 5.9, Vitest 3, ESLint 9** plutôt que les dernières majeures (Next 16, Prisma 7, TS 7) : versions éprouvées, documentation stable. Migration à reconsidérer en phase 8.

@@ -71,3 +71,24 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+
+  docker:
+    name: Docker Compose (jeu complet)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Construire l'image
+        run: docker compose build
+      - name: Lancer le jeu et vérifier qu'il répond
+        run: |
+          docker compose up -d
+          for i in $(seq 1 60); do
+            if curl -fsS -o /dev/null http://localhost:3000/connexion; then break; fi
+            sleep 3
+          done
+          curl -fsS http://localhost:3000/connexion | grep -q "demo-collection"
+          curl -fsS -o /dev/null http://localhost:3000/marche
+          curl -fsS -o /dev/null "http://localhost:3001/socket.io/?EIO=4&transport=polling"
+      - name: Journaux en cas d'échec
+        if: failure()
+        run: docker compose logs

@@ -1,5 +1,29 @@
-# Services locaux de PokeFlex. Lancer : npm run db:up (ou docker compose up -d)
+# PokeFlex en local avec Docker Compose.
+#
+#   docker compose up --build        tout le jeu : http://localhost:3000
+#   docker compose up -d postgres redis   seulement la base et Redis (pour npm run dev)
+#
+# Au premier lancement, le service « init » applique les migrations, charge un échantillon
+# du catalogue (Set de Base et 151) et crée les comptes de démo. Catalogue complet TCGdex :
+#   docker compose run --rm init npm run sync:catalog
 name: pokeflex
+
+x-app-env: &app-env
+  DATABASE_URL: postgresql://pokeflex:pokeflex@postgres:5432/pokeflex?schema=public
+  REDIS_URL: redis://redis:6379
+  APP_URL: http://localhost:${WEB_PORT:-3000}
+  AUTH_URL: http://localhost:${WEB_PORT:-3000}
+  REALTIME_PORT: "3001"
+  NEXT_PUBLIC_REALTIME_URL: http://localhost:${REALTIME_PUBLIC_PORT:-3001}
+  # Secret de session local uniquement : à remplacer pour toute mise en ligne.
+  AUTH_SECRET: ${AUTH_SECRET:-pokeflex-docker-local-secret-a-changer-en-ligne}
+  AUTH_TWITCH_ID: ${AUTH_TWITCH_ID:-}
+  AUTH_TWITCH_SECRET: ${AUTH_TWITCH_SECRET:-}
+  AUTH_DISCORD_ID: ${AUTH_DISCORD_ID:-}
+  AUTH_DISCORD_SECRET: ${AUTH_DISCORD_SECRET:-}
+  # Comptes de démo sans OAuth : autorisé ici car le site n'est servi que sur localhost.
+  ALLOW_DEV_LOGIN: "true"
+  CATALOG_AUTO_SYNC: ${CATALOG_AUTO_SYNC:-false}
 
 services:
   postgres:
@@ -30,6 +54,45 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+
+  # Migrations + échantillon de catalogue + comptes de démo, puis s'arrête.
+  init:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_REALTIME_URL: http://localhost:${REALTIME_PUBLIC_PORT:-3001}
+    image: pokeflex-app
+    environment: *app-env
+    command: ["sh", "-c", "npm run db:deploy && npm run db:seed"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    image: pokeflex-app
+    environment: *app-env
+    command: ["npm", "run", "start", "-w", "@pokeflex/web"]
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    depends_on:
+      init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  realtime:
+    image: pokeflex-app
+    environment: *app-env
+    command: ["npm", "run", "start", "-w", "@pokeflex/realtime"]
+    ports:
+      - "${REALTIME_PUBLIC_PORT:-3001}:3001"
+    depends_on:
+      init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   pg-data:
