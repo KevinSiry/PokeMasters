@@ -104,6 +104,8 @@ Les **Jetons** (sans valeur réelle) se gagnent en recyclant des cartes, en term
 
 Le **Marché** permet d'acheter et de vendre des cartes entre joueurs, à prix fixe ou aux enchères. Pour vendre, ouvre la fiche d'une carte possédée, section « Dans ta collection », bouton **Vendre**. Tes annonces sont dans « Mes ventes », tes offres dans « Mes enchères ». Le compte **demo-marchand** a déjà 16 cartes en vente pour essayer.
 
+Les **Duels** opposent deux joueurs sur 10 questions à propos des cartes qu'ils misent (3 chacun, toujours rendues), avec 15 secondes par question. Pour essayer seul, lance un **Entraînement** contre le Professeur Chen. Pour un vrai duel en local, ouvre une fenêtre de navigation privée, connecte-toi avec un autre compte de démo, puis défie-le par son pseudo (par exemple `demo-marchand`).
+
 ### 6. Brancher la connexion Twitch et Discord
 
 **Twitch**

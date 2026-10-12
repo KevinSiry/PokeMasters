@@ -15,6 +15,7 @@
   "dependencies": {
     "@pokeflex/config": "*",
     "@pokeflex/db": "*",
-    "@pokeflex/game": "*"
+    "@pokeflex/game": "*",
+    "@pokeflex/tcgdex": "*"
   }
 }

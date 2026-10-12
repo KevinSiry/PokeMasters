@@ -113,13 +113,13 @@ export const gameConfig = {
     timeZone: "Europe/Paris",
     /**
      * Modèles de quêtes. Chaque jour, `perDay` quêtes sont choisies parmi celles qui sont actives
-     * (tirage déterministe par jour). « Gagner 1 duel » s'activera avec les duels (phase 6).
+     * (tirage déterministe par jour, identique pour tous les joueurs).
      */
     templates: [
       { kind: "open_boosters", target: 5, reward: 30, labelFr: "Ouvrir 5 boosters", enabled: true },
       { kind: "recycle_cards", target: 20, reward: 30, labelFr: "Recycler 20 cartes", enabled: true },
       { kind: "new_cards", target: 3, reward: 40, labelFr: "Découvrir 3 nouvelles cartes", enabled: true },
-      { kind: "win_duel", target: 1, reward: 50, labelFr: "Gagner 1 duel", enabled: false },
+      { kind: "win_duel", target: 1, reward: 50, labelFr: "Gagner 1 duel", enabled: true },
     ],
   },
 
@@ -158,6 +158,18 @@ export const gameConfig = {
     rewardedDuelsPerDay: 10,
     /** Le gagnant remporte une carte misée par l'adversaire. Désactivé par défaut. */
     winnerTakesStake: false,
+    /** Un défi sans réponse expire au bout de ce délai (les cartes misées reviennent). */
+    challengeTtlMs: 15 * MINUTE,
+    /** Une fois les deux mises posées, délai pour que les deux joueurs entrent dans l'arène. */
+    joinWindowMs: 2 * MINUTE,
+    /** Défis en attente envoyés par un même joueur. */
+    maxPendingChallenges: 5,
+    /** Compte à rebours avant la première question. */
+    countdownMs: 3_000,
+    /** Pause sur la bonne réponse entre deux questions. */
+    revealMs: 2_800,
+    /** Entraînement contre le Professeur : sans mise, sans Jetons, sans quête. */
+    bot: { name: "Professeur Chen", accuracy: 0.65, minAnswerMs: 2_500, maxAnswerMs: 10_000 },
   },
 
   social: {

@@ -73,6 +73,20 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 - **Historique des ventes conservé** même si l'exemplaire est recyclé ensuite (`Listing.copyId` passe à NULL). La cote d'une carte = prix moyen des ventes des 30 derniers jours ; le prix suggéré à la mise en vente en découle (sinon 3 × la valeur de recyclage).
 - **Annonces de démo** : le seed met en vente 16 cartes de demo-marchand (doublons puis cartes rares, une sur quatre aux enchères), frais payés au registre.
 
+## Duels quiz (phase 6)
+
+- **Serveur autoritaire et chronométré** : le serveur temps réel envoie chaque question sans la bonne réponse, avec une échéance sur son horloge ; une réponse reçue après l'échéance est refusée. Le client corrige l'affichage du chrono avec l'écart d'horloge mesuré. Les questions (et leurs réponses) sont tirées et enregistrées en base avant la première question, avec leur graine : un duel est rejouable en test.
+- **Générateur pur** (`packages/game/src/duel.ts`) : 8 gabarits (type, PV, faiblesse, illustrateur, set, attaque, coût de retraite, n° de Pokédex), répartis équitablement entre les 6 cartes misées, jamais deux fois le même gabarit sur une carte. Un gabarit est ignoré si la carte n'a pas la donnée. Mauvaises réponses plausibles : PV et numéros proches, sets de la même série d'abord, attaques et illustrateurs tirés du catalogue.
+- **Questions avec image : illustration seule.** Le bas de la carte porte le nom de l'illustrateur et le symbole du set ; l'arène ne montre que le haut de la carte. Les questions sans image nomment la carte et son set (un Pikachu n'a pas les mêmes PV partout).
+- **Score** : 100 points par bonne réponse plus un bonus de vitesse jusqu'à 50, linéaire. Révélation dès que les deux ont répondu, sinon à la fin des 15 s.
+- **Mises** : 3 cartes différentes par joueur, bloquées (`staked`) pendant le duel et toujours rendues ; elles nourrissent les questions. `winnerTakesStake` (désactivé) ferait gagner une carte de la mise adverse. Trois cartes au hasard sont proposées d'emblée pour ne pas freiner le lancement.
+- **Trois façons de jouer** : défi à un joueur par son pseudo (15 min pour accepter), duel rapide (file d'attente en mémoire du serveur temps réel) et entraînement contre le Professeur Chen (sans mise, sans Jetons, sans quête), pour essayer seul.
+- **Récompenses** : 60 / 25 / 10 Jetons, 10 duels récompensés par jour (heure de Paris), rien pour celui qui abandonne. La quête « Gagner 1 duel » est activée : elle entre dans le tirage des 3 quêtes du jour.
+- **Déconnexion** : 30 s pour revenir (reconnexion automatique, l'arène reprend où elle en était), sinon forfait. Un défi accepté laisse 2 min aux deux joueurs pour entrer dans l'arène, sinon il est annulé et les cartes rendues. Un redémarrage du serveur temps réel annule les duels en cours et rend les cartes.
+- **État des duels en mémoire** dans un seul processus temps réel (Redis non nécessaire tant qu'il n'y a qu'une instance) ; la base reste la source de vérité des mises, scores et Jetons.
+- **Notifications en direct** : un défi reçu, accepté ou refusé s'affiche en toast sur toutes les pages. Le navigateur prévient le serveur temps réel après l'action ; celui-ci vérifie en base avant de relayer.
+- **Navigation** : onglet Duels ajouté ; la barre du bas mobile passe à 6 onglets pour un joueur connecté (lisible à 360 px).
+
 ## Docker Compose (phase 5)
 
 - **`docker compose up --build` lance tout le jeu** (Postgres, Redis, site, temps réel) sans Node.js ni `.env` sur la machine. Une seule image sert au site, au temps réel et au service `init` (migrations, échantillon de catalogue, comptes de démo), qui s'exécute avant les deux autres à chaque démarrage ; tout y est idempotent.
