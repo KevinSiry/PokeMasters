@@ -110,3 +110,9 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 ## GitHub
 
 - **Règles du dépôt reprises de Kroniq et Chabowt** (demande de Kevin, 2026-10-12) : sur `main`, suppression et force-push interdits, et les deux jobs de CI (Linux et Windows) doivent être verts pour fusionner. Le ruleset est versionné dans `.github/rulesets/protect-main.json` (à importer dans *Settings → Rules → Rulesets → New ruleset → Import a ruleset*). Réglages de fusion identiques aux deux projets : auto-merge activé, branche supprimée après fusion.
+
+## Déploiement
+
+- **Un tag de version sur `main` déploie sur le VPS** (demande de Kevin, 2026-10-12), comme Kroniq et Chabowt : CI complète, image unique poussée sur ghcr.io, déploiement par SSH derrière le Traefik existant, release GitHub. Guide : `docs/deploiement.md`.
+- **Temps réel sur le même domaine** que le site, sous `/socket.io` (routage Traefik) : même origine, donc le cookie de session suit sans sous-domaine ni CORS. `NEXT_PUBLIC_REALTIME_URL` vaut l'URL publique, figée au build de l'image.
+- **Pas de seed en production** : le service `init` n'applique que les migrations (ni comptes ni annonces de démo). Le catalogue complet s'importe une fois à la main, puis la synchro quotidienne prend le relais.
