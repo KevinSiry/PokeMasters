@@ -2,9 +2,11 @@
 export interface NavItem {
   href: string;
   label: string;
-  icon: "home" | "catalogue" | "search" | "booster" | "collection";
+  icon: "home" | "catalogue" | "search" | "booster" | "collection" | "market";
   /** Réservé aux joueurs connectés. */
   auth?: boolean;
+  /** Absent de la barre du bas pour un joueur connecté (5 onglets au plus ; la recherche reste dans le catalogue). */
+  guestOnlyOnMobile?: boolean;
 }
 
 export const NAV_ITEMS: NavItem[] = [
@@ -12,7 +14,8 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/catalogue", label: "Catalogue", icon: "catalogue" },
   { href: "/boosters", label: "Boosters", icon: "booster", auth: true },
   { href: "/collection", label: "Collection", icon: "collection", auth: true },
-  { href: "/recherche", label: "Recherche", icon: "search" },
+  { href: "/marche", label: "Marché", icon: "market" },
+  { href: "/recherche", label: "Recherche", icon: "search", guestOnlyOnMobile: true },
 ];
 
 export function isActive(pathname: string, href: string): boolean {

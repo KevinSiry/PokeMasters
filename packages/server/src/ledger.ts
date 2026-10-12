@@ -75,3 +75,26 @@ export async function getLedger(userId: string, take = 50, before?: bigint) {
     take,
   });
 }
+
+/** Verrouille plusieurs joueurs toujours dans le même ordre (par id) pour éviter les interblocages. */
+export async function lockUsers(tx: Tx, userIds: string[]) {
+  const ids = [...new Set(userIds)].sort();
+  for (const id of ids) await lockUser(tx, id);
+}
+
+/**
+ * Rejoue une transaction interrompue par un interblocage ou un conflit de sérialisation
+ * (rare : deux joueurs qui agissent en même temps l'un sur l'autre).
+ */
+export async function withTxRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+  for (let i = 1; ; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const retryable = /deadlock detected|could not serialize|P2034|40P01|40001/.test(msg) || (err as { code?: string }).code === "P2034";
+      if (!retryable || i >= attempts) throw err;
+      await new Promise((r) => setTimeout(r, 20 * i + Math.random() * 30));
+    }
+  }
+}

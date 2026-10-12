@@ -74,6 +74,8 @@ Connecte-toi (en développement, avec un compte de démo), puis ouvre l'onglet *
 
 Les **Jetons** (sans valeur réelle) se gagnent en recyclant des cartes, en terminant les quêtes du jour et en complétant des sets. Ils servent à acheter des boosters d'un set précis (onglet Boosters, « Boosters de set »). L'historique est dans le menu de l'avatar, « Mes Jetons ».
 
+Le **Marché** permet d'acheter et de vendre des cartes entre joueurs, à prix fixe ou aux enchères. Pour vendre, ouvre la fiche d'une carte possédée, section « Dans ta collection », bouton **Vendre**. Tes annonces sont dans « Mes ventes », tes offres dans « Mes enchères ». Le compte **demo-marchand** a déjà 16 cartes en vente pour essayer.
+
 ### 6. Brancher la connexion Twitch et Discord
 
 **Twitch**

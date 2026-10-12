@@ -5,7 +5,7 @@ import { gameConfig } from "@pokeflex/config";
 import { auditLedger, prisma } from "@pokeflex/db";
 import { InsufficientFundsError, seededRng } from "@pokeflex/game";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { BoosterError, getBoosterSets, openBooster } from "../boosters";
+import { BoosterError, getBoosterSets, openBooster } from "./boosters";
 import { checkSetCompletions } from "./completion";
 import { applyLedger } from "./ledger";
 import { claimQuest, getDailyQuests, QuestError } from "./quests";

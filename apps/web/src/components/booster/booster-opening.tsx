@@ -15,7 +15,7 @@ import { TiltCard } from "@/components/tilt-card";
 import { Button } from "@/components/ui/button";
 import { cardImageUrl } from "@/lib/card-image";
 import { emitBalance } from "@/lib/balance-events";
-import type { BoosterResult, PulledCard } from "@/lib/boosters";
+import type { BoosterResult, PulledCard } from "@pokeflex/server";
 import { useBoosterCountdown } from "@/lib/use-booster-countdown";
 import { cn } from "@/lib/utils";
 

@@ -5,9 +5,9 @@
 import { gameConfig, TIERS, type Finish, type Tier } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
 import { boosterStatus, consumeBooster, cryptoRng, drawBoosterTiers, drawFinish, drawIndex, InsufficientFundsError, type Rng } from "@pokeflex/game";
-import { checkSetCompletions, type CompletedSet } from "@/lib/economy/completion";
-import { applyLedger, lockUser } from "@/lib/economy/ledger";
-import { bumpQuest, type QuestProgressed } from "@/lib/economy/quests";
+import { checkSetCompletions, type CompletedSet } from "./completion";
+import { applyLedger, lockUser } from "./ledger";
+import { bumpQuest, type QuestProgressed } from "./quests";
 
 const POOL_TTL_MS = 10 * 60_000;
 let poolCache: { at: number; pools: Record<Tier, string[]> } | null = null;

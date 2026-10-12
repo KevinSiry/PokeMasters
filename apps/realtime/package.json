@@ -13,6 +13,7 @@
     "@pokeflex/config": "*",
     "@pokeflex/db": "*",
     "@pokeflex/game": "*",
+    "@pokeflex/server": "*",
     "@pokeflex/tcgdex": "*",
     "socket.io": "4.8.4"
   }

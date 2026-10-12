@@ -6,7 +6,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { JetonIcon, Jetons } from "@/components/jetons";
 import { Button } from "@/components/ui/button";
-import { getLedger, LEDGER_LABELS_FR } from "@/lib/economy/ledger";
+import { getLedger, LEDGER_LABELS_FR } from "@pokeflex/server";
 import { getCurrentPlayer } from "@/lib/player";
 import { cn, formatJetons } from "@/lib/utils";
 

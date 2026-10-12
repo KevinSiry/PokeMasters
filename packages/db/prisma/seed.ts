@@ -50,6 +50,55 @@ async function seedJetons(userId: string, amount: number) {
 }
 
 /**
+ * Quelques annonces du marchand de démo (doublons, prix d'après la rareté), pour que le marché
+ * ne soit pas vide à la découverte. Les frais sont payés et inscrits au registre comme pour un joueur.
+ */
+async function seedListings(userId: string) {
+  if ((await prisma.listing.count({ where: { sellerId: userId } })) > 0) return 0;
+  const copies = await prisma.cardCopy.findMany({
+    where: { ownerId: userId, status: "owned" },
+    select: { id: true, cardId: true, finish: true, card: { select: { tier: true } } },
+    orderBy: { id: "asc" },
+  });
+  const seen = new Set<string>();
+  const dups = copies.filter((c) => (seen.has(c.cardId) ? true : (seen.add(c.cardId), false)));
+  const rank = (t: Tier) => TIERS.indexOf(t);
+  // Doublons d'abord, puis les cartes les plus rares, pour une vitrine variée.
+  const dupIds = new Set(dups.map((d) => d.id));
+  const picks = [...copies]
+    .sort((a, b) => Number(dupIds.has(b.id)) - Number(dupIds.has(a.id)) || rank(b.card.tier) - rank(a.card.tier))
+    .slice(0, 16);
+  const { market, economy } = gameConfig;
+  let n = 0;
+  for (const [i, c] of picks.entries()) {
+    const auction = i % 4 === 0;
+    const price = Math.max(3, economy.recycleValue[c.card.tier] * (auction ? 2 : 4));
+    const fee = Math.max(market.listingFeeMin, Math.ceil(price * market.listingFeeRate));
+    await prisma.$transaction(async (tx) => {
+      const user = await tx.user.update({ where: { id: userId }, data: { balance: { decrement: fee } } });
+      await tx.cardCopy.update({ where: { id: c.id }, data: { status: "listed" } });
+      const listing = await tx.listing.create({
+        data: {
+          sellerId: userId,
+          copyId: c.id,
+          cardId: c.cardId,
+          finish: c.finish,
+          type: auction ? "auction" : "fixed",
+          price,
+          fee,
+          endsAt: auction ? new Date(Date.now() + market.auctionDurationsMs[2]!) : null,
+        },
+      });
+      await tx.ledgerEntry.create({
+        data: { userId, delta: -fee, balanceAfter: user.balance, reason: "market_fee", refType: "listing", refId: listing.id },
+      });
+    });
+    n++;
+  }
+  return n;
+}
+
+/**
  * Sans catalogue importé (CI, première découverte hors ligne), on charge un échantillon
  * réel (Set de Base et 151) exporté par `npm run fixture:export`.
  */
@@ -87,6 +136,10 @@ async function main() {
     if (copies) console.log(`  ${u.name} : ${copies} cartes en collection.`);
     const jetons = await seedJetons(user.id, u.jetons);
     if (jetons) console.log(`  ${u.name} : ${jetons} Jetons.`);
+    if (u.handle === "demo-marchand") {
+      const listed = await seedListings(user.id);
+      if (listed) console.log(`  ${u.name} : ${listed} annonces au marché.`);
+    }
   }
   console.log(`Seed terminé : ${DEMO_USERS.length} comptes de démo.`);
 }

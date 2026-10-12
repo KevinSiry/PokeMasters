@@ -18,8 +18,8 @@ export default async function globalSetup() {
     if (handle === "demo-dresseur") {
       await prisma.user.update({ where: { id: user.id }, data: { boosterStock: 6, boosterAnchorAt: new Date() } });
     }
-    if (handle === "demo-marchand" && user.balance < 1000) {
-      // Les parcours économie dépensent des Jetons : on recharge, inscrit au registre comme tout mouvement.
+    if (handle !== "demo-dresseur" && user.balance < 1000) {
+      // Les parcours économie et marché dépensent des Jetons : on recharge, inscrit au registre comme tout mouvement.
       await prisma.$transaction(async (tx) => {
         const u = await tx.user.update({ where: { id: user.id }, data: { balance: { increment: 1000 } } });
         await tx.ledgerEntry.create({ data: { userId: user.id, delta: 1000, balanceAfter: u.balance, reason: "admin" } });

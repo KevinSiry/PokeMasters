@@ -44,6 +44,10 @@ model User {
   ledger      LedgerEntry[]
   completions SetCompletion[]
   quests      DailyQuest[]
+  listings    Listing[]        @relation("seller")
+  bids        Bid[]
+  purchases   Sale[]           @relation("buyer")
+  sales       Sale[]           @relation("seller")
 }
 
 // ───────── Modèles standard Auth.js (adaptateur Prisma) ─────────
@@ -194,6 +198,8 @@ model Card {
   droppable      Boolean      @default(true)
   syncedAt       DateTime     @default(now())
   copies         CardCopy[]
+  listings       Listing[]
+  sales          Sale[]
 
   @@index([setId, sortKey])
   @@index([tier, droppable])
@@ -245,6 +251,7 @@ model CardCopy {
   obtainedVia String
   openingId   String?
   obtainedAt  DateTime   @default(now())
+  listings    Listing[]
 
   @@index([ownerId, cardId])
   @@index([ownerId, obtainedAt])
@@ -332,4 +339,82 @@ model DailyQuest {
   claimedAt DateTime?
 
   @@unique([userId, day, kind])
+}
+
+// ───────── Marché [P5] ─────────
+
+enum ListingType {
+  fixed
+  auction
+}
+
+enum ListingStatus {
+  active
+  sold
+  expired
+  cancelled
+}
+
+/// Annonce d'un exemplaire. Un exemplaire n'a qu'une annonce active à la fois (index unique partiel, voir migration).
+model Listing {
+  id              String        @id @default(cuid())
+  sellerId        String
+  seller          User          @relation("seller", fields: [sellerId], references: [id], onDelete: Cascade)
+  /// Null si l'exemplaire a été recyclé depuis (l'historique de vente reste).
+  copyId          String?
+  copy            CardCopy?     @relation(fields: [copyId], references: [id], onDelete: SetNull)
+  /// Dénormalisés pour la recherche et l'historique (l'exemplaire change de propriétaire à la vente).
+  cardId          String
+  card            Card          @relation(fields: [cardId], references: [id])
+  finish          Finish
+  type            ListingType
+  /// Prix fixe, ou prix de départ d'une enchère.
+  price           Int
+  currentBid      Int?
+  currentBidderId String?
+  bidCount        Int           @default(0)
+  endsAt          DateTime?
+  status          ListingStatus @default(active)
+  fee             Int
+  createdAt       DateTime      @default(now())
+  closedAt        DateTime?
+  bids            Bid[]
+  sale            Sale?
+
+  @@index([status, endsAt])
+  @@index([cardId, status])
+  @@index([sellerId, status])
+  @@index([status, createdAt])
+}
+
+model Bid {
+  id        String   @id @default(cuid())
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  bidderId  String
+  bidder    User     @relation(fields: [bidderId], references: [id], onDelete: Cascade)
+  amount    Int
+  createdAt DateTime @default(now())
+
+  @@index([listingId, amount])
+  @@index([bidderId, createdAt])
+}
+
+/// Vente conclue (historique et prix moyen par carte).
+model Sale {
+  id        String   @id @default(cuid())
+  listingId String   @unique
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  cardId    String
+  card      Card     @relation(fields: [cardId], references: [id])
+  finish    Finish
+  price     Int
+  sellerId  String
+  seller    User     @relation("seller", fields: [sellerId], references: [id], onDelete: Cascade)
+  buyerId   String
+  buyer     User     @relation("buyer", fields: [buyerId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([cardId, createdAt])
+  @@index([createdAt])
 }
