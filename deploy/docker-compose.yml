@@ -1,0 +1,131 @@
+# PokeFlex en production sur le VPS, derrière le Traefik existant (comme Kroniq et Chabowt).
+# Copié dans ~/pokeflex/ par le workflow Release à chaque version, avec un .env à côté
+# (modèle : deploy/.env.example). L'image ne contient AUCUN secret : tout vient du .env.
+# Guide : docs/deploiement.md
+name: pokeflex
+
+x-app-env: &app-env
+  NODE_ENV: production
+  DATABASE_URL: postgresql://${POSTGRES_USER:-pokeflex}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD manquant dans .env}@postgres:5432/${POSTGRES_DB:-pokeflex}?schema=public
+  REDIS_URL: redis://redis:6379
+  APP_URL: https://${DOMAIN:?DOMAIN manquant dans .env}
+  AUTH_URL: https://${DOMAIN}
+  REALTIME_PORT: "3001"
+  AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET manquant dans .env}
+  AUTH_TWITCH_ID: ${AUTH_TWITCH_ID:-}
+  AUTH_TWITCH_SECRET: ${AUTH_TWITCH_SECRET:-}
+  AUTH_DISCORD_ID: ${AUTH_DISCORD_ID:-}
+  AUTH_DISCORD_SECRET: ${AUTH_DISCORD_SECRET:-}
+  # Jamais de comptes de démo en ligne (le site refuse de toute façon hors localhost).
+  ALLOW_DEV_LOGIN: "false"
+  # Nouveaux sets et prix TCGdex chaque jour, une fois l'import initial fait.
+  CATALOG_AUTO_SYNC: ${CATALOG_AUTO_SYNC:-true}
+
+x-app: &app
+  image: ${IMAGE_PREFIX:-ghcr.io/kevinsiry/pokeflex}:${IMAGE_TAG:-latest}
+  environment: *app-env
+  networks:
+    - internal
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-pokeflex}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD manquant dans .env}
+      POSTGRES_DB: ${POSTGRES_DB:-pokeflex}
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - internal
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - internal
+
+  # Migrations de la base, puis s'arrête. Pas de seed : ni comptes ni annonces de démo en ligne.
+  # Import du catalogue (une fois) : docker compose run --rm init npm run sync:catalog
+  init:
+    <<: *app
+    command: ["npm", "run", "db:deploy"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    <<: *app
+    restart: unless-stopped
+    command: ["npm", "run", "start", "-w", "@pokeflex/web"]
+    depends_on:
+      init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    networks:
+      - internal
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      # HTTP → HTTPS
+      - "traefik.http.routers.pokeflex-web.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.pokeflex-web.entrypoints=web"
+      - "traefik.http.routers.pokeflex-web.middlewares=pokeflex-https-redirect"
+      - "traefik.http.middlewares.pokeflex-https-redirect.redirectscheme.scheme=https"
+      # HTTPS → site (port 3000)
+      - "traefik.http.routers.pokeflex-websecure.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.pokeflex-websecure.entrypoints=websecure"
+      - "traefik.http.routers.pokeflex-websecure.tls=true"
+      - "traefik.http.routers.pokeflex-websecure.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.pokeflex-websecure.service=pokeflex-web-svc"
+      - "traefik.http.services.pokeflex-web-svc.loadbalancer.server.port=3000"
+
+  # Temps réel servi sur le même domaine, sous /socket.io : même origine que le site,
+  # donc le cookie de session suit sans réglage CORS ni sous-domaine en plus.
+  realtime:
+    <<: *app
+    restart: unless-stopped
+    command: ["npm", "run", "start", "-w", "@pokeflex/realtime"]
+    depends_on:
+      init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    networks:
+      - internal
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.pokeflex-realtime.rule=Host(`${DOMAIN}`) && PathPrefix(`/socket.io`)"
+      - "traefik.http.routers.pokeflex-realtime.entrypoints=websecure"
+      - "traefik.http.routers.pokeflex-realtime.tls=true"
+      - "traefik.http.routers.pokeflex-realtime.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.pokeflex-realtime.service=pokeflex-realtime-svc"
+      - "traefik.http.services.pokeflex-realtime-svc.loadbalancer.server.port=3001"
+
+volumes:
+  pg-data:
+  redis-data:
+
+networks:
+  # Réseau privé de la stack : Postgres et Redis ne sont jamais exposés à Traefik.
+  internal:
+  proxy:
+    external: true

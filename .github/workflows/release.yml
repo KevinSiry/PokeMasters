@@ -1,0 +1,150 @@
+# Publication d'une version : à la création d'un tag (ex. 0.3.0 ou v0.3.0), vérifie le code (CI),
+# construit l'image et la pousse sur le registre GitHub (ghcr.io), puis déploie ce tag sur le VPS.
+# Même chaîne que Kroniq et Chabowt. Secrets et variables à configurer : docs/deploiement.md.
+name: Release
+
+on:
+  push:
+    tags: ["*.*.*", "v*.*.*"]
+
+# Une seule publication à la fois, sans annuler celle en cours.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  image:
+    name: Image
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    env:
+      PUBLIC_URL: ${{ vars.PUBLIC_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Tag de l'image = tag git sans le « v » éventuel (v0.3.0 → 0.3.0).
+      # Une préversion (0.3.0-rc1) ne déplace pas « latest ».
+      - name: Version
+        id: version
+        run: |
+          test -n "$PUBLIC_URL" || { echo "::error::Variable PUBLIC_URL manquante (docs/deploiement.md)"; exit 1; }
+          echo "tag=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          echo "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/pokeflex" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # amd64 : architecture du VPS. Le temps réel est servi sur le même domaine que le site
+      # (/socket.io, voir deploy/docker-compose.yml) : son adresse publique est PUBLIC_URL.
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          pull: true
+          tags: |
+            ${{ steps.version.outputs.image }}:${{ steps.version.outputs.tag }}
+            ${{ !contains(steps.version.outputs.tag, '-') && format('{0}:latest', steps.version.outputs.image) || '' }}
+          build-args: |
+            NEXT_PUBLIC_REALTIME_URL=${{ env.PUBLIC_URL }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Déploiement sur le VPS
+    needs: image
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Règles de protection éventuelles (validation manuelle…) : Settings → Environments → production.
+    environment:
+      name: production
+      url: ${{ vars.PUBLIC_URL }}
+    env:
+      PUBLIC_URL: ${{ vars.PUBLIC_URL }}
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      VPS_PORT: ${{ secrets.VPS_PORT || '22' }}
+      APP_DIR: ${{ vars.VPS_APP_DIR || '~/pokeflex' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version
+        id: version
+        run: echo "tag=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: SSH
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      # docker-compose.yml ne contient ni secret ni réglage (tout est dans le .env du VPS) :
+      # la copie du dépôt fait référence, envoyée avec le script de sauvegarde à chaque version.
+      - name: Copie des fichiers de la stack
+        run: |
+          # scp prend un chemin relatif au dossier personnel, pas « ~/… ».
+          dest="${APP_DIR#\~/}"
+          ssh -i ~/.ssh/id_deploy -p "$VPS_PORT" -o StrictHostKeyChecking=yes \
+            "$VPS_USER@$VPS_HOST" "mkdir -p '$dest'"
+          scp -i ~/.ssh/id_deploy -P "$VPS_PORT" -o StrictHostKeyChecking=yes \
+            deploy/docker-compose.yml deploy/backup.sh "$VPS_USER@$VPS_HOST:$dest/"
+
+      - name: Deploy
+        run: |
+          ssh -i ~/.ssh/id_deploy -p "$VPS_PORT" -o StrictHostKeyChecking=yes \
+            "$VPS_USER@$VPS_HOST" "bash -s -- '${{ steps.version.outputs.tag }}' '$APP_DIR'" \
+            < deploy/remote-deploy.sh
+
+      # remote-deploy.sh a déjà vérifié que les conteneurs tournent sur l'image du tag :
+      # on attend que le site et le temps réel répondent derrière Traefik.
+      - name: Health check
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS -o /dev/null "$PUBLIC_URL/connexion" \
+              && curl -fsS -o /dev/null "$PUBLIC_URL/socket.io/?EIO=4&transport=polling"; then
+              echo "$PUBLIC_URL répond"; exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::$PUBLIC_URL ne répond pas après le déploiement"
+          exit 1
+
+      - name: Cleanup
+        if: always()
+        run: rm -f ~/.ssh/id_deploy
+
+  # Release GitHub une fois l'image publiée (notes générées à partir des PR).
+  github-release:
+    name: Release GitHub
+    needs: image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          prerelease=()
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then prerelease=(--prerelease); fi
+          gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes --title "$GITHUB_REF_NAME" "${prerelease[@]}"

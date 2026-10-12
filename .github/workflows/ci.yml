@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Appelée aussi par le workflow Release avant de publier une version.
+  workflow_call:
 
 concurrency:
   group: ci-${{ github.ref }}
