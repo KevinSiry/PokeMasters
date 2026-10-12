@@ -4,7 +4,35 @@ Fan game web **non officiel et non commercial** de collection de cartes Pokémon
 
 > PokeFlex n'est pas affilié à The Pokémon Company, Nintendo, Creatures ou Game Freak. Aucun paiement, aucune publicité ; les Jetons n'ont aucune valeur réelle.
 
-## Installation sous Windows (pas à pas)
+## Essayer en local avec Docker Compose (le plus simple)
+
+Seul [Docker Desktop](https://www.docker.com/products/docker-desktop/) est nécessaire, démarré. Pas besoin de Node.js ni de fichier `.env`. Dans PowerShell :
+
+```powershell
+git clone https://github.com/KevinSiry/PokeMasters.git
+cd PokeMasters
+docker compose up --build
+```
+
+Le premier lancement construit l'image (quelques minutes), applique les migrations, charge un échantillon du catalogue (Set de Base et 151, 309 cartes) et crée les comptes de démo. Ouvre ensuite http://localhost:3000, page **Connexion**, et choisis un compte de démo :
+
+- **demo-dresseur** : compte neuf, pour découvrir les boosters.
+- **demo-collection** : 600 cartes et 600 Jetons, pour la collection, les quêtes et les achats au marché.
+- **demo-marchand** : 16 cartes en vente au marché.
+
+| Besoin | Commande |
+|---|---|
+| Lancer en arrière-plan | `docker compose up -d --build` |
+| Arrêter | `docker compose down` |
+| Repartir d'une base vide | `docker compose down -v` puis `docker compose up --build` |
+| Importer tout le catalogue TCGdex (long, plus de 20 000 cartes) | `docker compose run --rm init npm run sync:catalog` |
+| Voir les journaux | `docker compose logs -f web realtime` |
+
+Port 3000, 3001 ou 5432 déjà pris ? Crée un fichier `.env` à côté de `docker-compose.yml` avec par exemple `WEB_PORT=3100`, `REALTIME_PUBLIC_PORT=3101` ou `POSTGRES_PORT=5433`, puis relance `docker compose up --build`.
+
+Les comptes de démo sans OAuth ne sont proposés que parce que le site est servi sur `localhost` ; ils sont désactivés sur un site en ligne.
+
+## Développer sous Windows (pas à pas)
 
 ### 1. Prérequis
 
@@ -30,7 +58,7 @@ npm run setup
 ### 3. Démarrer la base de données et Redis
 
 ```powershell
-npm run db:up       # lance Postgres 16 et Redis 7 dans Docker
+npm run db:up       # lance seulement Postgres 16 et Redis 7 dans Docker
 npm run db:deploy   # applique les migrations
 npm run db:seed     # crée les comptes de démo
 ```
@@ -46,7 +74,7 @@ npm run dev
 - Site : http://localhost:3000
 - Serveur temps réel : http://localhost:3001/health
 
-Sans configuration OAuth, la page **Connexion** propose les comptes de démo (développement uniquement, désactivé en production).
+Sans configuration OAuth, la page **Connexion** propose les comptes de démo (en local uniquement, désactivé sur un site en ligne).
 
 ### 5. Importer le catalogue de cartes
 
@@ -73,6 +101,8 @@ Sans import, `npm run db:seed` charge un petit échantillon (Set de Base et 151)
 Connecte-toi (en développement, avec un compte de démo), puis ouvre l'onglet **Boosters** : un booster gratuit se recharge toutes les 10 minutes, jusqu'à 6 en réserve (réglable dans `config/game.ts`). Les cartes tirées rejoignent ta **Collection** (progression par set, Pokédex par génération, illustrateurs). Le compte **demo-collection** a déjà 600 cartes pour voir une collection remplie.
 
 Les **Jetons** (sans valeur réelle) se gagnent en recyclant des cartes, en terminant les quêtes du jour et en complétant des sets. Ils servent à acheter des boosters d'un set précis (onglet Boosters, « Boosters de set »). L'historique est dans le menu de l'avatar, « Mes Jetons ».
+
+Le **Marché** permet d'acheter et de vendre des cartes entre joueurs, à prix fixe ou aux enchères. Pour vendre, ouvre la fiche d'une carte possédée, section « Dans ta collection », bouton **Vendre**. Tes annonces sont dans « Mes ventes », tes offres dans « Mes enchères ». Le compte **demo-marchand** a déjà 16 cartes en vente pour essayer.
 
 ### 6. Brancher la connexion Twitch et Discord
 
@@ -120,7 +150,7 @@ Toutes dans `.env` à la racine (modèle : `.env.example`).
 | `AUTH_SECRET` | Secret Auth.js (généré par `npm run setup`) |
 | `AUTH_TWITCH_ID`, `AUTH_TWITCH_SECRET` | Application OAuth Twitch |
 | `AUTH_DISCORD_ID`, `AUTH_DISCORD_SECRET` | Application OAuth Discord |
-| `ALLOW_DEV_LOGIN` | `true` pour afficher les comptes de démo (ignoré en production) |
+| `ALLOW_DEV_LOGIN` | `true` pour afficher les comptes de démo (ignoré en production, sauf si `APP_URL` pointe sur localhost) |
 
 ## Organisation du code
 

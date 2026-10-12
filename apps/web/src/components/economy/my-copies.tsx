@@ -1,12 +1,14 @@
 "use client";
 
 import { FINISH_LABELS_FR, type Finish } from "@pokeflex/config";
-import { ChevronDown, Recycle } from "lucide-react";
+import { ChevronDown, Recycle, Tag } from "lucide-react";
+import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { recycleCopyAction } from "@/app/actions/economy";
 import { Jetons } from "@/components/jetons";
+import { SellDialog } from "@/components/market/sell-dialog";
 import { toast } from "@/components/toaster";
 import { emitBalance } from "@/lib/balance-events";
 import { cn } from "@/lib/utils";
@@ -24,12 +26,25 @@ const STATUS: Record<CopyView["status"], string> = { owned: "", listed: "En vent
 const date = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" });
 
 /** Exemplaires possédés d'une carte, avec recyclage unitaire (confirmation en deux temps). */
-export function MyCopies({ copies, value }: { copies: CopyView[]; value: number }) {
+export function MyCopies({
+  copies,
+  value,
+  cardName,
+  suggestedPrice,
+  balance,
+}: {
+  copies: CopyView[];
+  value: number;
+  cardName: string;
+  suggestedPrice: number;
+  balance: number;
+}) {
   const router = useRouter();
   const [list, setList] = useState(copies);
   const [open, setOpen] = useState(false);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const [selling, setSelling] = useState<CopyView | null>(null);
 
   useEffect(() => setList(copies), [copies]);
   useEffect(() => {
@@ -93,20 +108,36 @@ export function MyCopies({ copies, value }: { copies: CopyView[]; value: number 
                     {VIA[c.obtainedVia] ?? c.obtainedVia} · {date.format(new Date(c.obtainedAt))}
                   </span>
                   {c.status !== "owned" ? (
-                    <span className="ml-auto text-xs text-accent">{STATUS[c.status]}</span>
+                    c.status === "listed" ? (
+                      <Link href="/marche/mes-ventes" className="ml-auto text-xs text-accent hover:underline">
+                        {STATUS[c.status]}
+                      </Link>
+                    ) : (
+                      <span className="ml-auto text-xs text-accent">{STATUS[c.status]}</span>
+                    )
                   ) : (
+                    <span className="ml-auto flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setSelling(c)}
+                      className="inline-flex h-8 items-center gap-1.5 rounded-full border border-line px-3 text-xs font-semibold transition-colors hover:border-coral"
+                    >
+                      <Tag aria-hidden="true" className="size-3.5" />
+                      Vendre
+                    </button>
                     <button
                       type="button"
                       disabled={pending}
                       onClick={() => recycle(c.id)}
                       className={cn(
-                        "ml-auto inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-colors disabled:opacity-50",
+                        "inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-colors disabled:opacity-50",
                         confirming === c.id ? "border-coral bg-coral/15 text-fg" : "border-line hover:border-[#FFC93C]",
                       )}
                     >
                       <Recycle aria-hidden="true" className="size-3.5" />
                       {confirming === c.id ? (last ? "Ton dernier exemplaire, confirmer ?" : "Confirmer ?") : <>Recycler · <Jetons value={value} signed /></>}
                     </button>
+                    </span>
                   )}
                 </motion.li>
               );
@@ -114,6 +145,17 @@ export function MyCopies({ copies, value }: { copies: CopyView[]; value: number 
           </motion.ul>
         )}
       </AnimatePresence>
+      {selling && (
+        <SellDialog
+          open
+          onClose={() => setSelling(null)}
+          copy={selling}
+          cardName={cardName}
+          suggested={suggestedPrice}
+          balance={balance}
+          onListed={(id) => setList((l) => l.map((x) => (x.id === id ? { ...x, status: "listed" } : x)))}
+        />
+      )}
     </div>
   );
 }

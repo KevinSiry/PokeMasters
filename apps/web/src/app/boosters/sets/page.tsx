@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { BoosterTabs } from "@/components/booster/booster-tabs";
 import { SetShop } from "@/components/booster/set-shop";
 import { Jetons } from "@/components/jetons";
-import { getBoosterSets } from "@/lib/boosters";
+import { getBoosterSets } from "@pokeflex/server";
 import { getCurrentPlayer } from "@/lib/player";
 
 export const metadata: Metadata = { title: "Boosters de set" };

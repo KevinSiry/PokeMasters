@@ -62,6 +62,25 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 - **Jetons de démo inscrits au registre** (motif `seed`) : 600 pour demo-collection, 2 500 pour demo-marchand.
 - **Menu joueur** : la déconnexion passe dans le menu de l'avatar pour laisser la place au solde dans l'en-tête mobile.
 
+## Marché (phase 5)
+
+- **Services partagés dans `packages/server`** : la logique en base (registre, quêtes, boosters, recyclage, marché) quitte `apps/web` pour être appelée aussi par le serveur temps réel (clôture des enchères, duels en phase 6).
+- **Annonce = un exemplaire précis**, mis de côté (`listed`) tant qu'elle est active. Index unique partiel : un exemplaire n'a qu'une annonce active. L'exemplaire garde sa finition et rejoint l'acheteur à la vente.
+- **Frais de mise en vente de 5 % (minimum 1 Jeton), non remboursés** si l'annonce est retirée : ils freinent le spam d'annonces et retirent des Jetons de l'économie. 20 annonces actives au plus par joueur, prix de 1 à 1 000 000.
+- **Enchères de 1 h, 12 h ou 24 h**. Une offre réserve les Jetons de l'enchérisseur (`bid_hold`) ; ils lui sont rendus dès qu'il est dépassé (`bid_release`). Pas d'achat immédiat sur une enchère. Incrément minimal : 5 % de l'offre en cours (au moins 1). Une offre dans la dernière minute repousse la fin d'une minute (anti-snipe).
+- **Clôture des enchères** toutes les 15 s par le serveur temps réel, et à l'affichage d'une page du marché, pour ne jamais montrer une enchère échue comme active. Sans offre, la carte revient au vendeur.
+- **Achat et enchère sérialisés** : verrou sur les deux joueurs (ordre fixe, sans interblocage) puis sur l'annonce. Deux acheteurs simultanés : un seul paie (tests de concurrence en base).
+- **Historique des ventes conservé** même si l'exemplaire est recyclé ensuite (`Listing.copyId` passe à NULL). La cote d'une carte = prix moyen des ventes des 30 derniers jours ; le prix suggéré à la mise en vente en découle (sinon 3 × la valeur de recyclage).
+- **Annonces de démo** : le seed met en vente 16 cartes de demo-marchand (doublons puis cartes rares, une sur quatre aux enchères), frais payés au registre.
+
+## Docker Compose (phase 5)
+
+- **`docker compose up --build` lance tout le jeu** (Postgres, Redis, site, temps réel) sans Node.js ni `.env` sur la machine. Une seule image sert au site, au temps réel et au service `init` (migrations, échantillon de catalogue, comptes de démo), qui s'exécute avant les deux autres à chaque démarrage ; tout y est idempotent.
+- **Image `node:22-bookworm` complète** plutôt que `slim` : OpenSSL y est déjà, ce que Prisma exige, sans `apt-get` au build.
+- **Comptes de démo autorisés sur un build de production servi sur localhost** (`APP_URL` en localhost, 127.0.0.1 ou ::1). Un site en ligne a une autre adresse : la connexion de démo y reste impossible même si `ALLOW_DEV_LOGIN` est posé par erreur.
+- **Catalogue complet à la demande** (`docker compose run --rm init npm run sync:catalog`) : l'import prend du temps, l'échantillon suffit pour essayer. Synchro quotidienne désactivée par défaut dans Docker (`CATALOG_AUTO_SYNC`).
+- La CI construit l'image et vérifie que le jeu répond après `docker compose up`.
+
 ## Versions
 
 - **Next.js 15.5, Prisma 6.19, TypeScript 5.9, Vitest 3, ESLint 9** plutôt que les dernières majeures (Next 16, Prisma 7, TS 7) : versions éprouvées, documentation stable. Migration à reconsidérer en phase 8.

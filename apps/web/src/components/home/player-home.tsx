@@ -7,7 +7,7 @@ import { ProgressRing } from "@/components/progress";
 import { Button } from "@/components/ui/button";
 import { QuestsPanel } from "@/components/economy/quests-panel";
 import { getCollectionTotals, getRecentPulls } from "@/lib/collection";
-import { getDailyQuests } from "@/lib/economy/quests";
+import { getDailyQuests } from "@pokeflex/server";
 import type { CurrentPlayer } from "@/lib/player";
 import { HomeBoosterStatus } from "./home-booster-status";
 

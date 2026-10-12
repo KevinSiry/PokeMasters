@@ -4,8 +4,15 @@ import type { Tier } from "@pokeflex/config";
 import { InsufficientFundsError } from "@pokeflex/game";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
-import { claimQuest, QuestError } from "@/lib/economy/quests";
-import { previewDuplicates, recycleCopy, recycleDuplicates, RecycleError, type RecycleResult } from "@/lib/economy/recycle";
+import {
+  claimQuest,
+  previewDuplicates,
+  QuestError,
+  recycleCopy,
+  recycleDuplicates,
+  RecycleError,
+  type RecycleResult,
+} from "@pokeflex/server";
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: string };
 

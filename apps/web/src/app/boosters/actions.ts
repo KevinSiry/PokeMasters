@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
-import { BoosterError, openBooster, openFreeBooster, type BoosterResult } from "@/lib/boosters";
+import { BoosterError, openBooster, openFreeBooster, type BoosterResult } from "@pokeflex/server";
 
 export type OpenBoosterResponse = { ok: true; result: BoosterResult } | { ok: false; error: string };
 

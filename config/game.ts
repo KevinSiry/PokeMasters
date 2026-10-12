@@ -129,14 +129,20 @@ export const gameConfig = {
   },
 
   market: {
-    /** Frais de mise en vente, en fraction du prix (débités à la mise en vente). */
+    /** Frais de mise en vente, en fraction du prix (débités à la mise en vente, non remboursés). */
     listingFeeRate: 0.05,
     listingFeeMin: 1,
     maxActiveListingsPerUser: 20,
+    minPrice: 1,
+    maxPrice: 1_000_000,
     auctionDurationsMs: [1 * HOUR, 12 * HOUR, 24 * HOUR],
-    /** Une enchère placée dans cette fenêtre finale prolonge l'enchère d'autant. */
+    /** Une enchère placée dans cette fenêtre finale prolonge l'enchère jusqu'à maintenant + cette durée. */
     antiSnipingWindowMs: 60_000,
+    /** Surenchère minimale : le plus grand de `minBidIncrement` et de `minBidIncrementRate` × enchère courante. */
     minBidIncrement: 1,
+    minBidIncrementRate: 0.05,
+    /** Fenêtre du prix moyen affiché sur une carte. */
+    averagePriceWindowMs: 30 * 24 * HOUR,
   },
 
   duels: {

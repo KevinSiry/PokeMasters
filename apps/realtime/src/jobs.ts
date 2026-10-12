@@ -5,9 +5,12 @@
  * On vérifie toutes les heures si la dernière synchro réussie date de plus de 24 h :
  * pas de cron système (rien à installer sous Windows), et redémarrer le serveur ne
  * relance pas une synchro déjà faite dans la journée.
+ *
+ * Clôture des enchères échues toutes les 15 s (le marché rattrape aussi à l'affichage).
  */
 import { gameConfig } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
+import { closeDueAuctions } from "@pokeflex/server";
 import { createTcgdexClient, syncCatalog } from "@pokeflex/tcgdex";
 
 const DAY = 24 * 60 * 60_000;
@@ -39,8 +42,29 @@ async function dailyCatalogSync() {
   log(`prix rafraîchis : ${prices.cards}`);
 }
 
+/** Clôture des enchères échues, toutes les 15 secondes. */
+function startAuctionCloser() {
+  let running = false;
+  const tick = async () => {
+    if (running) return;
+    running = true;
+    try {
+      const closed = await closeDueAuctions();
+      if (closed > 0) console.log(`[marche] ${closed} enchère(s) clôturée(s)`);
+    } catch (err) {
+      console.error("[marche] clôture des enchères impossible", err instanceof Error ? err.message : err);
+    } finally {
+      running = false;
+    }
+  };
+  const timer = setInterval(tick, 15_000);
+  void tick();
+  return () => clearInterval(timer);
+}
+
 export function startJobs() {
-  if (process.env.CATALOG_AUTO_SYNC === "false") return () => {};
+  const stopAuctions = startAuctionCloser();
+  if (process.env.CATALOG_AUTO_SYNC === "false") return stopAuctions;
   let running = false;
   const tick = async () => {
     if (running) return;
@@ -56,6 +80,7 @@ export function startJobs() {
   const first = setTimeout(tick, 30_000);
   const timer = setInterval(tick, CHECK_EVERY);
   return () => {
+    stopAuctions();
     clearTimeout(first);
     clearInterval(timer);
   };
