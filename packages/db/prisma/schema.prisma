@@ -1,0 +1,86 @@
+// PokeFlex — schéma de données.
+// Phase 1 : comptes joueurs et modèles Auth.js. Les autres modèles arrivent phase par phase
+// (voir DECISIONS.md et le plan).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  player
+  moderator
+  admin
+}
+
+model User {
+  id            String    @id @default(cuid())
+  /// Nom public choisi par le joueur (unique, modifiable plus tard). Null tant qu'il n'est pas choisi.
+  handle        String?   @unique
+  /// Rempli par Auth.js depuis Twitch/Discord.
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  role          Role      @default(player)
+
+  /// Solde de Jetons. Contrainte SQL `balance >= 0` (voir migration). Toujours modifié avec une ligne de ledger (phase 4).
+  balance         Int      @default(0)
+  /// Minuteur paresseux des boosters gratuits (voir packages/game/src/booster-timer.ts).
+  boosterStock    Int      @default(1)
+  boosterAnchorAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+}
+
+// ───────── Modèles standard Auth.js (adaptateur Prisma) ─────────
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}

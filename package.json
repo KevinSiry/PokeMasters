@@ -1,0 +1,55 @@
+{
+  "name": "pokeflex",
+  "private": true,
+  "description": "PokeFlex — fan game non commercial de collection de cartes Pokémon (données TCGdex).",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "config"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n web,rt -c magenta,cyan \"npm:dev -w @pokeflex/web\" \"npm:dev -w @pokeflex/realtime\"",
+    "build": "npm run build -w @pokeflex/web",
+    "start": "concurrently -k -n web,rt \"npm:start -w @pokeflex/web\" \"npm:start -w @pokeflex/realtime\"",
+    "lint": "eslint .",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:generate": "prisma generate --schema packages/db/prisma/schema.prisma",
+    "db:migrate": "prisma migrate dev --schema packages/db/prisma/schema.prisma",
+    "db:deploy": "prisma migrate deploy --schema packages/db/prisma/schema.prisma",
+    "db:reset": "prisma migrate reset --force --schema packages/db/prisma/schema.prisma",
+    "db:seed": "tsx --env-file-if-exists=.env packages/db/prisma/seed.ts",
+    "db:studio": "prisma studio --schema packages/db/prisma/schema.prisma",
+    "setup": "tsx scripts/setup.ts",
+    "postinstall": "prisma generate --schema packages/db/prisma/schema.prisma"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@next/eslint-plugin-next": "15.5.27",
+    "@playwright/test": "1.56.1",
+    "@types/node": "22.20.5",
+    "concurrently": "9.2.1",
+    "eslint": "9.39.5",
+    "eslint-plugin-react-hooks": "5.2.0",
+    "globals": "16.4.0",
+    "prisma": "6.19.3",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.71.2",
+    "vite-tsconfig-paths": "5.1.4",
+    "vitest": "3.2.7"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3"
+  },
+  "overrides": {
+    "postcss": "^8.5.23"
+  }
+}
