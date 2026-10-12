@@ -58,7 +58,7 @@ export default async function HomePage() {
               </Button>
             )}
             <Button asChild size="lg" variant="secondary">
-              <Link href="/a-propos">Comment ça marche</Link>
+              <Link href="/catalogue">Explorer le catalogue</Link>
             </Button>
           </div>
           {player && (

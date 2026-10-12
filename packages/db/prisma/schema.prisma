@@ -84,3 +84,128 @@ model VerificationToken {
 
   @@id([identifier, token])
 }
+
+// ───────── Catalogue (phase 2) ─────────
+// Importé depuis TCGdex par `npm run sync:catalog`, jamais appelé à chaque requête joueur.
+
+enum Tier {
+  common
+  uncommon
+  rare
+  epic
+  legendary
+  mythic
+}
+
+enum Lang {
+  fr
+  en
+}
+
+enum CardCategory {
+  pokemon
+  trainer
+  energy
+}
+
+model Serie {
+  id               String    @id
+  name             String
+  logo             String?
+  lang             Lang      @default(fr)
+  /// Date de sortie du premier set, pour ordonner les séries.
+  firstReleaseDate DateTime?
+  syncedAt         DateTime  @default(now())
+  sets             Set[]
+}
+
+model Set {
+  id                String    @id
+  serieId           String
+  serie             Serie     @relation(fields: [serieId], references: [id])
+  name              String
+  nameEn            String?
+  logo              String?
+  symbol            String?
+  releaseDate       DateTime?
+  cardCountOfficial Int
+  cardCountTotal    Int
+  lang              Lang      @default(fr)
+  syncedAt          DateTime  @default(now())
+  cards             Card[]
+
+  @@index([serieId, releaseDate])
+  @@index([releaseDate])
+}
+
+model Card {
+  id             String       @id
+  localId        String
+  /// Ordre naturel dans le set (numéro de carte quand il est numérique).
+  sortKey        Int          @default(0)
+  setId          String
+  set            Set          @relation(fields: [setId], references: [id])
+  nameFr         String?
+  nameEn         String?
+  /// Nom affiché (FR si disponible, sinon EN).
+  name           String
+  /// Langue des données affichées (badge « EN » quand la version française n'existe pas).
+  lang           Lang
+  /// URL de base sur le CDN TCGdex (on ajoute /low.webp ou /high.webp) ; null → visuel de remplacement.
+  image          String?
+  imageLang      Lang?
+  category       CardCategory
+  rarityRaw      String?
+  tier           Tier
+  /// "rarity" | "price_bump" | "fallback" (rareté inconnue du tableau de correspondance).
+  tierReason     String
+  hp             Int?
+  /// Codes canoniques : fire, water, grass…
+  types          String[]
+  typesRaw       String[]
+  stage          String?
+  evolveFrom     String?
+  dexIds         Int[]
+  illustrator    String?
+  retreat        Int?
+  description    String?
+  /// Texte d'effet des cartes Dresseur et Énergie.
+  effect         String?
+  trainerType    String?
+  energyType     String?
+  regulationMark String?
+  /// [{ name, cost[], damage, effect }]
+  attacks        Json         @default("[]")
+  abilities      Json         @default("[]")
+  /// [{ type, value }] avec type canonique.
+  weaknesses     Json         @default("[]")
+  resistances    Json         @default("[]")
+  /// { normal, reverse, holo, firstEdition }
+  variants       Json         @default("{}")
+  priceEurTrend  Decimal?     @db.Decimal(10, 2)
+  priceUpdatedAt DateTime?
+  /// Exclure du tirage (carte sans image, etc.).
+  droppable      Boolean      @default(true)
+  syncedAt       DateTime     @default(now())
+
+  @@index([setId, sortKey])
+  @@index([tier, droppable])
+  @@index([illustrator])
+  @@index([category])
+}
+
+/// Historique des synchronisations (reprise sur erreur, journal).
+model SyncRun {
+  id         String    @id @default(cuid())
+  kind       String
+  startedAt  DateTime  @default(now())
+  /// Battement de cœur : une synchro en cours le met à jour après chaque set.
+  updatedAt  DateTime  @updatedAt
+  finishedAt DateTime?
+  /// { doneSets: string[] } : sets entièrement traités, sautés à la reprise.
+  cursor     Json?
+  stats      Json?
+  error      String?
+
+  @@index([kind, startedAt])
+}

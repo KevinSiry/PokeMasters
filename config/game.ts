@@ -169,3 +169,5 @@ export type GameConfig = typeof gameConfig;
 export function tierRank(tier: Tier): number {
   return TIERS.indexOf(tier);
 }
+
+export * from "./rarities";

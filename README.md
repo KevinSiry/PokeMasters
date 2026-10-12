@@ -48,7 +48,27 @@ npm run dev
 
 Sans configuration OAuth, la page **Connexion** propose les comptes de démo (développement uniquement, désactivé en production).
 
-### 5. Brancher la connexion Twitch et Discord
+### 5. Importer le catalogue de cartes
+
+```powershell
+npm run sync:catalog
+```
+
+Environ 4 minutes : toutes les séries, tous les sets, ~21 000 cartes, en français (anglais quand la version française n'existe pas). Le script est reprenable : si tu l'interromps (Ctrl+C), relance la même commande et il repart où il s'était arrêté. À la fin, il écrit `reports/rarities.md` (les raretés rencontrées et leur tier de jeu).
+
+Ensuite, le serveur temps réel (`npm run dev`) vérifie chaque jour s'il y a de nouveaux sets et rafraîchit les prix d'un septième du catalogue.
+
+| Variante | Effet |
+|---|---|
+| `npm run sync:catalog -- --restart` | Repart de zéro |
+| `npm run sync:catalog -- --sets=base1,sv03.5` | Seulement ces sets |
+| `npm run sync:catalog -- --new-sets` | Seulement les nouveaux sets |
+| `npm run sync:catalog -- --prices` | Rotation des prix du jour |
+| `npm run sync:catalog -- --retier` | Recalcule les tiers après une modification de `config/rarities.ts` |
+
+Sans import, `npm run db:seed` charge un petit échantillon (Set de Base et 151) pour découvrir le jeu.
+
+### 6. Brancher la connexion Twitch et Discord
 
 **Twitch**
 1. Va sur https://dev.twitch.tv/console/apps et clique *Register Your Application*.
@@ -75,7 +95,8 @@ Redémarre `npm run dev`. Les boutons apparaissent automatiquement pour chaque f
 | `npm run db:up` / `db:down` | Démarrer / arrêter Postgres et Redis |
 | `npm run db:migrate` | Créer une migration après une modification du schéma Prisma |
 | `npm run db:deploy` | Appliquer les migrations existantes |
-| `npm run db:seed` | (Re)créer les comptes de démo |
+| `npm run db:seed` | (Re)créer les comptes de démo (et l'échantillon de catalogue si la base est vide) |
+| `npm run sync:catalog` | Importer / synchroniser le catalogue TCGdex |
 | `npm run db:reset` | Vider la base et tout réappliquer |
 | `npm run db:studio` | Explorer la base dans le navigateur |
 

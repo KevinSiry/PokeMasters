@@ -2,7 +2,7 @@ import { TIER_LABELS_FR, type Tier } from "@pokeflex/config";
 import { cn } from "@/lib/utils";
 
 /** Chaque tier a une couleur ET une forme : lisible sans distinguer les couleurs. */
-const TIER_ICON: Record<Tier, string> = {
+export const TIER_ICON: Record<Tier, string> = {
   common: "●",
   uncommon: "◆",
   rare: "★",
@@ -11,7 +11,7 @@ const TIER_ICON: Record<Tier, string> = {
   mythic: "✺",
 };
 
-const TIER_TEXT: Record<Tier, string> = {
+export const TIER_TEXT: Record<Tier, string> = {
   common: "text-tier-common",
   uncommon: "text-tier-uncommon",
   rare: "text-tier-rare",

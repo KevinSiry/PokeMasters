@@ -4,6 +4,7 @@ import "@fontsource/space-mono/400.css";
 import "@fontsource/space-mono/700.css";
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
+import { BottomNav } from "@/components/main-nav";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { getCurrentPlayerSafe } from "@/lib/player";
@@ -39,6 +40,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {children}
         </main>
         <SiteFooter />
+        <BottomNav loggedIn={Boolean(player)} />
       </body>
     </html>
   );

@@ -156,3 +156,98 @@
     animation: none;
   }
 }
+
+/* ───────── Chargement ───────── */
+.pf-shimmer {
+  background: linear-gradient(100deg, var(--color-elev) 30%, color-mix(in srgb, var(--color-accent) 18%, var(--color-elev)) 50%, var(--color-elev) 70%);
+  background-size: 250% 100%;
+  animation: pf-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes pf-shimmer {
+  from { background-position: 120% 0; }
+  to { background-position: -120% 0; }
+}
+
+/* ───────── Vignettes de cartes ─────────
+ * Couleur du tier exposée en --tier pour le liseré, le halo et le pictogramme.
+ */
+[data-tier="common"] { --tier: var(--color-tier-common); }
+[data-tier="uncommon"] { --tier: var(--color-tier-uncommon); }
+[data-tier="rare"] { --tier: var(--color-tier-rare); }
+[data-tier="epic"] { --tier: var(--color-tier-epic); }
+[data-tier="legendary"] { --tier: var(--color-tier-legendary); }
+[data-tier="mythic"] { --tier: var(--color-tier-mythic); }
+
+.pf-tile-frame {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--tier) 35%, transparent), 0 14px 30px -18px rgb(0 0 0 / 0.9);
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s ease;
+}
+.pf-tile:hover .pf-tile-frame,
+.pf-tile:focus-visible .pf-tile-frame {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 0 0 2px var(--tier), 0 18px 40px -16px color-mix(in srgb, var(--tier) 60%, transparent);
+}
+.pf-tile:focus-visible {
+  outline: none;
+}
+.pf-tile:focus-visible .pf-tile-frame {
+  outline: 3px solid var(--color-lime);
+  outline-offset: 3px;
+}
+.pf-tier-pip {
+  color: var(--tier);
+}
+.pf-tile[data-tier="mythic"] .pf-tile-frame {
+  box-shadow: 0 0 0 1.5px var(--color-tier-mythic), 0 0 24px -6px color-mix(in srgb, var(--color-tier-mythic) 60%, transparent);
+}
+.pf-silhouette {
+  filter: grayscale(1) brightness(0.28) contrast(1.2);
+}
+.pf-tile[data-missing] .pf-tile-frame {
+  box-shadow: 0 0 0 1px var(--color-line);
+}
+
+/* ───────── Puces de filtre ───────── */
+.pf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 2.25rem;
+  padding: 0 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.pf-chip:hover {
+  color: var(--color-fg);
+  border-color: var(--color-accent);
+}
+.pf-chip[aria-pressed="true"],
+.pf-chip[aria-current="page"] {
+  background: var(--color-elev);
+  color: var(--color-fg);
+  border-color: var(--color-accent);
+  box-shadow: inset 0 0 0 1px var(--color-accent);
+}
+
+/* Défilement horizontal sans barre visible (rangées de puces sur mobile). */
+.pf-scroll-x {
+  overflow-x: auto;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.pf-scroll-x::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-shimmer { animation: none; }
+  .pf-tile-frame { transition: none; }
+  .pf-tile:hover .pf-tile-frame { transform: none; }
+}
