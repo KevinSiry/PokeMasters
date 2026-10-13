@@ -6,7 +6,6 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { PlayerAvatar } from "@/components/player-avatar";
 import { DmChat } from "@/components/social/dm-chat";
-import { Button } from "@/components/ui/button";
 import { getCurrentPlayerSafe } from "@/lib/player";
 
 export const metadata: Metadata = {
