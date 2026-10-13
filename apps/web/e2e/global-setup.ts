@@ -10,8 +10,32 @@ import { prisma } from "@pokeflex/db";
 export const AUTH_DIR = path.resolve(process.cwd(), "playwright/.auth");
 const port = Number(process.env.E2E_PORT ?? 3000);
 
+// Cartes non tirables (sans image) : une dans le Set de Base, et un set entier qui n'a que ça.
+export const HIDDEN_SET = "e2e-masque";
+export const HIDDEN_CARD_IN_BASE = "base1-e2e-fantome";
+export const HIDDEN_CARD_NAME = "Fantômecarte";
+
+async function seedHiddenCards() {
+  const now = new Date();
+  await prisma.serie.upsert({ where: { id: HIDDEN_SET }, create: { id: HIDDEN_SET, name: "Série masquée", lang: "fr", syncedAt: now }, update: {} });
+  await prisma.set.upsert({
+    where: { id: HIDDEN_SET },
+    create: { id: HIDDEN_SET, serieId: HIDDEN_SET, name: "Set masqué", cardCountOfficial: 1, cardCountTotal: 1, lang: "fr", syncedAt: now },
+    update: {},
+  });
+  const card = { localId: "999", sortKey: 999, name: HIDDEN_CARD_NAME, nameFr: HIDDEN_CARD_NAME, lang: "fr", category: "pokemon", tier: "common", tierReason: "rarity", droppable: false, syncedAt: now } as const;
+  await prisma.card.createMany({
+    data: [
+      { ...card, id: `${HIDDEN_SET}-1`, setId: HIDDEN_SET },
+      { ...card, id: HIDDEN_CARD_IN_BASE, setId: "base1" },
+    ],
+    skipDuplicates: true,
+  });
+}
+
 export default async function globalSetup() {
   mkdirSync(AUTH_DIR, { recursive: true });
+  await seedHiddenCards();
   for (const handle of ["demo-dresseur", "demo-collection", "demo-marchand"]) {
     const user = await prisma.user.findUnique({ where: { handle } });
     if (!user) throw new Error(`Compte ${handle} absent : lance npm run db:seed avant les tests e2e.`);

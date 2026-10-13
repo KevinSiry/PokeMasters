@@ -83,7 +83,7 @@ export default async function CataloguePage() {
                           <div className="grid gap-0.5">
                             <span className="line-clamp-2 text-sm leading-snug font-semibold">{set.name}</span>
                             <span className="font-mono text-[11px] text-muted">
-                              {formatYear(set.releaseDate) ?? "—"} · {plural(set.cardCountTotal, "carte")}
+                              {formatYear(set.releaseDate) ?? "—"} · {plural(set.cardCount, "carte")}
                               {set.lang === "en" && <span className="ml-1.5 rounded bg-elev px-1 font-bold">EN</span>}
                             </span>
                           </div>

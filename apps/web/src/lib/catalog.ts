@@ -50,12 +50,20 @@ export const cardTileSelect = {
   droppable: true,
 } satisfies Prisma.CardSelect;
 
-/** Toutes les séries (plus récentes d'abord) et leurs sets. */
+/**
+ * Le catalogue ne montre que les cartes tirables (avec image) : une carte sans image
+ * n'existe pas pour le joueur, et un set sans aucune carte tirable est masqué.
+ */
+const visibleCard = { droppable: true } satisfies Prisma.CardWhereInput;
+const visibleSet = { cards: { some: visibleCard } } satisfies Prisma.SetWhereInput;
+
+/** Toutes les séries (plus récentes d'abord) et leurs sets visibles. */
 export const getCatalogue = cache(async () => {
   const series = await prisma.serie.findMany({
     orderBy: [{ firstReleaseDate: { sort: "desc", nulls: "last" } }],
     include: {
       sets: {
+        where: visibleSet,
         orderBy: [{ releaseDate: { sort: "desc", nulls: "last" } }, { id: "asc" }],
         select: {
           id: true,
@@ -66,21 +74,28 @@ export const getCatalogue = cache(async () => {
           cardCountOfficial: true,
           cardCountTotal: true,
           lang: true,
+          _count: { select: { cards: { where: visibleCard } } },
         },
       },
     },
   });
-  return series.filter((s) => s.sets.length > 0);
+  return series
+    .map((s) => ({ ...s, sets: s.sets.map(({ _count, ...set }) => ({ ...set, cardCount: _count.cards })) }))
+    .filter((s) => s.sets.length > 0);
 });
 
 export const getCatalogueStats = cache(async () => {
-  const [cards, sets, series] = await Promise.all([prisma.card.count(), prisma.set.count(), prisma.serie.count()]);
+  const [cards, sets, series] = await Promise.all([
+    prisma.card.count({ where: visibleCard }),
+    prisma.set.count({ where: visibleSet }),
+    prisma.serie.count({ where: { sets: { some: visibleSet } } }),
+  ]);
   return { cards, sets, series };
 });
 
 export const getSet = cache(async (id: string) =>
-  prisma.set.findUnique({
-    where: { id },
+  prisma.set.findFirst({
+    where: { id, ...visibleSet },
     include: { serie: { select: { id: true, name: true } } },
   }),
 );
@@ -88,7 +103,7 @@ export const getSet = cache(async (id: string) =>
 export const getSetCards = cache(
   async (setId: string): Promise<CardTile[]> =>
     prisma.card.findMany({
-      where: { setId },
+      where: { setId, ...visibleCard },
       orderBy: [{ sortKey: "asc" }, { localId: "asc" }],
       select: cardTileSelect,
     }),
@@ -103,7 +118,7 @@ export const getCard = cache(async (id: string) => {
       },
     },
   });
-  if (!card) return null;
+  if (!card?.droppable) return null;
   return {
     ...card,
     priceEurTrend: card.priceEurTrend ? Number(card.priceEurTrend) : null,
@@ -120,12 +135,12 @@ export type CardDetail = NonNullable<Awaited<ReturnType<typeof getCard>>>;
 export async function getSetNeighbours(setId: string, sortKey: number, id: string) {
   const [prev, next] = await Promise.all([
     prisma.card.findFirst({
-      where: { setId, OR: [{ sortKey: { lt: sortKey } }, { sortKey, id: { lt: id } }] },
+      where: { setId, ...visibleCard, OR: [{ sortKey: { lt: sortKey } }, { sortKey, id: { lt: id } }] },
       orderBy: [{ sortKey: "desc" }, { id: "desc" }],
       select: { id: true, name: true },
     }),
     prisma.card.findFirst({
-      where: { setId, OR: [{ sortKey: { gt: sortKey } }, { sortKey, id: { gt: id } }] },
+      where: { setId, ...visibleCard, OR: [{ sortKey: { gt: sortKey } }, { sortKey, id: { gt: id } }] },
       orderBy: [{ sortKey: "asc" }, { id: "asc" }],
       select: { id: true, name: true },
     }),
@@ -137,7 +152,7 @@ export async function getSetNeighbours(setId: string, sortKey: number, id: strin
 export async function getSamePokemon(dexIds: number[], excludeId: string, limit = 12): Promise<CardTile[]> {
   if (dexIds.length === 0) return [];
   return prisma.card.findMany({
-    where: { dexIds: { hasSome: dexIds }, id: { not: excludeId } },
+    where: { dexIds: { hasSome: dexIds }, id: { not: excludeId }, ...visibleCard },
     orderBy: [{ set: { releaseDate: "desc" } }],
     take: limit,
     select: cardTileSelect,
@@ -160,7 +175,7 @@ export async function searchCards(
   const limit = opts.limit ?? 60;
   if (opts.illustrator) {
     const rows = await prisma.card.findMany({
-      where: { illustrator: { equals: opts.illustrator, mode: "insensitive" } },
+      where: { illustrator: { equals: opts.illustrator, mode: "insensitive" }, ...visibleCard },
       orderBy: [{ set: { releaseDate: "desc" } }, { sortKey: "asc" }],
       take: limit,
       select: { ...cardTileSelect, nameEn: true, set: { select: { name: true } } },
@@ -174,8 +189,9 @@ export async function searchCards(
     SELECT c.id, c."localId", c.name, c."nameEn", c.image, c.tier::text AS tier, c.category::text AS category,
            c.types, c.lang::text AS lang, c.droppable, s.name AS "setName"
     FROM "Card" c JOIN "Set" s ON s.id = c."setId", q
-    WHERE lower(pf_unaccent(coalesce(c."nameFr", '') || ' ' || coalesce(c."nameEn", ''))) % q.t
-       OR lower(pf_unaccent(coalesce(c."nameFr", '') || ' ' || coalesce(c."nameEn", ''))) LIKE '%' || q.t || '%'
+    WHERE c.droppable
+      AND (lower(pf_unaccent(coalesce(c."nameFr", '') || ' ' || coalesce(c."nameEn", ''))) % q.t
+       OR lower(pf_unaccent(coalesce(c."nameFr", '') || ' ' || coalesce(c."nameEn", ''))) LIKE '%' || q.t || '%')
     ORDER BY
       (lower(pf_unaccent(coalesce(c."nameFr", ''))) = q.t OR lower(coalesce(c."nameEn", '')) = q.t) DESC,
       greatest(similarity(lower(pf_unaccent(coalesce(c."nameFr", ''))), q.t), similarity(lower(coalesce(c."nameEn", '')), q.t)) DESC,
