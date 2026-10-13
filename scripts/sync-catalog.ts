@@ -8,6 +8,7 @@
  *   npm run sync:catalog -- --sets=base1,swsh3   seulement ces sets
  *   npm run sync:catalog -- --retier     recalcule les tiers après une modif de config/rarities.ts
  *   npm run sync:catalog -- --names      redonne un nom français aux cartes importées en anglais
+ *   npm run sync:catalog -- --images     images de repli (Pokémon TCG API) pour les cartes sans scan TCGdex
  *
  * Écrit `reports/rarities.md` à la fin.
  */
@@ -15,7 +16,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { gameConfig } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
-import { createTcgdexClient, fillFrenchNames, rarityReport, retierCatalog, syncCatalog, type SyncMode } from "@pokeflex/tcgdex";
+import { createTcgdexClient, fillFallbackImages, fillFrenchNames, rarityReport, retierCatalog, syncCatalog, type SyncMode } from "@pokeflex/tcgdex";
 
 const args = process.argv.slice(2);
 const flag = (name: string) => args.includes(`--${name}`);
@@ -43,6 +44,11 @@ async function main() {
   if (flag("names")) {
     const changed = await fillFrenchNames(prisma);
     console.log(`✓ ${changed} cartes anglaises ont reçu leur nom français.`);
+    return;
+  }
+  if (flag("images")) {
+    const filled = await fillFallbackImages(prisma, { log: console.log });
+    console.log(`✓ ${filled} cartes sans scan TCGdex ont reçu une image anglaise.`);
     return;
   }
   const client = createTcgdexClient({

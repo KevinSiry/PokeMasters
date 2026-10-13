@@ -15,6 +15,7 @@ import { computeTier } from "@pokeflex/game";
 import type { TcgdexClient, TcgdexLang } from "./client";
 import { buildFrenchNameIndex, frenchNameFor } from "./names";
 import { isExcludedSerie, needsResync, toCardRecord, toSetRecord, type CardRecord } from "./normalize";
+import { PTCG_IMAGE_HOST, fillFallbackImages } from "./pokemontcg";
 import type { CardSummary, SetDetail } from "./schemas";
 
 export type SyncMode = "full" | "new-sets" | "prices";
@@ -29,6 +30,8 @@ export interface SyncOptions {
   restart?: boolean;
   log?: (line: string) => void;
   now?: () => Date;
+  /** `fetch` des images de repli (tests). */
+  fetch?: typeof fetch;
 }
 
 export interface SyncStats {
@@ -111,7 +114,16 @@ export async function syncCatalog(opts: SyncOptions): Promise<SyncStats & { runI
     const existing = new Map<string, { cards: number; withImage: number }>();
     if (mode === "new-sets") {
       const counts = await prisma.card.groupBy({ by: ["setId"], _count: { _all: true, image: true } });
-      for (const c of counts) existing.set(c.setId, { cards: c._count._all, withImage: c._count.image });
+      // Les images de repli ne comptent pas : un scan TCGdex publié plus tard doit être repris.
+      const fallbacks = await prisma.card.groupBy({
+        by: ["setId"],
+        where: { image: { startsWith: `https://${PTCG_IMAGE_HOST}/` } },
+        _count: { _all: true },
+      });
+      const fallbackCount = new Map(fallbacks.map((c) => [c.setId, c._count._all]));
+      for (const c of counts) {
+        existing.set(c.setId, { cards: c._count._all, withImage: c._count.image - (fallbackCount.get(c.setId) ?? 0) });
+      }
     }
 
     let index = 0;
@@ -184,7 +196,9 @@ export async function syncCatalog(opts: SyncOptions): Promise<SyncStats & { runI
               fallbackImage: en?.image ?? null,
             });
             const data = cardData(rec, now());
-            await prisma.card.upsert({ where: { id: rec.id }, create: data, update: data });
+            // Sans scan TCGdex, on garde l'image de repli déjà posée (voir `pokemontcg.ts`).
+            const { image: _image, imageLang: _imageLang, droppable: _droppable, ...keepImage } = data;
+            await prisma.card.upsert({ where: { id: rec.id }, create: data, update: rec.image ? data : keepImage });
             return cardLang;
           } catch (err) {
             stats.failed.push(`${summary.id}: ${err instanceof Error ? err.message : String(err)}`);
@@ -209,6 +223,9 @@ export async function syncCatalog(opts: SyncOptions): Promise<SyncStats & { runI
 
     const named = await fillFrenchNames(prisma);
     if (named) log(`• ${named} cartes anglaises ont reçu leur nom français.`);
+
+    const filled = await fillFallbackImages(prisma, { fetch: opts.fetch, log });
+    if (filled) log(`• ${filled} cartes sans scan TCGdex ont reçu une image anglaise (Pokémon TCG API).`);
 
     // Date de la première sortie de chaque série, pour les ordonner chronologiquement.
     await prisma.$executeRaw`
