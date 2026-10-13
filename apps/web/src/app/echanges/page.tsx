@@ -74,7 +74,7 @@ export default async function TradesPage() {
                   </span>
                   <span className="grid grid-cols-4 gap-1.5">
                     {s.cards.map((c) => (
-                      <CardImage key={c.id} image={c.image} name={c.name} className="rounded-md" />
+                      <CardImage key={c.id} image={c.image} name={c.name} className="rounded-[var(--radius-card-image)]" />
                     ))}
                   </span>
                   <span className="text-xs font-semibold text-accent">Proposer un échange</span>

@@ -84,7 +84,7 @@ export function ShowcaseEditor({ initial, max }: { initial: Card[]; max: number 
             <li key={c?.id ?? `vide-${i}`} className="relative">
               {c ? (
                 <div className="group grid gap-1.5">
-                  <CardImage image={c.image} name={c.name} className="rounded-[var(--radius-card)]" />
+                  <CardImage image={c.image} name={c.name} className="rounded-[var(--radius-card-image)]" />
                   <div className="absolute inset-x-1 top-1 flex justify-between opacity-100 transition-opacity sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100">
                     <button
                       type="button"
@@ -116,7 +116,7 @@ export function ShowcaseEditor({ initial, max }: { initial: Card[]; max: number 
                   <span className="truncate text-xs font-semibold">{c.name}</span>
                 </div>
               ) : (
-                <div className="grid aspect-[63/88] place-items-center rounded-[var(--radius-card)] border-2 border-dashed border-line text-muted">
+                <div className="grid aspect-[63/88] place-items-center rounded-[var(--radius-card-image)] border-2 border-dashed border-line text-muted">
                   <span className="font-mono text-sm">{i + 1}</span>
                 </div>
               )}
@@ -156,7 +156,7 @@ export function ShowcaseEditor({ initial, max }: { initial: Card[]; max: number 
                     )}
                   >
                     <span className="w-8 shrink-0">
-                      <CardImage image={c.image} name={c.name} className="rounded" />
+                      <CardImage image={c.image} name={c.name} className="rounded-[var(--radius-card-image)]" />
                     </span>
                     <span className="grid min-w-0 flex-1">
                       <span className="truncate font-semibold">{c.name}</span>
