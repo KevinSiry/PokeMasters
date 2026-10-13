@@ -125,6 +125,12 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 - Les pages lisent la session dans le layout (minuteur dans l'en-tête), donc elles sont rendues dynamiquement côté serveur. Le HTML reste complet pour le référencement. Pas de cache de pages en phase 8 : l'en-tête est personnalisé et les requêtes du catalogue sont déjà rapides.
 - Mode sombre uniquement pour l'instant (« sombre par défaut ») ; un thème clair pourra venir en phase 8.
 
+## Mobile (demande de Kevin, 2026-10-13)
+
+- **Aucune page ne doit dépasser 360 px de large** : au-delà, le navigateur du téléphone dézoome tout le site. Un test e2e (`mobile.spec.ts`) le vérifie sur chaque page principale, mesuré contre l'écran émulé et non `window.innerWidth`, qui s'élargit avec le contenu.
+- **En-tête connecté sur téléphone** : monogramme seul (sans « PokeFlex »), boutons de 40 px ; sous 360 px, le minuteur disparaît et l'onglet Boosters de la barre du bas affiche le nombre de boosters prêts.
+- **Effets de survol réservés à la souris** (`@media (hover: hover)`), sinon ils restent figés après un tap ; au doigt, retour de pression et puces de filtre de 40 px.
+
 ## GitHub
 
 - **Règles du dépôt reprises de Kroniq et Chabowt** (demande de Kevin, 2026-10-12) : sur `main`, suppression et force-push interdits, et les deux jobs de CI (Linux et Windows) doivent être verts pour fusionner. Le ruleset est versionné dans `.github/rulesets/protect-main.json` (à importer dans *Settings → Rules → Rulesets → New ruleset → Import a ruleset*). Réglages de fusion identiques aux deux projets : auto-merge activé, branche supprimée après fusion.
