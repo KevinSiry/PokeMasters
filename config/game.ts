@@ -171,6 +171,18 @@ export const gameConfig = {
     leaderboardRefreshMs: HOUR,
   },
 
+  /** Favoris (cartes possédées mises en avant) et wishlist (cartes recherchées). */
+  lists: {
+    favoritesMax: 500,
+    wishlistMax: 200,
+    /** Cartes de la wishlist montrées sur le profil public (la liste complète est dans la collection). */
+    profileWishlistSize: 12,
+    /** Qui voit la wishlist d'un joueur : "public" (profil + compteur sur la fiche carte), "friends" ou "private". */
+    wishlistVisibility: "public" as "public" | "friends" | "private",
+    /** Une alerte wishlist n'est envoyée que pour une annonce publiée il y a moins de ce délai. */
+    alertMaxAgeMs: 2 * MINUTE,
+  },
+
   /**
    * Garde-fous contre les scripts : nombre d'actions serveur par joueur et par minute glissante.
    * Bien au-dessus d'un usage humain ; chaque dépassement est refusé et journalisé « [anti-triche] ».
@@ -181,6 +193,8 @@ export const gameConfig = {
       market: { count: 30, windowMs: MINUTE },
       economy: { count: 30, windowMs: MINUTE },
       social: { count: 40, windowMs: MINUTE },
+      /** Ajouts et retraits de favoris ou de wishlist. */
+      lists: { count: 60, windowMs: MINUTE },
       /** Recherches à la frappe et chargements de messages anciens : lectures seules, plus fréquentes. */
       search: { count: 120, windowMs: MINUTE },
     },

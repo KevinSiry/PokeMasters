@@ -44,6 +44,9 @@ export default async function globalSetup() {
     prisma.friendship.deleteMany({ where: { userId: { in: demo }, friendId: { in: demo } } }),
     prisma.block.deleteMany({ where: { userId: { in: demo }, blockedId: { in: demo } } }),
     prisma.directMessage.deleteMany({ where: { senderId: { in: demo }, recipientId: { in: demo } } }),
+    // Parcours favoris et wishlist rejouables.
+    prisma.favoriteCard.deleteMany({ where: { userId: { in: demo } } }),
+    prisma.wishlistCard.deleteMany({ where: { userId: { in: demo } } }),
   ]);
   await prisma.$disconnect();
   void port;

@@ -31,11 +31,16 @@ export interface RecyclableCopy {
 
 /**
  * Doublons à recycler : pour chaque carte, garde un exemplaire (la plus belle finition,
- * puis le plus ancien) et renvoie tous les autres. `tiers` limite le recyclage à certains tiers.
+ * puis le plus ancien) et renvoie tous les autres. `tiers` limite le recyclage à certains tiers ;
+ * les cartes de `keepCardIds` (favoris du joueur) gardent tous leurs exemplaires.
  */
-export function pickDuplicates(copies: readonly RecyclableCopy[], tiers: readonly Tier[] = TIERS): RecyclableCopy[] {
+export function pickDuplicates(
+  copies: readonly RecyclableCopy[],
+  tiers: readonly Tier[] = TIERS,
+  keepCardIds: ReadonlySet<string> = new Set(),
+): RecyclableCopy[] {
   const byCard = new Map<string, RecyclableCopy[]>();
-  for (const c of copies) byCard.set(c.cardId, [...(byCard.get(c.cardId) ?? []), c]);
+  for (const c of copies) if (!keepCardIds.has(c.cardId)) byCard.set(c.cardId, [...(byCard.get(c.cardId) ?? []), c]);
   const allowed = new Set(tiers);
   const out: RecyclableCopy[] = [];
   for (const group of byCard.values()) {

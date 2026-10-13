@@ -6,7 +6,15 @@ import { createServer } from "node:http";
 import { gameConfig } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
 import { RateLimiter } from "@pokeflex/game";
-import { getMyGuildId, markConversationRead, relationBetween, sendDirectMessage, sendGuildMessage, SocialError } from "@pokeflex/server";
+import {
+  getMyGuildId,
+  markConversationRead,
+  relationBetween,
+  sendDirectMessage,
+  sendGuildMessage,
+  SocialError,
+  wishlistAlertForListing,
+} from "@pokeflex/server";
 import { Server } from "socket.io";
 import { resolveUserId, type SessionLookup } from "./auth";
 import { startJobs } from "./jobs";
@@ -49,6 +57,8 @@ interface ClientEvents {
   "guild:sync": (p: { userId: string; guildId: string }) => void;
   /** Prévient un joueur d'une demande d'ami ou d'une acceptation (vérifié en base). */
   "social:ping": (p: { to: string }) => void;
+  /** Après une mise en vente : prévient les joueurs qui ont cette carte dans leur wishlist (vérifié en base). */
+  "market:listed": (p: { listingId: string }) => void;
 }
 
 const io = new Server<ClientEvents, Record<string, (...args: never[]) => void>, Record<string, never>, SocketData>(httpServer, {
@@ -61,6 +71,15 @@ const errorMessage = (err: unknown) =>
 // Premier filet anti-spam en mémoire (la base applique la même règle, pour tous les serveurs).
 const chatLimiter = new RateLimiter(gameConfig.social.messageRate.count, gameConfig.social.messageRate.windowMs);
 const tooFast = "Doucement ! Attends quelques secondes avant d'envoyer un autre message.";
+
+// Une annonce ne déclenche qu'une alerte wishlist, même si le vendeur renvoie l'événement.
+const alerted = new Set<string>();
+function markAlerted(listingId: string): boolean {
+  if (alerted.has(listingId)) return false;
+  alerted.add(listingId);
+  if (alerted.size > 5000) alerted.delete(alerted.values().next().value!);
+  return true;
+}
 
 // Toute connexion doit porter une session Auth.js valide.
 io.use(async (socket, next) => {
@@ -154,6 +173,14 @@ io.on("connection", (socket) => {
     if (relation === "request_sent" || relation === "friends") {
       io.to(`user:${to}`).emit("social:update", { kind: relation === "friends" ? "friend_accepted" : "friend_request", from: userId } as never);
     }
+  });
+
+  socket.on("market:listed", async (p) => {
+    const listingId = String(p?.listingId ?? "");
+    if (!listingId || alerted.has(listingId)) return;
+    const alert = await wishlistAlertForListing(userId, listingId).catch(() => null);
+    if (!alert || !markAlerted(listingId)) return;
+    for (const to of alert.recipients) io.to(`user:${to}`).emit("wishlist:listed", alert.listing as never);
   });
 });
 

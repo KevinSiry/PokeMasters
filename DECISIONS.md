@@ -87,6 +87,15 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 - **Guildes ouvertes** : n'importe qui rejoint tant qu'il reste de la place (30 membres). Fonder coûte 2 000 Jetons (ligne de registre `guild_create`, non remboursée). Le chef nomme des officiers, qui peuvent exclure des membres ; s'il part, le rôle passe au plus ancien officier, puis au plus ancien membre ; le dernier à partir dissout la guilde. Nom et sigle uniques sans tenir compte de la casse.
 - **Classements figés toutes les heures** (collection, sets complétés, ventes au marché) par le serveur temps réel, 100 premiers, deux jours d'historique. Les pages lisent l'instantané, jamais un calcul en direct ; pseudo et avatar restent à jour. Ex aequo au même rang.
 
+## Favoris et wishlist
+
+- **Favori = une carte de sa collection** (au moins un exemplaire possédé au moment de l'ajout) ; **wishlist = une carte qu'on n'a pas encore**. Les deux listes portent sur la carte, pas sur un exemplaire ni une finition. 500 favoris et 200 cartes en wishlist au plus (`lists` dans `config/game.ts`).
+- **Les favoris protègent du recyclage en masse** : « Recycler les doublons » garde tous les exemplaires d'une carte favorite. Le recyclage d'un exemplaire précis depuis la fiche reste possible (geste explicite). Une favorite vendue ou recyclée reste dans la liste, affichée « plus dans ta collection ».
+- **Une carte obtenue quitte la wishlist d'elle-même** (décision de Kevin, 2026-10-13) : booster, booster de set, achat ou enchère gagnée la retirent dans la même transaction. Une carte déjà possédée ne peut pas y être ajoutée.
+- **Wishlist publique** (choix de Kevin, 2026-10-13) : visible sur le profil public (12 dernières cartes) et compteur « N joueurs recherchent cette carte » sur la fiche. Réglage `lists.wishlistVisibility` (`public`, `friends` ou `private`).
+- **Alerte en direct** quand une carte de sa wishlist est mise en vente (prix fixe ou enchère) : après la mise en vente, le client du vendeur prévient le serveur temps réel, qui vérifie en base que l'annonce est active, récente (moins de 2 minutes) et bien à lui, puis notifie les joueurs concernés, hors vendeur et hors blocages. Une seule alerte par annonce. Pas d'alerte hors connexion (pas d'e-mail ni de notification stockée).
+- **Marché** : filtre « Ma wishlist » et cœur sur les annonces des cartes recherchées. La vue Wishlist de la collection indique les cartes en vente et leur prix le plus bas.
+
 ## Finitions (phase 8)
 
 - **Polices servies par `next/font`** (fichiers Fontsource, sous-ensemble latin) : préchargées, avec une police de repli aux mêmes métriques. Le titre de l'accueil s'affiche sans attendre le téléchargement (Lighthouse mobile de l'accueil : 80 → 97).
