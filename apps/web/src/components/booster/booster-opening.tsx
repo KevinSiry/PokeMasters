@@ -2,14 +2,14 @@
 
 import { FINISH_LABELS_FR, TIER_LABELS_FR, tierRank, type Tier } from "@pokeflex/config";
 import { CheckCircle2, Layers, Recycle, Sparkles, Target, Zap } from "lucide-react";
-import { AnimatePresence, motion, useIsPresent, useReducedMotion, type PanInfo } from "motion/react";
+import { AnimatePresence, motion, useIsPresent, useReducedMotion, type PanInfo, type TargetAndTransition } from "motion/react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { openBoosterAction, openSetBoosterAction } from "@/app/boosters/actions";
 import { CoinBurst } from "@/components/economy/coin-burst";
 import { Jetons } from "@/components/jetons";
-import { BoosterPackArt } from "@/components/booster/booster-pack";
 import { CardBack } from "@/components/booster/card-back";
+import { FloatingPack, TearPack } from "@/components/booster/tear-pack";
 import { TIER_ICON } from "@/components/tier-badge";
 import { TiltCard } from "@/components/tilt-card";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,11 @@ import type { BoosterResult, PulledCard } from "@pokeflex/server";
 import { useBoosterCountdown } from "@/lib/use-booster-countdown";
 import { cn } from "@/lib/utils";
 
-type Phase = "idle" | "charging" | "tearing" | "reveal" | "summary";
+/**
+ * idle → tearing (le joueur déchire, le tirage part en parallèle au serveur) → emerging (les cartes
+ * sortent du sachet) → reveal → summary. Avec « réduire les animations » : idle → charging → reveal.
+ */
+type Phase = "idle" | "charging" | "tearing" | "emerging" | "reveal" | "summary";
 
 interface BoosterOpeningProps {
   available: number;
@@ -43,6 +47,14 @@ const PARTICLES: Record<Tier, number> = { common: 0, uncommon: 0, rare: 12, epic
 /** Durée du suspense avant de retourner une carte (ms). */
 const SUSPENSE: Record<Tier, number> = { common: 0, uncommon: 0, rare: 0, epic: 350, legendary: 1100, mythic: 1700 };
 const HAPTICS: Partial<Record<Tier, number[]>> = { epic: [18], legendary: [30, 40, 60], mythic: [40, 50, 40, 50, 120] };
+
+/** Position d'une carte dans la pile (0 = devant) : léger décalage, comme un paquet tenu en main. */
+const STACK_TILT = [0, -1.4, 1.1, -0.7, 1.6, -1];
+function stackPose(k: number): TargetAndTransition {
+  return { x: k * 1.5, y: k * 3.5, rotate: STACK_TILT[k % STACK_TILT.length]!, scale: 1 - k * 0.008 };
+}
+/** Durée de la sortie des cartes hors du sachet (s). */
+const EMERGE = 1.7;
 
 function vibrate(pattern?: number[]) {
   if (pattern && typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate(pattern);
@@ -119,10 +131,15 @@ function Presence({ children }: { children: React.ReactNode }) {
   );
 }
 
-function CardFront({ card }: { card: PulledCard }) {
+function CardFront({ card, frontRef, shine }: { card: PulledCard; frontRef?: React.Ref<HTMLDivElement>; shine?: boolean }) {
   const src = cardImageUrl(card.image, "high");
   return (
-    <div className="pf-card bg-elev" data-tier={card.tier}>
+    <div ref={frontRef} className="pf-card bg-elev" data-tier={card.tier}>
+      {shine && tierRank(card.tier) >= tierRank("rare") && (
+        <span aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-[inherit]">
+          <span className="pf-glint absolute inset-y-[-20%] left-0 w-[45%]" />
+        </span>
+      )}
       {src ? (
         // eslint-disable-next-line @next/next/no-img-element -- CDN TCGdex
         <img src={src} alt={card.name} draggable={false} />
@@ -175,15 +192,21 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
   const reduced = useReducedMotion() ?? false;
   const [phase, setPhase] = useState<Phase>("idle");
   const [result, setResult] = useState<BoosterResult | null>(null);
+  const [torn, setTorn] = useState(false);
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [suspense, setSuspense] = useState(false);
   const [flash, setFlash] = useState(0);
+  /** Sens dans lequel la carte révélée quitte la pile (suit le geste). */
+  const [fling, setFling] = useState(-1);
   const [stock, setStock] = useState({ available, nextAt });
   const [error, setError] = useState<string | null>(null);
   const [balance, setBalance] = useState(initialBalance);
   const [, startTransition] = useTransition();
   const busy = useRef(false);
+  const frontRef = useRef<HTMLDivElement>(null);
+  /** Un glissé sur la carte se termine par un clic : il ne doit pas faire avancer une seconde fois. */
+  const dragged = useRef(false);
   const countdown = useBoosterCountdown(stock.available, stock.nextAt, maxStock, refillIntervalMs);
 
   // Le serveur peut renvoyer un nouvel état (navigation, autre onglet) : on s'aligne au repos.
@@ -204,16 +227,22 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
     [cards],
   );
 
+  // Le tirage est fait par le serveur dès le premier geste ; la déchirure masque l'attente.
   const open = useCallback(() => {
     if (busy.current || !canOpen) return;
     busy.current = true;
     setError(null);
-    setPhase("charging");
+    setResult(null);
+    setTorn(false);
+    setIndex(0);
+    setFlipped(false);
+    setPhase(reduced ? "charging" : "tearing");
     startTransition(async () => {
       const res = set ? await openSetBoosterAction(set.id) : await openBoosterAction();
       if (!res.ok) {
         setError(res.error);
         setPhase("idle");
+        setTorn(false);
         busy.current = false;
         return;
       }
@@ -224,19 +253,36 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
       const bonus = res.result.completedSets.reduce((n, s) => n + s.bonus, 0);
       setBalance(res.result.balance);
       if (set) emitBalance(res.result.balance - bonus);
-      setIndex(0);
-      setFlipped(false);
-      setPhase("tearing");
-      vibrate([12]);
-      window.setTimeout(
-        () => {
-          setPhase("reveal");
-          busy.current = false;
-        },
-        reduced ? 250 : 1250,
-      );
+      if (reduced) {
+        setPhase("reveal");
+        busy.current = false;
+      }
     });
   }, [canOpen, set, reduced]);
+
+  const tear = useCallback(() => {
+    if (torn) return;
+    setTorn(true);
+    vibrate([14, 30, 22]);
+  }, [torn]);
+
+  // Languette arrachée et tirage reçu : les cartes sortent du sachet (la languette a le temps de s'envoler).
+  useEffect(() => {
+    if (phase !== "tearing" || !torn || !result) return;
+    const t = window.setTimeout(() => setPhase("emerging"), 380);
+    return () => window.clearTimeout(t);
+  }, [phase, torn, result]);
+
+  const toReveal = useCallback(() => {
+    setPhase((p) => (p === "emerging" ? "reveal" : p));
+    busy.current = false;
+  }, []);
+  // Filet de sécurité si la fin d'animation n'est pas signalée (onglet en arrière-plan…).
+  useEffect(() => {
+    if (phase !== "emerging") return;
+    const t = window.setTimeout(toReveal, EMERGE * 1000 + 600);
+    return () => window.clearTimeout(t);
+  }, [phase, toReveal]);
 
   const flipCurrent = useCallback(() => {
     if (!current || flipped || suspense) return;
@@ -263,24 +309,56 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
   }, [phase, current, flipped, flipCurrent, index, cards.length]);
 
   useEffect(() => {
-    if (phase !== "reveal") return;
+    if (phase !== "reveal" && phase !== "tearing") return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === " " || e.key === "Enter" || e.key === "ArrowRight") {
+        // Un bouton qui a le focus réagit déjà de lui-même à Entrée et Espace.
+        if (e.target instanceof HTMLButtonElement && e.key !== "ArrowRight") return;
         e.preventDefault();
-        advance();
+        if (phase === "tearing") tear();
+        else {
+          setFling(-1);
+          advance();
+        }
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [phase, advance]);
+  }, [phase, advance, tear]);
 
   function onDragEnd(_: unknown, info: PanInfo) {
-    if (flipped && Math.abs(info.offset.x) > 80) advance();
+    if (!flipped) return;
+    if (Math.abs(info.offset.x) > 80 || Math.abs(info.velocity.x) > 500) {
+      setFling(Math.sign(info.offset.x || info.velocity.x) || -1);
+      advance();
+    }
+  }
+
+  /** Reflet holo qui suit le doigt sur la carte révélée (variables CSS, sans rendu React). */
+  function onCardPointerMove(e: React.PointerEvent<HTMLElement>) {
+    const el = frontRef.current;
+    if (!el || !flipped || reduced) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width;
+    const y = (e.clientY - r.top) / r.height;
+    // La face est retournée (rotateY 180°) : l'axe horizontal est inversé.
+    el.style.setProperty("--ry", `${(0.5 - x) * 16}deg`);
+    el.style.setProperty("--rx", `${(0.5 - y) * 16}deg`);
+    el.style.setProperty("--mx", `${(1 - x) * 100}%`);
+    el.style.setProperty("--my", `${y * 100}%`);
+    el.dataset.active = "true";
+  }
+  function onCardPointerLeave() {
+    const el = frontRef.current;
+    if (!el) return;
+    for (const [k, v] of [["--rx", "0deg"], ["--ry", "0deg"], ["--mx", "50%"], ["--my", "50%"]] as const) el.style.setProperty(k, v);
+    delete el.dataset.active;
   }
 
   function reset() {
     setPhase("idle");
     setResult(null);
+    setTorn(false);
     setIndex(0);
     setFlipped(false);
   }
@@ -290,6 +368,9 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
   }, [phase, result]);
 
   const dim = phase === "reveal" && current && (suspense || flipped) && tierRank(current.tier) >= tierRank("legendary");
+  const staged = phase === "tearing" || phase === "emerging" || phase === "reveal";
+  /** Cartes encore dans la pile, derrière la carte de devant. */
+  const behind = phase === "emerging" ? cards.slice(1) : phase === "reveal" ? cards.slice(index + 1) : [];
 
   return (
     <div className="relative grid min-h-[calc(100dvh-12rem)] grid-cols-1 content-center justify-items-center gap-6 py-6">
@@ -334,12 +415,12 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
                   ? {}
                   : { y: [0, -10, 0], transition: { duration: 3.2, repeat: Infinity, ease: "easeInOut" } }
             }
-            whileHover={canOpen && !reduced ? { scale: 1.04, rotate: -1.5 } : undefined}
+            whileHover={canOpen && !reduced ? { scale: 1.04 } : undefined}
             whileTap={canOpen && !reduced ? { scale: 0.97 } : undefined}
           >
-            <BoosterPackArt empty={!canOpen} {...packProps} />
+            <FloatingPack pack={packProps} empty={!canOpen} interactive={canOpen && !reduced} />
             {!set && countdown.shown > 1 && (
-              <span className="absolute -top-3 -right-3 grid size-11 place-items-center rounded-full bg-lime font-display text-base font-bold text-bg shadow-[0_6px_18px_-4px_var(--color-lime)]">
+              <span className="absolute -top-3 -right-3 z-10 grid size-11 place-items-center rounded-full bg-lime font-display text-base font-bold text-bg shadow-[0_6px_18px_-4px_var(--color-lime)]">
                 ×{countdown.shown}
               </span>
             )}
@@ -425,59 +506,24 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
         </div>
       )}
 
-      {/* ─── Déchirure de la pochette ─── */}
-      {phase === "tearing" && (
-        <div className="relative w-[min(62vw,260px)]" aria-live="polite">
-          <span className="sr-only">Ouverture du booster…</span>
-          <motion.div
-            className="relative"
-            style={{ clipPath: "inset(0 0 89% 0)" }}
-            initial={{ x: 0, y: 0, rotate: 0 }}
-            animate={reduced ? { opacity: 0 } : { x: 60, y: -160, rotate: 24, opacity: 0 }}
-            transition={{ duration: 0.7, delay: 0.25, ease: [0.3, 0.7, 0.4, 1] }}
-          >
-            <BoosterPackArt {...packProps} />
-          </motion.div>
-          <motion.div
-            className="absolute inset-0"
-            style={{ clipPath: "inset(11% 0 0 0)" }}
-            initial={{ y: 0, opacity: 1 }}
-            animate={reduced ? { opacity: 0 } : { y: [0, 0, 70], opacity: [1, 1, 0], scale: [1, 1, 0.95] }}
-            transition={{ duration: 1.1, times: [0, 0.55, 1] }}
-          >
-            <BoosterPackArt {...packProps} />
-          </motion.div>
-          {!reduced && (
-            <motion.div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-x-[-30%] top-[6%] h-24 rounded-full bg-[radial-gradient(closest-side,rgb(255_255_255/0.95),rgb(184_243_92/0.5),transparent)]"
-              initial={{ opacity: 0, scaleY: 0.2 }}
-              animate={{ opacity: [0, 1, 0], scaleY: [0.2, 1.6, 2.4] }}
-              transition={{ duration: 0.9, delay: 0.2 }}
-            />
-          )}
-        </div>
-      )}
-
-      {/* ─── Révélation carte par carte ─── */}
-      {phase === "reveal" && current && (
-        <div className="relative z-40 grid w-full justify-items-center gap-5">
-          <div className="relative w-[min(70vw,300px)]">
-            {/* Pile des cartes restantes, face cachée. */}
-            {cards.slice(index + 1).map((c, i) => (
-              <div
-                key={c.copyId}
-                aria-hidden="true"
-                className="absolute inset-0"
-                style={{ transform: `translate(${(i + 1) * 5}px, ${(i + 1) * 6}px) rotate(${(i + 1) * 1.6}deg)`, zIndex: -1 - i }}
-              >
-                <CardBack />
-              </div>
-            ))}
+      {/* ─── Déchirure, sortie des cartes puis révélation carte par carte : une même scène ─── */}
+      {staged && (
+        <div className="relative z-40 grid w-full justify-items-center gap-5 pt-[min(29vw,5.75rem)]">
+          <div className="relative mb-[min(11vw,2.75rem)] aspect-[63/88] w-[min(70vw,300px,31dvh)]">
+            {(phase === "tearing" || phase === "emerging") && (
+              <TearPack
+                pack={packProps}
+                stage={phase}
+                torn={torn}
+                waiting={torn && !result}
+                reduced={reduced}
+                onTear={tear}
+              />
+            )}
 
             {/* Rayons derrière les cartes Légendaire et Mythique. */}
             <AnimatePresence>
-              {flipped && !reduced && tierRank(current.tier) >= tierRank("legendary") && (
+              {phase === "reveal" && current && flipped && !reduced && tierRank(current.tier) >= tierRank("legendary") && (
                 <motion.div
                   key={`rays-${index}`}
                   aria-hidden="true"
@@ -491,95 +537,176 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
               )}
             </AnimatePresence>
 
-            <AnimatePresence mode="popLayout" initial={false}>
+            {/* La pile : elle monte hors du sachet, puis se pose au centre. */}
+            {phase !== "tearing" && (
               <motion.div
-                key={current.copyId}
-                className="relative"
-                initial={reduced ? { opacity: 0 } : { y: index === 0 ? 120 : 0, opacity: index === 0 ? 0 : 1, scale: index === 0 ? 0.8 : 1 }}
-                animate={{ y: 0, x: 0, opacity: 1, scale: 1, rotate: 0 }}
-                exit={reduced ? { opacity: 0 } : { x: -420, y: 40, rotate: -22, opacity: 0, transition: { duration: 0.35, ease: "easeIn" } }}
-                transition={{ type: "spring", stiffness: 260, damping: 24 }}
-                drag={flipped ? "x" : false}
-                dragConstraints={{ left: 0, right: 0 }}
-                dragElastic={0.7}
-                onDragEnd={onDragEnd}
+                className="absolute inset-0 will-change-transform"
+                initial={phase === "emerging" ? { y: "6%" } : false}
+                animate={phase === "emerging" ? { y: ["6%", "-44%", "-44%", "0%"] } : { y: "0%" }}
+                transition={
+                  phase === "emerging"
+                    ? { duration: EMERGE, times: [0, 0.38, 0.58, 1], ease: [[0.2, 0.75, 0.3, 1], "linear", [0.3, 1.25, 0.5, 1]] }
+                    : { duration: 0 }
+                }
+                onAnimationComplete={toReveal}
               >
-                <Presence>
-                <motion.button
-                  type="button"
-                  onClick={advance}
-                  aria-label={flipped ? `${current.name}, ${TIER_LABELS_FR[current.tier]}. Carte suivante` : "Retourner la carte"}
-                  data-tier={current.tier}
-                  className={cn("relative block w-full rounded-[var(--radius-card)] [perspective:1200px]", suspense && "pf-leak")}
-                  animate={
-                    suspense && !reduced
-                      ? { x: [0, -5, 5, -6, 6, -3, 3, 0], rotate: [0, -1, 1, -1.5, 1.5, 0], transition: { duration: 0.45, repeat: Infinity } }
-                      : { x: 0, rotate: 0 }
-                  }
-                >
+                {behind.map((c, i) => (
                   <motion.div
-                    className="relative [transform-style:preserve-3d]"
-                    animate={{ rotateY: flipped ? 180 : 0 }}
-                    transition={reduced ? { duration: 0 } : { type: "spring", stiffness: 140, damping: 16, mass: 0.9 }}
+                    key={c.copyId}
+                    aria-hidden="true"
+                    className="absolute inset-0 will-change-transform"
+                    style={{ zIndex: 10 - i }}
+                    initial={false}
+                    animate={stackPose(i + 1)}
+                    transition={{ type: "spring", stiffness: 300, damping: 28 }}
                   >
-                    <div className="[backface-visibility:hidden]">
-                      <CardBack />
-                    </div>
-                    <div className="absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)]">
-                      <CardFront card={current} />
-                    </div>
+                    <CardBack />
                   </motion.div>
-                </motion.button>
-                </Presence>
-                {flipped && !reduced && <Burst key={`burst-${index}`} tier={current.tier} />}
+                ))}
+
+                {phase === "emerging" && (
+                  <div className="absolute inset-0 z-20" aria-hidden="true">
+                    <CardBack />
+                  </div>
+                )}
+
+                {phase === "reveal" && current && (
+                  <AnimatePresence mode="popLayout" initial={false} custom={fling}>
+                    <motion.div
+                      key={current.copyId}
+                      custom={fling}
+                      className="relative z-20 touch-pan-y will-change-transform"
+                      variants={{
+                        exit: (dir: number) =>
+                          reduced
+                            ? { opacity: 0 }
+                            : { x: dir * 460, y: 30, rotate: dir * 24, opacity: 0, transition: { duration: 0.4, ease: [0.4, 0, 0.9, 0.6] } },
+                      }}
+                      initial={index === 0 || reduced ? false : stackPose(1)}
+                      animate={{ x: 0, y: 0, rotate: 0, scale: 1, opacity: 1 }}
+                      exit="exit"
+                      transition={{ type: "spring", stiffness: 320, damping: 26 }}
+                      drag={flipped ? "x" : false}
+                      dragConstraints={{ left: 0, right: 0 }}
+                      dragElastic={0.75}
+                      dragTransition={{ bounceStiffness: 420, bounceDamping: 26 }}
+                      onDragStart={() => (dragged.current = true)}
+                      onDragEnd={onDragEnd}
+                      whileDrag={{ scale: 1.03 }}
+                    >
+                      <Presence>
+                        <motion.button
+                          type="button"
+                          onPointerDown={() => (dragged.current = false)}
+                          onClick={() => {
+                            if (dragged.current) return;
+                            setFling(-1);
+                            advance();
+                          }}
+                          onPointerMove={onCardPointerMove}
+                          onPointerLeave={onCardPointerLeave}
+                          aria-label={flipped ? `${current.name}, ${TIER_LABELS_FR[current.tier]}. Carte suivante` : "Retourner la carte"}
+                          data-tier={current.tier}
+                          className={cn("relative block w-full rounded-[var(--radius-card)] [perspective:1200px]", suspense && "pf-leak")}
+                          animate={
+                            suspense && !reduced
+                              ? { x: [0, -4, 4, -5, 5, -2, 2, 0], rotate: [0, -1, 1, -1.5, 1.5, 0], transition: { duration: 0.45, repeat: Infinity } }
+                              : { x: 0, rotate: 0 }
+                          }
+                        >
+                          <motion.div
+                            className="relative [transform-style:preserve-3d]"
+                            initial={false}
+                            animate={flipped ? { rotateY: 180, z: [0, 90, 0] } : { rotateY: 0, z: 0 }}
+                            transition={
+                              reduced
+                                ? { duration: 0 }
+                                : { rotateY: { type: "spring", stiffness: 150, damping: 17, mass: 0.9 }, z: { duration: 0.5, times: [0, 0.4, 1], ease: "easeOut" } }
+                            }
+                          >
+                            <div className="[backface-visibility:hidden]">
+                              <CardBack />
+                            </div>
+                            <div className="absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                              <CardFront card={current} frontRef={frontRef} shine={flipped && !reduced} />
+                            </div>
+                          </motion.div>
+                        </motion.button>
+                      </Presence>
+                      {flipped && !reduced && <Burst key={`burst-${index}`} tier={current.tier} />}
+                    </motion.div>
+                  </AnimatePresence>
+                )}
               </motion.div>
-            </AnimatePresence>
+            )}
           </div>
 
-          <div className="grid min-h-24 justify-items-center gap-2 text-center" aria-live="polite">
-            <AnimatePresence mode="wait">
-              {flipped ? (
-                <motion.div
-                  key={`info-${index}`}
-                  className="grid justify-items-center gap-2"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
-                  transition={{ duration: 0.25 }}
-                >
-                  <PullBadges card={current} />
-                  <p className="font-display text-xl font-bold">{current.name}</p>
-                  <p className="text-sm text-muted">
-                    {current.setName} · n° {current.localId}
-                  </p>
-                </motion.div>
+          {phase === "tearing" && (
+            <div className="grid min-h-24 justify-items-center gap-3 text-center" aria-live="polite">
+              {torn ? (
+                <p className="pt-2 text-sm text-muted">Ouverture…</p>
               ) : (
-                <motion.p key={`hint-${index}`} className="pt-4 text-sm text-muted" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  {suspense ? "Oh… quelque chose brille" : "Touche la carte pour la retourner"}
-                </motion.p>
+                <>
+                  <p className="text-sm text-muted">Glisse le doigt sur le haut du booster pour le déchirer</p>
+                  <Button variant="secondary" onClick={tear}>
+                    <Sparkles aria-hidden="true" />
+                    Déchirer le booster
+                  </Button>
+                </>
               )}
-            </AnimatePresence>
-          </div>
+            </div>
+          )}
 
-          <div className="flex items-center gap-4">
-            <ol className="flex gap-2" aria-label="Progression">
-              {cards.map((c, i) => (
-                <li
-                  key={c.copyId}
-                  data-tier={c.tier}
-                  aria-label={i < index || (i === index && flipped) ? TIER_LABELS_FR[c.tier] : "Face cachée"}
-                  className={cn(
-                    "size-2.5 rounded-full transition-colors",
-                    i < index || (i === index && flipped) ? "bg-[var(--tier)]" : i === index ? "bg-fg" : "bg-line",
+          {phase === "emerging" && <div className="min-h-24" aria-live="polite"><span className="sr-only">Les cartes sortent du booster</span></div>}
+
+          {phase === "reveal" && current && (
+            <>
+              <div className="grid min-h-24 justify-items-center gap-2 text-center" aria-live="polite">
+                <AnimatePresence mode="wait">
+                  {flipped ? (
+                    <motion.div
+                      key={`info-${index}`}
+                      className="grid justify-items-center gap-2"
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.25 }}
+                    >
+                      <PullBadges card={current} />
+                      <p className="font-display text-xl font-bold">{current.name}</p>
+                      <p className="text-sm text-muted">
+                        {current.setName} · n° {current.localId}
+                      </p>
+                    </motion.div>
+                  ) : (
+                    <motion.p key={`hint-${index}`} className="pt-4 text-sm text-muted" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                      {suspense ? "Oh… quelque chose brille" : "Touche la carte pour la retourner"}
+                    </motion.p>
                   )}
-                />
-              ))}
-            </ol>
-            <Button variant="ghost" size="sm" onClick={() => setPhase("summary")}>
-              <Zap aria-hidden="true" />
-              Tout révéler
-            </Button>
-          </div>
+                </AnimatePresence>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <ol className="flex gap-2" aria-label="Progression">
+                  {cards.map((c, i) => (
+                    <li
+                      key={c.copyId}
+                      data-tier={c.tier}
+                      aria-label={i < index || (i === index && flipped) ? TIER_LABELS_FR[c.tier] : "Face cachée"}
+                      className={cn(
+                        "size-2.5 rounded-full transition-colors",
+                        i < index || (i === index && flipped) ? "bg-[var(--tier)]" : i === index ? "bg-fg" : "bg-line",
+                      )}
+                    />
+                  ))}
+                </ol>
+                <Button variant="ghost" size="sm" onClick={() => setPhase("summary")}>
+                  <Zap aria-hidden="true" />
+                  Tout révéler
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       )}
 

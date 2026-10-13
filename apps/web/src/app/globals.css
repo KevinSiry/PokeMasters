@@ -325,13 +325,67 @@
   pointer-events: none;
 }
 
-/* Lumière qui filtre par les bords avant la révélation d'une carte rare. */
-.pf-leak {
+/* Lumière qui filtre par les bords avant la révélation d'une carte rare.
+ * Halo fixe dont seules l'opacité et l'échelle varient : animé par le compositeur, sans repeindre. */
+.pf-leak::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 60px 14px color-mix(in srgb, var(--tier) 85%, transparent), 0 0 0 3px var(--tier);
+  pointer-events: none;
   animation: pf-leak 0.45s ease-in-out infinite alternate;
+  will-change: opacity, transform;
 }
 @keyframes pf-leak {
-  from { box-shadow: 0 0 18px 2px color-mix(in srgb, var(--tier) 55%, transparent), 0 0 0 2px var(--tier); }
-  to { box-shadow: 0 0 60px 14px color-mix(in srgb, var(--tier) 85%, transparent), 0 0 0 3px var(--tier); }
+  from { opacity: 0.3; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1.02); }
+}
+
+/* Reflet de la pochette qui suit l'inclinaison (déplacé en transform par <FloatingPack>). */
+.pf-pack-glare {
+  background: radial-gradient(closest-side, rgb(255 255 255 / 0.38), rgb(255 255 255 / 0.08) 55%, transparent);
+  mix-blend-mode: overlay;
+}
+
+/* Déchirure : fente lumineuse, halo qui jaillit du sachet ouvert, indication du geste. */
+.pf-tear-seam {
+  /* Trait lumineux avec son halo dans le dégradé lui-même (pas d'ombre portée à recalculer). */
+  background: linear-gradient(180deg, transparent, rgb(184 243 92 / 0.45) 30%, #fff 47%, #fff 53%, rgb(184 243 92 / 0.45) 70%, transparent);
+  -webkit-mask: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+  mask: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+}
+.pf-tear-glow {
+  background: radial-gradient(50% 50% at 50% 50%, rgb(255 255 255 / 0.9), rgb(184 243 92 / 0.45) 40%, rgb(139 108 255 / 0.2) 65%, transparent 75%);
+}
+.pf-tear-wait {
+  animation: pf-tear-wait 0.9s ease-in-out infinite alternate;
+}
+@keyframes pf-tear-wait {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+.pf-tear-hint {
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.85), transparent);
+  box-shadow: 0 0 12px rgb(255 255 255 / 0.6);
+  animation: pf-tear-hint 1.8s cubic-bezier(0.45, 0, 0.25, 1) infinite;
+}
+@keyframes pf-tear-hint {
+  0% { transform: translateX(-100%); opacity: 0; }
+  15% { opacity: 1; }
+  70% { opacity: 1; }
+  85%, 100% { transform: translateX(450%); opacity: 0; }
+}
+
+/* Éclat qui balaie une carte Rare ou mieux au moment où elle se retourne. */
+.pf-glint {
+  background: linear-gradient(100deg, transparent, rgb(255 255 255 / 0.7) 50%, transparent);
+  mix-blend-mode: overlay;
+  transform: translateX(-120%) skewX(-12deg);
+  animation: pf-glint 0.9s 0.25s cubic-bezier(0.3, 0.6, 0.3, 1) forwards;
+}
+@keyframes pf-glint {
+  to { transform: translateX(280%) skewX(-12deg); }
 }
 
 /* Rayons tournants derrière une carte Légendaire ou Mythique. */
@@ -349,7 +403,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pf-pack::after, .pf-leak, .pf-rays { animation: none; }
+  .pf-pack::after, .pf-leak::before, .pf-rays, .pf-tear-wait, .pf-tear-hint, .pf-glint { animation: none; }
+  .pf-glint { display: none; }
 }
 
 /* ───────── Fenêtres modales ───────── */

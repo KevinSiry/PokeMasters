@@ -125,6 +125,12 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 - Les pages lisent la session dans le layout (minuteur dans l'en-tête), donc elles sont rendues dynamiquement côté serveur. Le HTML reste complet pour le référencement. Pas de cache de pages en phase 8 : l'en-tête est personnalisé et les requêtes du catalogue sont déjà rapides.
 - Mode sombre uniquement pour l'instant (« sombre par défaut ») ; un thème clair pourra venir en phase 8.
 
+## Ouverture de booster
+
+- **Ouverture au doigt, comme un vrai booster** (demande de Kevin, 2026-10-13) : la pochette s'incline sous le doigt, on la déchire en glissant le long du haut (ou d'un tap, ou du bouton « Déchirer le booster »), la languette s'envole, les cartes montent hors du sachet puis on les retourne une à une et on les fait glisser hors de la pile. La carte la plus rare reste en dernier (ordre du tirage).
+- **Le tirage part au serveur dès « Ouvrir »**, avant la déchirure : le geste masque l'attente, et le client ne fait toujours que révéler un résultat déjà enregistré. Une erreur serveur ramène la pochette intacte avec le message.
+- **Fluidité** : tout ce qui bouge passe par `transform` et `opacity` (valeurs animées hors du rendu React, halos animés en opacité plutôt qu'en `box-shadow`). Avec « réduire les animations », on passe directement de « Ouvrir » aux cartes.
+
 ## GitHub
 
 - **Règles du dépôt reprises de Kroniq et Chabowt** (demande de Kevin, 2026-10-12) : sur `main`, suppression et force-push interdits, et les deux jobs de CI (Linux et Windows) doivent être verts pour fusionner. Le ruleset est versionné dans `.github/rulesets/protect-main.json` (à importer dans *Settings → Rules → Rulesets → New ruleset → Import a ruleset*). Réglages de fusion identiques aux deux projets : auto-merge activé, branche supprimée après fusion.
