@@ -7,6 +7,7 @@
  *   npm run sync:catalog -- --prices     rotation quotidienne des prix
  *   npm run sync:catalog -- --sets=base1,swsh3   seulement ces sets
  *   npm run sync:catalog -- --retier     recalcule les tiers après une modif de config/rarities.ts
+ *   npm run sync:catalog -- --names      redonne un nom français aux cartes importées en anglais
  *
  * Écrit `reports/rarities.md` à la fin.
  */
@@ -14,7 +15,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { gameConfig } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
-import { createTcgdexClient, rarityReport, retierCatalog, syncCatalog, type SyncMode } from "@pokeflex/tcgdex";
+import { createTcgdexClient, fillFrenchNames, rarityReport, retierCatalog, syncCatalog, type SyncMode } from "@pokeflex/tcgdex";
 
 const args = process.argv.slice(2);
 const flag = (name: string) => args.includes(`--${name}`);
@@ -37,6 +38,11 @@ async function main() {
     const changed = await retierCatalog(prisma);
     console.log(`✓ ${changed} cartes ont changé de tier.`);
     await writeReport();
+    return;
+  }
+  if (flag("names")) {
+    const changed = await fillFrenchNames(prisma);
+    console.log(`✓ ${changed} cartes anglaises ont reçu leur nom français.`);
     return;
   }
   const client = createTcgdexClient({

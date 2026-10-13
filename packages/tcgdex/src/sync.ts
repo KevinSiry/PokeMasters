@@ -13,6 +13,7 @@ import { RARITY_TIERS, gameConfig } from "@pokeflex/config";
 import { Prisma, type PrismaClient } from "@pokeflex/db";
 import { computeTier } from "@pokeflex/game";
 import type { TcgdexClient, TcgdexLang } from "./client";
+import { buildFrenchNameIndex, frenchNameFor } from "./names";
 import { isExcludedSerie, needsResync, toCardRecord, toSetRecord, type CardRecord } from "./normalize";
 import type { CardSummary, SetDetail } from "./schemas";
 
@@ -206,6 +207,9 @@ export async function syncCatalog(opts: SyncOptions): Promise<SyncStats & { runI
       );
     }
 
+    const named = await fillFrenchNames(prisma);
+    if (named) log(`• ${named} cartes anglaises ont reçu leur nom français.`);
+
     // Date de la première sortie de chaque série, pour les ordonner chronologiquement.
     await prisma.$executeRaw`
       UPDATE "Serie" s SET "firstReleaseDate" = sub.d
@@ -224,6 +228,32 @@ export async function syncCatalog(opts: SyncOptions): Promise<SyncStats & { runI
     });
     throw err;
   }
+}
+
+/**
+ * Donne un nom français aux cartes importées en anglais, déduit des cartes françaises
+ * du catalogue (voir `names.ts`). Seules les cartes FR servent de référence, pour
+ * qu'un nom déduit ne se propage jamais. Renvoie le nombre de cartes modifiées.
+ */
+export async function fillFrenchNames(prisma: PrismaClient): Promise<number> {
+  const reference = await prisma.card.findMany({
+    where: { lang: "fr", nameFr: { not: null }, nameEn: { not: null } },
+    select: { nameFr: true, nameEn: true, dexIds: true },
+  });
+  const index = buildFrenchNameIndex(reference.map((c) => ({ nameEn: c.nameEn!, nameFr: c.nameFr!, dexIds: c.dexIds })));
+  const english = await prisma.card.findMany({
+    where: { lang: "en", nameEn: { not: null } },
+    select: { id: true, name: true, nameFr: true, nameEn: true, dexIds: true },
+  });
+  let changed = 0;
+  for (const c of english) {
+    const nameFr = frenchNameFor(c.nameEn!, c.dexIds, index);
+    const name = nameFr ?? c.nameEn!;
+    if (nameFr === c.nameFr && name === c.name) continue;
+    await prisma.card.update({ where: { id: c.id }, data: { nameFr, name } });
+    changed++;
+  }
+  return changed;
 }
 
 /** Index du jour dans la rotation des prix (0 … n-1). */
