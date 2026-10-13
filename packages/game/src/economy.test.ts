@@ -62,6 +62,10 @@ describe("pickDuplicates", () => {
     const copies = [copy("a1", "A", "common"), copy("a2", "A", "common", "normal", 1), copy("m1", "M", "mythic"), copy("m2", "M", "mythic", "normal", 1)];
     expect(pickDuplicates(copies, ["common"]).map((c) => c.id)).toEqual(["a2"]);
   });
+  it("ne touche pas aux cartes favorites", () => {
+    const copies = [copy("a1", "A", "common"), copy("a2", "A", "common", "normal", 1), copy("b1", "B", "rare"), copy("b2", "B", "rare", "normal", 1)];
+    expect(pickDuplicates(copies, undefined, new Set(["B"])).map((c) => c.id)).toEqual(["a2"]);
+  });
   it("ne touche à rien sans doublon", () => {
     expect(pickDuplicates([copy("a", "A", "common"), copy("b", "B", "common")])).toEqual([]);
   });

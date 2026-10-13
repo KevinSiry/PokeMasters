@@ -1,10 +1,11 @@
-import { getPublicProfile } from "@pokeflex/server";
+import { getProfileWishlist, getPublicProfile } from "@pokeflex/server";
 import { CalendarDays, Layers, Pencil, Shield, Store, Trophy, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { CardImage } from "@/components/card-image";
+import { CardTile } from "@/components/catalog/card-tile";
 import { PlayerAvatar } from "@/components/player-avatar";
 import { ProfileActions } from "@/components/social/profile-actions";
 import { TIER_ICON, TIER_TEXT } from "@/components/tier-badge";
@@ -38,6 +39,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ handle:
   if (!profile) notFound();
   const { player, stats } = profile;
   const isMe = profile.relation === "self";
+  const wishlist = await getProfileWishlist(player.id, viewer?.id ?? null);
 
   const statItems = [
     { icon: Layers, label: "Cartes différentes", value: stats.distinctCards },
@@ -151,6 +153,34 @@ export default async function PlayerPage({ params }: { params: Promise<{ handle:
           </ul>
         )}
       </section>
+
+      {wishlist && (wishlist.total > 0 || isMe) && (
+        <section className="grid gap-4" aria-labelledby="wishlist">
+          <div className="flex items-end justify-between gap-3">
+            <h2 id="wishlist" className="font-display text-lg font-bold">
+              Wishlist <span className="font-mono text-sm font-normal text-muted">{wishlist.total}</span>
+            </h2>
+            {isMe && (
+              <Link href="/collection?vue=wishlist" className="text-sm text-accent hover:underline">
+                Gérer ma wishlist
+              </Link>
+            )}
+          </div>
+          {wishlist.total === 0 ? (
+            <div className="rounded-2xl border border-dashed border-line p-6 text-center text-sm text-muted">
+              Ta wishlist est vide : ajoute les cartes que tu cherches depuis leur fiche.
+            </div>
+          ) : (
+            <ul className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-6">
+              {wishlist.cards.map((c) => (
+                <li key={c.id}>
+                  <CardTile card={c} subtitle={c.setName} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
     </div>
   );
 }

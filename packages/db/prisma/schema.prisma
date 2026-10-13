@@ -63,6 +63,8 @@ model User {
   guildMessages GuildMessage[]
   sentMessages     DirectMessage[] @relation("dmSender")
   receivedMessages DirectMessage[] @relation("dmRecipient")
+  favorites   FavoriteCard[]
+  wishlist    WishlistCard[]
 }
 
 // ───────── Modèles standard Auth.js (adaptateur Prisma) ─────────
@@ -215,6 +217,8 @@ model Card {
   copies         CardCopy[]
   listings       Listing[]
   sales          Sale[]
+  favoritedBy    FavoriteCard[]
+  wishedBy       WishlistCard[]
 
   @@index([setId, sortKey])
   @@index([tier, droppable])
@@ -543,6 +547,33 @@ model DirectMessage {
 
   @@index([senderId, recipientId, createdAt])
   @@index([recipientId, readAt])
+}
+
+// ───────── Favoris et wishlist ─────────
+
+/// Carte favorite d'un joueur (choisie parmi ses cartes) : mise en avant, jamais recyclée par « Recycler les doublons ».
+model FavoriteCard {
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cardId    String
+  card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userId, cardId])
+  @@index([userId, createdAt])
+}
+
+/// Carte recherchée par un joueur : alerte quand elle est mise en vente, visible sur son profil public.
+model WishlistCard {
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cardId    String
+  card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userId, cardId])
+  @@index([userId, createdAt])
+  @@index([cardId])
 }
 
 /// Classement figé toutes les heures (les pages lisent le dernier instantané, jamais un calcul en direct).

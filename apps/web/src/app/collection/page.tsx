@@ -1,10 +1,12 @@
-import { FINISH_LABELS_FR } from "@pokeflex/config";
-import { CheckCircle2, ChevronDown, Sparkles } from "lucide-react";
+import { FINISH_LABELS_FR, gameConfig } from "@pokeflex/config";
+import { getFavoriteCardIds, getFavorites, getWishlist } from "@pokeflex/server";
+import { CheckCircle2, ChevronDown, Heart, Sparkles, Star, Store } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CardTile } from "@/components/catalog/card-tile";
 import { RecycleDuplicates } from "@/components/economy/recycle-duplicates";
+import { Jetons } from "@/components/jetons";
 import { SetLogo } from "@/components/catalog/set-logo";
 import { ProgressBar, ProgressRing } from "@/components/progress";
 import { Button } from "@/components/ui/button";
@@ -27,6 +29,8 @@ export const metadata: Metadata = { title: "Ma collection" };
 const VIEWS = [
   { id: "sets", label: "Sets" },
   { id: "cartes", label: "Mes cartes" },
+  { id: "favoris", label: "Favoris" },
+  { id: "wishlist", label: "Wishlist" },
   { id: "pokedex", label: "Pokédex" },
   { id: "illustrateurs", label: "Illustrateurs" },
 ] as const;
@@ -75,7 +79,7 @@ export default async function CollectionPage({ searchParams }: { searchParams: S
           </dl>
       </header>
 
-      {totals.copies === 0 ? (
+      {totals.copies === 0 && view !== "wishlist" ? (
         <div className="grid justify-items-center gap-4 rounded-[var(--radius-card)] border border-dashed border-line p-10 text-center">
           <p className="font-display text-xl font-bold">Ton classeur est vide</p>
           <p className="max-w-[44ch] text-muted">Ouvre ton premier booster : 5 cartes tirées dans tout le catalogue, dont au moins une Peu commune.</p>
@@ -97,6 +101,8 @@ export default async function CollectionPage({ searchParams }: { searchParams: S
           </nav>
           {view === "sets" && <SetsView userId={player.id} />}
           {view === "cartes" && <CardsView userId={player.id} sort={(SORTS.find((s) => s.id === sp.tri)?.id ?? "recent") as CollectionSort} />}
+          {view === "favoris" && <FavoritesView userId={player.id} />}
+          {view === "wishlist" && <WishlistView userId={player.id} />}
           {view === "pokedex" && <DexView userId={player.id} gen={Number(sp.gen ?? 1)} />}
           {view === "illustrateurs" && <IllustratorsView userId={player.id} />}
         </>
@@ -160,8 +166,14 @@ async function SetsView({ userId }: { userId: string }) {
   );
 }
 
+const favoriteBadge = (
+  <span className="absolute top-1.5 left-1.5 grid size-6 place-items-center rounded-full bg-bg/85 text-[#FFC93C] backdrop-blur">
+    <Star aria-label="Favorite" className="size-3.5 fill-current" />
+  </span>
+);
+
 async function CardsView({ userId, sort }: { userId: string; sort: CollectionSort }) {
-  const cards = await getOwnedCards(userId, sort);
+  const [cards, favorites] = await Promise.all([getOwnedCards(userId, sort), getFavoriteCardIds(userId)]);
   return (
     <div className="grid grid-cols-1 gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -182,11 +194,116 @@ async function CardsView({ userId, sort }: { userId: string; sort: CollectionSor
               priority={i < 12}
               subtitle={c.finishes.filter((f) => f !== "normal").map((f) => FINISH_LABELS_FR[f]).join(" · ") || c.setName}
               badge={
-                c.copies > 1 ? (
-                  <span className="absolute right-1.5 bottom-1.5 rounded-full bg-lime px-1.5 font-mono text-[11px] font-bold text-bg">×{c.copies}</span>
+                <>
+                  {favorites.has(c.id) && favoriteBadge}
+                  {c.copies > 1 && (
+                    <span className="absolute right-1.5 bottom-1.5 rounded-full bg-lime px-1.5 font-mono text-[11px] font-bold text-bg">×{c.copies}</span>
+                  )}
+                </>
+              }
+            />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function ListEmpty({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
+  return (
+    <div className="grid justify-items-center gap-2 rounded-[var(--radius-card)] border border-dashed border-line p-10 text-center">
+      {icon}
+      <p className="font-display text-lg font-bold">{title}</p>
+      <p className="max-w-[48ch] text-sm text-muted">{children}</p>
+    </div>
+  );
+}
+
+async function FavoritesView({ userId }: { userId: string }) {
+  const cards = await getFavorites(userId);
+  if (cards.length === 0) {
+    return (
+      <ListEmpty icon={<Star aria-hidden="true" className="size-7 text-[#FFC93C]" />} title="Aucune carte favorite">
+        Ouvre une carte de ta collection et touche « Mettre en favori ». Tes favorites gardent tous leurs exemplaires quand tu recycles tes doublons.
+      </ListEmpty>
+    );
+  }
+  return (
+    <div className="grid grid-cols-1 gap-4">
+      <p className="text-sm text-muted">
+        {plural(cards.length, "carte favorite", "cartes favorites")} sur {gameConfig.lists.favoritesMax} · jamais recyclées avec les doublons
+      </p>
+      <ul className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+        {cards.map((c, i) => (
+          <li key={c.id}>
+            <CardTile
+              card={c}
+              priority={i < 12}
+              subtitle={c.copies === 0 ? "plus dans ta collection" : c.setName}
+              missing={c.copies === 0}
+              badge={
+                <>
+                  {favoriteBadge}
+                  {c.copies > 1 && (
+                    <span className="absolute right-1.5 bottom-1.5 rounded-full bg-lime px-1.5 font-mono text-[11px] font-bold text-bg">×{c.copies}</span>
+                  )}
+                </>
+              }
+            />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+async function WishlistView({ userId }: { userId: string }) {
+  const cards = await getWishlist(userId);
+  if (cards.length === 0) {
+    return (
+      <ListEmpty icon={<Heart aria-hidden="true" className="size-7 text-coral" />} title="Ta wishlist est vide">
+        Ajoute les cartes que tu cherches depuis leur fiche, avec « Ajouter à ma wishlist ». Une alerte s&apos;affiche dès qu&apos;un joueur en met une en vente.
+      </ListEmpty>
+    );
+  }
+  const onSale = cards.filter((c) => c.onSale > 0).length;
+  return (
+    <div className="grid grid-cols-1 gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted">
+          {plural(cards.length, "carte recherchée", "cartes recherchées")} sur {gameConfig.lists.wishlistMax}
+          {onSale > 0 && <> · {plural(onSale, "en vente", "en vente")} au marché</>}
+        </p>
+        {onSale > 0 && (
+          <Button asChild variant="secondary" size="sm">
+            <Link href="/marche?wishlist=1">
+              <Store aria-hidden="true" />
+              Voir au marché
+            </Link>
+          </Button>
+        )}
+      </div>
+      <ul className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+        {cards.map((c, i) => (
+          <li key={c.id} className="grid gap-1.5">
+            <CardTile
+              card={c}
+              priority={i < 12}
+              subtitle={c.owned > 0 ? "obtenue" : c.setName}
+              badge={
+                c.owned > 0 ? (
+                  <span className="absolute right-1.5 bottom-1.5 grid size-6 place-items-center rounded-full bg-lime text-bg">
+                    <CheckCircle2 aria-label="Obtenue" className="size-4" />
+                  </span>
                 ) : null
               }
             />
+            {c.onSale > 0 && c.lowestPrice !== null && (
+              <Link href={`/cartes/${c.id}#au-marche`} className="inline-flex items-center gap-1 px-0.5 text-[11px] text-coral hover:underline">
+                <Store aria-hidden="true" className="size-3" />
+                dès <Jetons value={c.lowestPrice} className="text-[11px]" />
+              </Link>
+            )}
           </li>
         ))}
       </ul>

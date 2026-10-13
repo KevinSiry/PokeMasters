@@ -1,6 +1,6 @@
 import { FINISH_LABELS_FR } from "@pokeflex/config";
 import type { ListingView } from "@pokeflex/server";
-import { Gavel, Timer } from "lucide-react";
+import { Gavel, Heart, Timer } from "lucide-react";
 import Link from "next/link";
 import { CardImage } from "@/components/card-image";
 import { Jetons } from "@/components/jetons";
@@ -9,7 +9,7 @@ import { TIER_ICON } from "@/components/tier-badge";
 import { cn } from "@/lib/utils";
 
 /** Vignette d'annonce : carte, finition, prix ou enchère courante, temps restant. */
-export function ListingTile({ l, mine, priority }: { l: ListingView; mine?: boolean; priority?: boolean }) {
+export function ListingTile({ l, mine, wished, priority }: { l: ListingView; mine?: boolean; wished?: boolean; priority?: boolean }) {
   const amount = l.type === "auction" ? (l.currentBid ?? l.price) : l.price;
   return (
     <Link href={`/marche/${l.id}`} className="pf-tile group grid gap-2 rounded-[var(--radius-card)] outline-none" data-tier={l.card.tier}>
@@ -21,6 +21,11 @@ export function ListingTile({ l, mine, priority }: { l: ListingView; mine?: bool
         {l.finish !== "normal" && (
           <span className="absolute bottom-1.5 left-1.5 rounded-full bg-gradient-to-r from-accent-strong to-coral-strong px-2 py-0.5 text-[10px] font-bold">
             {FINISH_LABELS_FR[l.finish]}
+          </span>
+        )}
+        {wished && !mine && (
+          <span className="absolute right-1.5 bottom-1.5 grid size-6 place-items-center rounded-full bg-bg/85 text-coral backdrop-blur">
+            <Heart aria-label="Dans ta wishlist" className="size-3.5 fill-current" />
           </span>
         )}
         {l.type === "auction" && l.endsAt && l.status === "active" && (

@@ -11,6 +11,7 @@ import { toast } from "@/components/toaster";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { emitBalance } from "@/lib/balance-events";
+import { getSocket } from "@/lib/realtime";
 import { cn, formatJetons } from "@/lib/utils";
 
 const DURATIONS = gameConfig.market.auctionDurationsMs.map((ms) => ({ ms, label: `${ms / 3_600_000} h` }));
@@ -48,6 +49,8 @@ export function SellDialog({
       const res = await createListingAction({ copyId: copy.id, type, price, durationMs: type === "auction" ? duration : undefined });
       if (!res.ok) return setError(res.error);
       emitBalance(res.data.balance);
+      // Alerte les joueurs qui recherchent cette carte (le serveur temps réel vérifie l'annonce en base).
+      getSocket().emit("market:listed", { listingId: res.data.listingId });
       toast({ title: type === "fixed" ? "Carte mise en vente" : "Enchère lancée", description: cardName, jetons: -res.data.fee });
       onListed?.(copy.id);
       onClose();

@@ -1,7 +1,7 @@
 import { TIER_LABELS_FR, TIERS, type Tier } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
-import { closeDueAuctions, getHeldBids, getMarketListings, type MarketSort } from "@pokeflex/server";
-import { Gavel, Search, Store, Tag } from "lucide-react";
+import { closeDueAuctions, getHeldBids, getMarketListings, getWishlistCardIds, type MarketSort } from "@pokeflex/server";
+import { Gavel, Heart, Search, Store, Tag } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Jetons } from "@/components/jetons";
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   description: "Achète et vends des cartes Pokémon entre joueurs, à prix fixe ou aux enchères, en Jetons (sans valeur réelle).",
 };
 
-type SearchParams = Promise<{ q?: string; type?: string; rarete?: string; tri?: string; page?: string }>;
+type SearchParams = Promise<{ q?: string; type?: string; rarete?: string; tri?: string; page?: string; wishlist?: string }>;
 
 const TYPES = [
   { id: "", label: "Tout" },
@@ -37,16 +37,19 @@ export default async function MarketPage({ searchParams }: { searchParams: Searc
   const tier = (TIERS as readonly string[]).includes(sp.rarete ?? "") ? (sp.rarete as Tier) : undefined;
   const sort = SORTS.find((s) => s.id === sp.tri)?.id ?? (type === "auction" ? "ending" : "recent");
   const page = Math.max(1, Number(sp.page) || 1);
-  const [player, result, sales24h] = await Promise.all([
-    getCurrentPlayerSafe(),
-    getMarketListings({ q: sp.q, type, tier, sort, page }),
+  const player = await getCurrentPlayerSafe();
+  const wishIds = player ? await getWishlistCardIds(player.id) : [];
+  const onlyWishlist = Boolean(player && sp.wishlist === "1");
+  const [result, sales24h] = await Promise.all([
+    getMarketListings({ q: sp.q, type, tier, sort, page, cardIds: onlyWishlist ? wishIds : undefined }),
     prisma.sale.count({ where: { createdAt: { gte: new Date(Date.now() - 24 * 3_600_000) } } }),
   ]);
+  const wished = new Set(wishIds);
   const held = player ? await getHeldBids(player.id) : null;
 
   const qs = (patch: Record<string, string | undefined>) => {
     const p = new URLSearchParams();
-    const merged = { q: sp.q, type, rarete: tier, tri: sp.tri, ...patch };
+    const merged = { q: sp.q, type, rarete: tier, tri: sp.tri, wishlist: onlyWishlist ? "1" : undefined, ...patch };
     for (const [k, v] of Object.entries(merged)) if (v) p.set(k, v);
     const s = p.toString();
     return s ? `/marche?${s}` : "/marche";
@@ -92,6 +95,7 @@ export default async function MarketPage({ searchParams }: { searchParams: Searc
 
       <form action="/marche" className="relative" role="search">
         {type && <input type="hidden" name="type" value={type} />}
+        {onlyWishlist && <input type="hidden" name="wishlist" value="1" />}
         {tier && <input type="hidden" name="rarete" value={tier} />}
         <label className="sr-only" htmlFor="marche-q">
           Chercher une carte au marché
@@ -114,6 +118,16 @@ export default async function MarketPage({ searchParams }: { searchParams: Searc
               {t.label}
             </Link>
           ))}
+          {player && (
+            <Link
+              href={qs({ wishlist: onlyWishlist ? undefined : "1", page: undefined })}
+              className="pf-chip"
+              aria-current={onlyWishlist ? "page" : undefined}
+            >
+              <Heart aria-hidden="true" className="size-3.5 text-coral" />
+              Ma wishlist
+            </Link>
+          )}
           <span aria-hidden="true" className="mx-1 w-px shrink-0 bg-line" />
           {TIERS.map((t) => (
             <Link
@@ -139,9 +153,13 @@ export default async function MarketPage({ searchParams }: { searchParams: Searc
 
       {result.listings.length === 0 ? (
         <div className="grid justify-items-center gap-3 rounded-[var(--radius-card)] border border-dashed border-line p-10 text-center">
-          <p className="font-display text-lg font-bold">Aucune annonce {sp.q || tier || type ? "ne correspond" : "pour l'instant"}</p>
+          <p className="font-display text-lg font-bold">Aucune annonce {sp.q || tier || type || onlyWishlist ? "ne correspond" : "pour l'instant"}</p>
           <p className="max-w-[44ch] text-sm text-muted">
-            Mets une carte en vente depuis sa fiche : ouvre une carte de ta collection, puis « Gérer » et « Vendre ».
+            {onlyWishlist
+              ? wishIds.length === 0
+                ? "Ta wishlist est vide : ajoute les cartes que tu cherches depuis leur fiche."
+                : "Aucune carte de ta wishlist n'est en vente. Une alerte s'affichera dès qu'un joueur en propose une."
+              : "Mets une carte en vente depuis sa fiche : ouvre une carte de ta collection, puis « Gérer » et « Vendre »."}
           </p>
           {player && (
             <Button asChild variant="secondary">
@@ -153,7 +171,7 @@ export default async function MarketPage({ searchParams }: { searchParams: Searc
         <ul className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
           {result.listings.map((l, i) => (
             <li key={l.id} className="min-w-0">
-              <ListingTile l={l} mine={l.seller.id === player?.id} priority={i < 12} />
+              <ListingTile l={l} mine={l.seller.id === player?.id} wished={wished.has(l.card.id)} priority={i < 12} />
             </li>
           ))}
         </ul>

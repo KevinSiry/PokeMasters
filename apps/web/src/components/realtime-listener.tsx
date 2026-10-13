@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "@/components/toaster";
+import { formatJetons } from "@/lib/utils";
 import { getSocket, useSocketEvent } from "@/lib/realtime";
 
 interface DirectMessage {
@@ -14,7 +15,7 @@ interface DirectMessage {
 
 /**
  * Notifications en direct pour un joueur connecté, sur toutes les pages :
- * message privé, demande d'ami, exclusion de guilde.
+ * message privé, demande d'ami, exclusion de guilde, carte de la wishlist mise en vente.
  * Les compteurs de l'en-tête (messages non lus, demandes d'ami) sont rafraîchis au passage.
  */
 export function RealtimeListener({ me }: { me: string }) {
@@ -54,6 +55,15 @@ export function RealtimeListener({ me }: { me: string }) {
   useSocketEvent<{ guildId: string; kicked: boolean }>("guild:removed", ({ kicked }) => {
     router.refresh();
     if (kicked) toast({ title: "Tu as été exclu de ta guilde.", tone: "info" });
+  });
+
+  useSocketEvent<{ id: string; type: "fixed" | "auction"; price: number; cardName: string }>("wishlist:listed", (l) => {
+    toast({
+      title: "Une carte de ta wishlist est en vente",
+      description: `${l.cardName} · ${l.type === "auction" ? "enchère dès" : "prix"} ${formatJetons(l.price)} Jetons`,
+      tone: "info",
+      action: { label: "Voir", href: `/marche/${l.id}` },
+    });
   });
 
   return null;

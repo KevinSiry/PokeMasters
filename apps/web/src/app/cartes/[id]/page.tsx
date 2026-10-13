@@ -1,11 +1,12 @@
 import { FINISH_LABELS_FR, gameConfig, TIER_LABELS_FR, type Finish } from "@pokeflex/config";
-import { getCardMarket } from "@pokeflex/server";
-import { ChevronLeft, ChevronRight, Palette } from "lucide-react";
+import { countWishers, getCardListState, getCardMarket } from "@pokeflex/server";
+import { ChevronLeft, ChevronRight, Heart, Palette } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CardTile } from "@/components/catalog/card-tile";
 import { MyCopies } from "@/components/economy/my-copies";
+import { CardListButtons } from "@/components/lists/card-list-buttons";
 import { Jetons } from "@/components/jetons";
 import { ListingTile } from "@/components/market/listing-tile";
 import { EnergyIcon } from "@/components/energy-icon";
@@ -45,14 +46,15 @@ export default async function CardPage({ params }: { params: Params }) {
   const { id } = await params;
   const card = await getCard(decodeURIComponent(id));
   if (!card) notFound();
-  const [nav, same, player, market] = await Promise.all([
+  const [nav, same, player, market, wishers] = await Promise.all([
     getSetNeighbours(card.setId, card.sortKey, card.id),
     getSamePokemon(card.dexIds, card.id),
     getCurrentPlayerSafe(),
     getCardMarket(card.id),
+    countWishers(card.id),
   ]);
   const suggestedPrice = market.stats.average ?? Math.max(5, gameConfig.economy.recycleValue[card.tier] * 3);
-  const copies = player ? await getMyCopies(player.id, card.id) : null;
+  const [copies, lists] = player ? await Promise.all([getMyCopies(player.id, card.id), getCardListState(player.id, card.id)]) : [null, null];
   const finishes = (Object.keys(FINISH_LABELS_FR) as Finish[]).filter((f) => card.variants?.[f]);
   const price = formatEur(card.priceEurTrend);
 
@@ -134,6 +136,10 @@ export default async function CardPage({ params }: { params: Params }) {
               </p>
             )}
           </header>
+
+          {copies && lists && (
+            <CardListButtons cardId={card.id} cardName={card.name} owned={copies.length > 0} favorite={lists.favorite} wished={lists.wished} />
+          )}
 
           {copies && (
             <MyCopies
@@ -306,6 +312,12 @@ export default async function CardPage({ params }: { params: Params }) {
             )}
           </p>
         </div>
+        {wishers !== null && wishers > 0 && (
+          <p className="inline-flex items-center gap-2 text-sm text-muted">
+            <Heart aria-hidden="true" className="size-4 text-coral" />
+            {wishers === 1 ? "1 joueur recherche cette carte." : `${wishers.toLocaleString("fr-FR")} joueurs recherchent cette carte.`}
+          </p>
+        )}
         {market.active.length === 0 ? (
           <p className="rounded-[var(--radius-card)] border border-dashed border-line p-5 text-sm text-muted">
             Aucune annonce en ce moment. {copies && copies.length > 0 ? "Tu peux vendre un exemplaire depuis « Gérer » ci-dessus." : ""}

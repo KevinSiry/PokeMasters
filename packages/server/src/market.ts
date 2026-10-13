@@ -317,6 +317,8 @@ export type MarketSort = "recent" | "ending" | "price_asc" | "price_desc";
 
 export interface MarketQuery {
   q?: string;
+  /** Limite aux annonces de ces cartes (filtre « Ma wishlist »). */
+  cardIds?: readonly string[];
   tier?: Tier;
   type?: ListingType;
   sort?: MarketSort;
@@ -335,6 +337,10 @@ export async function getMarketListings(query: MarketQuery = {}) {
       WHERE pf_unaccent(lower(coalesce(c."nameFr", '') || ' ' || coalesce(c."nameEn", ''))) LIKE '%' || pf_unaccent(lower(${q})) || '%'
       LIMIT 500`;
     cardIds = rows.map((r) => r.id);
+  }
+  if (query.cardIds) {
+    const only = new Set(query.cardIds);
+    cardIds = cardIds ? cardIds.filter((id) => only.has(id)) : [...only];
   }
   const where: Prisma.ListingWhereInput = {
     status: "active",

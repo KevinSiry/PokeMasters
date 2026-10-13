@@ -3,6 +3,7 @@ import { TIERS, gameConfig, type Tier } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
 import { pickDuplicates, recyclePayout, type RecyclePayout } from "@pokeflex/game";
 import { applyLedger, lockUser, type Tx } from "./ledger";
+import { getFavoriteCardIds } from "./lists";
 import { bumpQuest, type QuestProgressed } from "./quests";
 
 export class RecycleError extends Error {
@@ -57,9 +58,9 @@ export async function recycleCopy(userId: string, copyId: string): Promise<Recyc
   });
 }
 
-/** Aperçu du recyclage des doublons (un exemplaire gardé par carte), par tier. */
+/** Aperçu du recyclage des doublons (un exemplaire gardé par carte, favoris épargnés), par tier. */
 export async function previewDuplicates(userId: string) {
-  const dups = pickDuplicates(await ownedCopies(prisma, userId));
+  const dups = pickDuplicates(await ownedCopies(prisma, userId), undefined, await getFavoriteCardIds(userId));
   const values = gameConfig.economy.recycleValue;
   return TIERS.map((tier) => {
     const count = dups.filter((d) => d.tier === tier).length;
@@ -67,12 +68,12 @@ export async function previewDuplicates(userId: string) {
   });
 }
 
-/** Recycle tous les doublons des tiers choisis, recalculés côté serveur au moment de l'action. */
+/** Recycle tous les doublons des tiers choisis (hors favoris), recalculés côté serveur au moment de l'action. */
 export async function recycleDuplicates(userId: string, tiers: readonly Tier[]): Promise<RecycleResult> {
   const allowed = tiers.filter((t) => (TIERS as readonly string[]).includes(t));
   return prisma.$transaction(async (tx) => {
     await lockUser(tx, userId);
-    const dups = pickDuplicates(await ownedCopies(tx, userId), allowed);
+    const dups = pickDuplicates(await ownedCopies(tx, userId), allowed, await getFavoriteCardIds(userId, tx));
     if (dups.length === 0) throw new RecycleError("empty", "Aucun doublon à recycler.");
     return recycleInTx(tx, userId, dups, "duplicates");
   }, { timeout: 20_000 });

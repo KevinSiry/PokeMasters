@@ -54,13 +54,14 @@ test.describe("social", () => {
       await page.goto("/messages/demo-marchand");
       await page.getByPlaceholder("Écrire à Marchand Démo…").fill("Salut ! On échange ?");
       await page.keyboard.press("Enter");
-      await expect(page.getByText("Salut ! On échange ?")).toBeVisible();
+      // Le texte apparaît aussi dans l'aperçu de la liste des conversations, une fois rafraîchie.
+      await expect(page.getByText("Salut ! On échange ?").first()).toBeVisible();
 
-      await expect(friend.getByText("Salut ! On échange ?")).toBeVisible({ timeout: 10_000 });
+      await expect(friend.getByText("Salut ! On échange ?").first()).toBeVisible({ timeout: 10_000 });
       await friend.getByPlaceholder("Écrire à Dresseur Démo…").fill("Avec plaisir");
       await friend.getByRole("button", { name: "Envoyer" }).click();
 
-      await expect(page.getByText("Avec plaisir")).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByText("Avec plaisir").first()).toBeVisible({ timeout: 10_000 });
       await expect(page.getByText("Vu", { exact: true })).toBeVisible();
       await other.close();
     });
