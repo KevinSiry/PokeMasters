@@ -14,10 +14,12 @@ test.describe("boosters et collection", () => {
   test.describe("joueur connecté", () => {
     test.use({ storageState: auth("demo-dresseur") });
 
-    test("ouvre un booster et révèle les 5 cartes", async ({ page }) => {
-      await page.emulateMedia({ reducedMotion: "reduce" });
+    test("ouvre un booster et révèle les 5 cartes", async ({ page, isMobile }) => {
+      // Sur mobile, le parcours animé complet (déchirure, sortie des cartes) ; sur ordinateur, animations réduites.
+      if (!isMobile) await page.emulateMedia({ reducedMotion: "reduce" });
       await page.goto("/boosters");
       await page.getByRole("button", { name: "Ouvrir le booster" }).click();
+      if (isMobile) await page.getByRole("button", { name: "Déchirer le booster" }).click();
       for (let i = 0; i < 5; i++) {
         await page.getByRole("button", { name: "Retourner la carte" }).click();
         await page.getByRole("button", { name: /Carte suivante/ }).click();
