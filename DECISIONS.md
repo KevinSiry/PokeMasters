@@ -126,6 +126,12 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 - Les pages lisent la session dans le layout (minuteur dans l'en-tête), donc elles sont rendues dynamiquement côté serveur. Le HTML reste complet pour le référencement. Pas de cache de pages en phase 8 : l'en-tête est personnalisé et les requêtes du catalogue sont déjà rapides.
 - Mode sombre uniquement pour l'instant (« sombre par défaut ») ; un thème clair pourra venir en phase 8.
 
+## Mobile (demande de Kevin, 2026-10-13)
+
+- **Aucune page ne doit dépasser 360 px de large** : au-delà, le navigateur du téléphone dézoome tout le site. Un test e2e (`mobile.spec.ts`) le vérifie sur chaque page principale, mesuré contre l'écran émulé et non `window.innerWidth`, qui s'élargit avec le contenu.
+- **En-tête connecté sur téléphone** : monogramme seul (sans « PokeFlex »), boutons de 40 px ; sous 360 px, le minuteur disparaît et l'onglet Boosters de la barre du bas affiche le nombre de boosters prêts.
+- **Effets de survol réservés à la souris** (`@media (hover: hover)`), sinon ils restent figés après un tap ; au doigt, retour de pression et puces de filtre de 40 px.
+
 ## Ouverture de booster
 
 - **Ouverture au doigt, comme un vrai booster** (demande de Kevin, 2026-10-13) : la pochette s'incline sous le doigt, on la déchire en glissant le long du haut (ou d'un tap, ou du bouton « Déchirer le booster »), la languette s'envole, les cartes montent hors du sachet puis on les retourne une à une et on les fait glisser hors de la pile. La carte la plus rare reste en dernier (ordre du tirage).

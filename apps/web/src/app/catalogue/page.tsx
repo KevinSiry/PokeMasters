@@ -39,7 +39,7 @@ export default async function CataloguePage() {
         </div>
       ) : (
         <>
-          <nav aria-label="Séries" className="sticky top-16 z-30 -mx-4 border-b border-line/60 bg-bg/85 px-4 py-3 backdrop-blur-md">
+          <nav aria-label="Séries" className="sticky top-14 z-30 sm:top-16 -mx-4 border-b border-line/60 bg-bg/85 px-4 py-3 backdrop-blur-md">
             <ul className="pf-scroll-x flex gap-2">
               {series.map((s) => (
                 <li key={s.id}>

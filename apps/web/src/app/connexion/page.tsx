@@ -90,7 +90,7 @@ export default async function ConnexionPage({ searchParams }: { searchParams: Pr
           <form method="post" action="/api/dev/login" className="grid gap-2">
             <input type="hidden" name="suite" value={next} />
             {DEMO_ACCOUNTS.map((a) => (
-              <Button key={a.handle} type="submit" name="handle" value={a.handle} variant="ghost" className="justify-start">
+              <Button key={a.handle} type="submit" name="handle" value={a.handle} variant="ghost" className="h-auto min-h-11 justify-start py-2 text-left whitespace-normal">
                 {a.label}
               </Button>
             ))}
