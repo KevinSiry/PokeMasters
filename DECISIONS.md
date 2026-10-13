@@ -87,6 +87,14 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 - **Guildes ouvertes** : n'importe qui rejoint tant qu'il reste de la place (30 membres). Fonder coûte 2 000 Jetons (ligne de registre `guild_create`, non remboursée). Le chef nomme des officiers, qui peuvent exclure des membres ; s'il part, le rôle passe au plus ancien officier, puis au plus ancien membre ; le dernier à partir dissout la guilde. Nom et sigle uniques sans tenir compte de la casse.
 - **Classements figés toutes les heures** (collection, sets complétés, ventes au marché) par le serveur temps réel, 100 premiers, deux jours d'historique. Les pages lisent l'instantané, jamais un calcul en direct ; pseudo et avatar restent à jour. Ex aequo au même rang.
 
+## Finitions (phase 8)
+
+- **Polices servies par `next/font`** (fichiers Fontsource, sous-ensemble latin) : préchargées, avec une police de repli aux mêmes métriques. Le titre de l'accueil s'affiche sans attendre le téléchargement (Lighthouse mobile de l'accueil : 80 → 97).
+- **Images visibles dès l'arrivée** (premiers logos du catalogue, logo d'un set, illustration d'une fiche) : chargées tout de suite, sans fondu. Le format d'un logo (WebP ou PNG, certains sets récents n'ont que le PNG) est vérifié côté serveur une fois par processus, pour éviter le repli après hydratation.
+- **Limite connue** : sur les pages dont l'élément principal est une image du CDN TCGdex (catalogue, marché), le score Lighthouse mobile plafonne vers 80-90, car le poids de ces images ne dépend pas de nous. On ne les redimensionne ni ne les re-héberge (règle du projet) : pas d'optimiseur d'images Next.
+- **Référencement** : `sitemap.xml` (pages publiques, sets, fiches de carte), `robots.txt` (espace joueur exclu), icône, icône Apple et image de partage générées au build. Une fiche de carte partage l'illustration de la carte (URL du CDN).
+- **Anti-triche** : en plus des vérifications serveur existantes (registre, verrous, propriété), chaque famille d'actions serveur (boosters, marché, économie, social, recherches) est limitée par joueur et par minute (`antiCheat` dans `config/game.ts`). Un dépassement est refusé avec un message clair et journalisé une fois par fenêtre sous « [anti-triche] ». Compteurs en mémoire du processus web, suffisant pour une instance unique.
+
 ## Docker Compose (phase 5)
 
 - **`docker compose up --build` lance tout le jeu** (Postgres, Redis, site, temps réel) sans Node.js ni `.env` sur la machine. Une seule image sert au site, au temps réel et au service `init` (migrations, échantillon de catalogue, comptes de démo), qui s'exécute avant les deux autres à chaque démarrage ; tout y est idempotent.
@@ -104,7 +112,7 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 
 ## Rendu
 
-- Les pages lisent la session dans le layout (minuteur dans l'en-tête), donc elles sont rendues dynamiquement côté serveur. Le HTML reste complet pour le référencement ; la mise en cache des pages publiques sera traitée en phase 8.
+- Les pages lisent la session dans le layout (minuteur dans l'en-tête), donc elles sont rendues dynamiquement côté serveur. Le HTML reste complet pour le référencement. Pas de cache de pages en phase 8 : l'en-tête est personnalisé et les requêtes du catalogue sont déjà rapides.
 - Mode sombre uniquement pour l'instant (« sombre par défaut ») ; un thème clair pourra venir en phase 8.
 
 ## GitHub

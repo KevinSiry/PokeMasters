@@ -171,6 +171,21 @@ export const gameConfig = {
     leaderboardRefreshMs: HOUR,
   },
 
+  /**
+   * Garde-fous contre les scripts : nombre d'actions serveur par joueur et par minute glissante.
+   * Bien au-dessus d'un usage humain ; chaque dépassement est refusé et journalisé « [anti-triche] ».
+   */
+  antiCheat: {
+    actionRate: {
+      booster: { count: 20, windowMs: MINUTE },
+      market: { count: 30, windowMs: MINUTE },
+      economy: { count: 30, windowMs: MINUTE },
+      social: { count: 40, windowMs: MINUTE },
+      /** Recherches à la frappe et chargements de messages anciens : lectures seules, plus fréquentes. */
+      search: { count: 120, windowMs: MINUTE },
+    },
+  },
+
   catalog: {
     primaryLang: "fr",
     fallbackLang: "en",

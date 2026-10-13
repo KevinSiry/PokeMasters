@@ -4,6 +4,7 @@ import type { ListingType } from "@pokeflex/db";
 import { buyListing, cancelListing, createListing, MarketError, placeBid, type CompletedSet } from "@pokeflex/server";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
+import { checkActionRate } from "@/lib/rate-limit";
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: string };
 
@@ -11,6 +12,8 @@ async function run<T>(fn: (uid: string) => Promise<T>, label: string): Promise<R
   const session = await auth();
   const uid = session?.user?.id;
   if (!uid) return { ok: false, error: "Connecte-toi pour utiliser le marché." };
+  const limited = checkActionRate(uid, "market");
+  if (limited) return { ok: false, error: limited };
   try {
     const data = await fn(uid);
     revalidatePath("/", "layout");
