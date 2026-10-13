@@ -10,6 +10,16 @@ import { prisma } from "@pokeflex/db";
 export const AUTH_DIR = path.resolve(process.cwd(), "playwright/.auth");
 const port = Number(process.env.E2E_PORT ?? 3000);
 
+/** Parcours social rejouables : amitiés, blocages et messages entre comptes de démo remis à zéro. */
+export async function resetDemoSocial() {
+  const demo = (await prisma.user.findMany({ where: { handle: { startsWith: "demo-" } }, select: { id: true } })).map((u) => u.id);
+  await prisma.$transaction([
+    prisma.friendship.deleteMany({ where: { userId: { in: demo }, friendId: { in: demo } } }),
+    prisma.block.deleteMany({ where: { userId: { in: demo }, blockedId: { in: demo } } }),
+    prisma.directMessage.deleteMany({ where: { senderId: { in: demo }, recipientId: { in: demo } } }),
+  ]);
+}
+
 export default async function globalSetup() {
   mkdirSync(AUTH_DIR, { recursive: true });
   for (const handle of ["demo-dresseur", "demo-collection", "demo-marchand"]) {
@@ -38,13 +48,7 @@ export default async function globalSetup() {
       }),
     );
   }
-  // Parcours social rejouables : amitiés, blocages et messages entre comptes de démo remis à zéro.
-  const demo = (await prisma.user.findMany({ where: { handle: { startsWith: "demo-" } }, select: { id: true } })).map((u) => u.id);
-  await prisma.$transaction([
-    prisma.friendship.deleteMany({ where: { userId: { in: demo }, friendId: { in: demo } } }),
-    prisma.block.deleteMany({ where: { userId: { in: demo }, blockedId: { in: demo } } }),
-    prisma.directMessage.deleteMany({ where: { senderId: { in: demo }, recipientId: { in: demo } } }),
-  ]);
+  await resetDemoSocial();
   await prisma.$disconnect();
   void port;
 }

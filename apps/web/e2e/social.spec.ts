@@ -1,5 +1,6 @@
 import path from "node:path";
 import { expect, test } from "@playwright/test";
+import { resetDemoSocial } from "./global-setup";
 
 const auth = (handle: string) => path.resolve(process.cwd(), `playwright/.auth/${handle}.json`);
 
@@ -24,6 +25,8 @@ test.describe("social", () => {
     // Parcours qui modifient la base : joués une seule fois, sur ordinateur, dans l'ordre.
     test.describe.configure({ mode: "serial" });
     test.skip(({ isMobile }) => isMobile, "parcours joué une seule fois, sur ordinateur");
+    // Un échec relance tout le groupe (mode serial) : on repart d'un état propre à chaque essai.
+    test.beforeAll(resetDemoSocial);
 
     test("ajoute un ami, qui accepte en direct", async ({ page, browser }) => {
       const other = await browser.newContext({ storageState: auth("demo-marchand") });
@@ -54,13 +57,14 @@ test.describe("social", () => {
       await page.goto("/messages/demo-marchand");
       await page.getByPlaceholder("Écrire à Marchand Démo…").fill("Salut ! On échange ?");
       await page.keyboard.press("Enter");
-      await expect(page.getByText("Salut ! On échange ?")).toBeVisible();
+      // Dans le fil seulement : le champ peut encore contenir le texte pendant l'envoi.
+      await expect(page.getByRole("log").getByText("Salut ! On échange ?")).toBeVisible();
 
-      await expect(friend.getByText("Salut ! On échange ?")).toBeVisible({ timeout: 10_000 });
+      await expect(friend.getByRole("log").getByText("Salut ! On échange ?")).toBeVisible({ timeout: 10_000 });
       await friend.getByPlaceholder("Écrire à Dresseur Démo…").fill("Avec plaisir");
       await friend.getByRole("button", { name: "Envoyer" }).click();
 
-      await expect(page.getByText("Avec plaisir")).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByRole("log").getByText("Avec plaisir")).toBeVisible({ timeout: 10_000 });
       await expect(page.getByText("Vu", { exact: true })).toBeVisible();
       await other.close();
     });
