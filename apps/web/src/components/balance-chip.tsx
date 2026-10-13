@@ -42,7 +42,7 @@ export function BalanceChip({ balance, className }: { balance: number; className
       ref={ref}
       href="/jetons"
       className={cn(
-        "relative flex items-center gap-1.5 rounded-full border border-line bg-elev py-1 pr-3 pl-1.5 font-mono text-xs font-bold font-tabular transition-colors hover:border-[#FFC93C]",
+        "relative flex h-10 items-center gap-1.5 rounded-full border border-line bg-elev pr-3 pl-1.5 sm:h-auto sm:py-1 font-mono text-xs font-bold font-tabular transition-colors hover:border-[#FFC93C]",
         className,
       )}
       aria-label={`${formatJetons(target)} Jetons, voir l'historique`}

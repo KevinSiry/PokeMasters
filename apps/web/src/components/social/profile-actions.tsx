@@ -80,7 +80,7 @@ export function ProfileActions({ target, relation }: { target: Target; relation:
   const item = "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm hover:bg-elev [&_svg]:size-4 [&_svg]:text-muted";
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto [&>*:first-child]:max-sm:flex-1">
       {relation === "none" && (
         <Button size="sm" onClick={add} disabled={pending}>
           {pending ? <Loader2 aria-hidden="true" className="animate-spin" /> : <UserPlus aria-hidden="true" />}
@@ -139,10 +139,10 @@ export function ProfileActions({ target, relation }: { target: Target; relation:
       )}
       {!blocked && (
         <>
-          <Button asChild size="sm" variant="secondary">
-            <Link href={`/messages/${target.handle}`}>
+          <Button asChild size="sm" variant="secondary" className="max-sm:w-9 max-sm:px-0">
+            <Link href={`/messages/${target.handle}`} aria-label={`Écrire à ${target.name}`}>
               <MessageCircle aria-hidden="true" />
-              Message
+              <span className="max-sm:hidden">Message</span>
             </Link>
           </Button>
         </>

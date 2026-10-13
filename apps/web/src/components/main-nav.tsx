@@ -4,6 +4,7 @@ import { BookOpen, GalleryVerticalEnd, Home, Search, Sparkles, Store, Trophy, ty
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV_ITEMS, isActive, type NavItem } from "@/lib/nav";
+import { useBoosterCountdown } from "@/lib/use-booster-countdown";
 import { cn } from "@/lib/utils";
 
 const ICONS: Record<NavItem["icon"], LucideIcon> = {
@@ -49,8 +50,29 @@ export function DesktopNav({ loggedIn }: { loggedIn: boolean }) {
   );
 }
 
+export interface BoosterStock {
+  available: number;
+  maxStock: number;
+  nextAt: string | null;
+  refillIntervalMs: number;
+}
+
+/** Pastille de l'onglet Boosters : nombre de boosters prêts à ouvrir (projection locale du minuteur). */
+function BoosterBadge({ stock }: { stock: BoosterStock }) {
+  const { shown } = useBoosterCountdown(stock.available, stock.nextAt, stock.maxStock, stock.refillIntervalMs);
+  if (shown <= 0) return null;
+  return (
+    <span
+      aria-hidden="true"
+      className="absolute -top-1 -right-0.5 grid h-4.5 min-w-4.5 place-items-center rounded-full border-2 border-bg bg-lime px-1 font-mono text-[10px] leading-none font-bold text-bg"
+    >
+      {shown}
+    </span>
+  );
+}
+
 /** Barre d'onglets fixée en bas de l'écran sur mobile (zone du pouce). */
-export function BottomNav({ loggedIn }: { loggedIn: boolean }) {
+export function BottomNav({ loggedIn, boosters }: { loggedIn: boolean; boosters?: BoosterStock | null }) {
   const pathname = usePathname();
   const items = useItems(loggedIn).filter((i) => !i.wideOnly && !(loggedIn && i.guestOnlyOnMobile));
   return (
@@ -68,17 +90,18 @@ export function BottomNav({ loggedIn }: { loggedIn: boolean }) {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-semibold transition-colors",
+                  "group flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-semibold transition-colors",
                   active ? "text-fg" : "text-muted",
                 )}
               >
                 <span
                   className={cn(
-                    "grid h-7 w-12 place-items-center rounded-full transition-colors",
+                    "relative grid h-7 w-12 place-items-center rounded-full transition-[background-color,transform] duration-150 group-active:scale-90",
                     active && "bg-gradient-to-r from-accent-strong/60 to-coral-strong/60",
                   )}
                 >
                   <Icon aria-hidden="true" className="size-5" />
+                  {item.icon === "booster" && boosters && <BoosterBadge stock={boosters} />}
                 </span>
                 {item.label}
               </Link>

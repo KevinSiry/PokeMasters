@@ -39,6 +39,13 @@
   }
   html {
     -webkit-text-size-adjust: 100%;
+    /* Pas de flash gris au toucher (on a nos propres états) ; ancres dégagées de l'en-tête collant. */
+    -webkit-tap-highlight-color: transparent;
+    scroll-padding-top: 5rem;
+  }
+  /* Supprime le délai du double-tap sur les éléments interactifs. */
+  a, button, summary, label, input, select, textarea, [role="button"] {
+    touch-action: manipulation;
   }
   body {
     @apply bg-bg text-fg font-sans antialiased;
@@ -183,10 +190,21 @@
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--tier) 35%, transparent), 0 14px 30px -18px rgb(0 0 0 / 0.9);
   transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s ease;
 }
-.pf-tile:hover .pf-tile-frame,
+/* Survol réservé aux souris : sur écran tactile, l'effet resterait « collé » après un tap. */
+@media (hover: hover) {
+  .pf-tile:hover .pf-tile-frame {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 0 0 2px var(--tier), 0 18px 40px -16px color-mix(in srgb, var(--tier) 60%, transparent);
+  }
+}
 .pf-tile:focus-visible .pf-tile-frame {
   transform: translateY(-4px) scale(1.02);
   box-shadow: 0 0 0 2px var(--tier), 0 18px 40px -16px color-mix(in srgb, var(--tier) 60%, transparent);
+}
+/* Retour immédiat au toucher. */
+.pf-tile:active .pf-tile-frame {
+  transform: scale(0.97);
+  transition-duration: 0.08s;
 }
 .pf-tile:focus-visible {
   outline: none;
@@ -224,9 +242,17 @@
   white-space: nowrap;
   transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
-.pf-chip:hover {
-  color: var(--color-fg);
-  border-color: var(--color-accent);
+@media (hover: hover) {
+  .pf-chip:hover {
+    color: var(--color-fg);
+    border-color: var(--color-accent);
+  }
+}
+/* Doigt plutôt que souris : puces plus hautes, plus faciles à viser. */
+@media (pointer: coarse) {
+  .pf-chip {
+    height: 2.5rem;
+  }
 }
 .pf-chip[aria-pressed="true"],
 .pf-chip[aria-current="page"] {
@@ -246,11 +272,20 @@
 .pf-scroll-x::-webkit-scrollbar {
   display: none;
 }
+/* Téléphone : fondu sur le bord droit, on devine qu'il reste des éléments à faire défiler. */
+@media (max-width: 639.98px) {
+  .pf-scroll-x {
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 1.5rem), transparent);
+    mask-image: linear-gradient(90deg, #000 calc(100% - 1.5rem), transparent);
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .pf-shimmer { animation: none; }
   .pf-tile-frame { transition: none; }
-  .pf-tile:hover .pf-tile-frame { transform: none; }
+  .pf-tile:hover .pf-tile-frame,
+  .pf-tile:focus-visible .pf-tile-frame,
+  .pf-tile:active .pf-tile-frame { transform: none; }
 }
 
 /* ───────── Booster : pochette, dos de carte, effets d'ouverture ───────── */

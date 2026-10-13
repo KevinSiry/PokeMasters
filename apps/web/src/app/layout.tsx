@@ -1,4 +1,5 @@
 import "./globals.css";
+import { gameConfig } from "@pokeflex/config";
 import type { Metadata, Viewport } from "next";
 import { BottomNav } from "@/components/main-nav";
 import { SiteFooter } from "@/components/site-footer";
@@ -39,7 +40,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {children}
         </main>
         <SiteFooter />
-        <BottomNav loggedIn={Boolean(player)} />
+        <BottomNav
+          loggedIn={Boolean(player)}
+          boosters={player && { ...player.boosters, refillIntervalMs: gameConfig.boosters.refillIntervalMs }}
+        />
         <Toaster />
         {player && <RealtimeListener me={player.id} />}
       </body>

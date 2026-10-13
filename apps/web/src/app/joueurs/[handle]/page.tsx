@@ -59,10 +59,10 @@ export default async function PlayerPage({ params }: { params: Promise<{ handle:
     <div className="grid grid-cols-1 gap-8 py-8 sm:py-12">
       <header className="relative grid gap-5 overflow-hidden rounded-[calc(var(--radius-card)*1.4)] border border-line bg-[radial-gradient(120%_140%_at_0%_0%,color-mix(in_srgb,var(--color-accent)_24%,transparent),transparent_60%),radial-gradient(90%_120%_at_100%_100%,color-mix(in_srgb,var(--color-coral)_16%,transparent),transparent_60%),var(--color-surface)] p-5 sm:p-7">
         <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-          <PlayerAvatar name={player.name} image={player.image} size="xl" className="ring-4 ring-bg/60" />
+          <PlayerAvatar name={player.name} image={player.image} size="xl" className="ring-4 ring-bg/60 max-sm:size-16 max-sm:text-xl" />
           <div className="grid min-w-0 flex-1 gap-1.5">
-            <h1 className="flex flex-wrap items-center gap-2 font-display text-2xl font-bold sm:text-3xl">
-              <span className="truncate">{player.name}</span>
+            <h1 className="flex flex-wrap items-center gap-2 font-display text-xl font-bold sm:text-3xl">
+              <span className="min-w-0 [overflow-wrap:anywhere]">{player.name}</span>
               {profile.guild && (
                 <Link
                   href={`/guildes/${profile.guild.id}`}
@@ -88,7 +88,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ handle:
             </p>
           </div>
           {isMe ? (
-            <Button asChild variant="secondary" size="sm">
+            <Button asChild variant="secondary" size="sm" className="max-sm:w-full">
               <Link href="/profil">
                 <Pencil aria-hidden="true" />
                 Modifier mon profil

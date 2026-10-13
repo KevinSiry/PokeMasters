@@ -77,7 +77,7 @@ export default async function CardPage({ params }: { params: Params }) {
 
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,26rem)_1fr] lg:gap-14">
         <div className="grid gap-4 lg:sticky lg:top-24">
-          <div className="mx-auto w-full max-w-[22rem] lg:max-w-none">
+          <div className="mx-auto w-full max-w-[17rem] sm:max-w-[22rem] lg:max-w-none">
             <TiltCard image={card.image} name={card.name} tier={card.tier} priority />
           </div>
           <div className="flex items-center justify-between gap-2 text-sm">

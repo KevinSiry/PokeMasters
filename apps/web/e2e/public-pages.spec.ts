@@ -35,7 +35,8 @@ test.describe("pages publiques", () => {
 
   test("le contenu ne déborde pas horizontalement", async ({ page }) => {
     await page.goto("/");
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    // Mesuré contre l'écran émulé : sur mobile, window.innerWidth s'élargit avec le contenu.
+    const overflow = (await page.evaluate(() => document.documentElement.scrollWidth)) - page.viewportSize()!.width;
     expect(overflow).toBeLessThanOrEqual(0);
   });
 });
