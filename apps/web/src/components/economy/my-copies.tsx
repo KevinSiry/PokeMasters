@@ -21,7 +21,7 @@ export interface CopyView {
   obtainedVia: string;
 }
 
-const VIA: Record<string, string> = { booster: "Booster", set_booster: "Booster de set", market: "Marché", duel: "Duel", seed: "Démo" };
+const VIA: Record<string, string> = { booster: "Booster", set_booster: "Booster de set", market: "Marché", trade: "Échange", duel: "Duel", seed: "Démo" };
 const STATUS: Record<CopyView["status"], string> = { owned: "", listed: "En vente" };
 const date = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" });
 

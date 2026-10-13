@@ -183,6 +183,21 @@ export const gameConfig = {
     alertMaxAgeMs: 2 * MINUTE,
   },
 
+  /** Échanges carte contre carte entre joueurs. */
+  trades: {
+    /** Qui peut proposer un échange : "everyone" (hors blocages) ou "friends" (amis acceptés seulement). */
+    audience: "everyone" as "everyone" | "friends",
+    /** Exemplaires au plus de chaque côté d'un échange (au moins un de chaque côté). */
+    maxCardsPerSide: 6,
+    /** Propositions en attente qu'un joueur peut avoir envoyées en même temps. */
+    maxPendingOutgoing: 20,
+    /** Une proposition sans réponse expire après ce délai. */
+    offerTtlMs: 7 * 24 * HOUR,
+    messageMaxLength: 200,
+    /** Historique (échanges conclus, refusés, annulés…) affiché sur la page Échanges. */
+    historySize: 30,
+  },
+
   /**
    * Garde-fous contre les scripts : nombre d'actions serveur par joueur et par minute glissante.
    * Bien au-dessus d'un usage humain ; chaque dépassement est refusé et journalisé « [anti-triche] ».
@@ -195,6 +210,8 @@ export const gameConfig = {
       social: { count: 40, windowMs: MINUTE },
       /** Ajouts et retraits de favoris ou de wishlist. */
       lists: { count: 60, windowMs: MINUTE },
+      /** Propositions, réponses et annulations d'échanges. */
+      trades: { count: 30, windowMs: MINUTE },
       /** Recherches à la frappe et chargements de messages anciens : lectures seules, plus fréquentes. */
       search: { count: 120, windowMs: MINUTE },
     },

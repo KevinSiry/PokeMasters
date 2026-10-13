@@ -1,22 +1,25 @@
 "use client";
 
-import { Coins, Info, LogOut, Settings, Shield, Trophy, Users } from "lucide-react";
+import { Coins, Info, LogOut, Repeat2, Settings, Shield, Trophy, Users } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
-/** Menu du joueur (avatar) : profil, social, historique des Jetons, à propos, déconnexion. */
+/** Menu du joueur (avatar) : profil, social, échanges, historique des Jetons, à propos, déconnexion. */
 export function UserMenu({
   name,
   handle,
   image,
   friendRequests = 0,
+  pendingTrades = 0,
   signOutAction,
 }: {
   name: string;
   handle: string;
   image: string | null;
   friendRequests?: number;
+  /** Propositions d'échange reçues en attente. */
+  pendingTrades?: number;
   signOutAction: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
@@ -45,10 +48,10 @@ export function UserMenu({
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-haspopup="menu"
-        aria-label={`Menu de ${name}${friendRequests > 0 ? `, ${friendRequests} demande${friendRequests > 1 ? "s" : ""} d'ami` : ""}`}
+        aria-label={`Menu de ${name}${friendRequests > 0 ? `, ${friendRequests} demande${friendRequests > 1 ? "s" : ""} d'ami` : ""}${pendingTrades > 0 ? `, ${pendingTrades} proposition${pendingTrades > 1 ? "s" : ""} d'échange` : ""}`}
         className="relative grid size-10 place-items-center rounded-full border sm:size-9 border-line bg-elev transition-colors hover:border-accent"
       >
-        {friendRequests > 0 && <span aria-hidden="true" className="absolute -top-0.5 -right-0.5 size-3 rounded-full border-2 border-bg bg-coral" />}
+        {friendRequests + pendingTrades > 0 && <span aria-hidden="true" className="absolute -top-0.5 -right-0.5 size-3 rounded-full border-2 border-bg bg-coral" />}
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element -- avatar fourni par Twitch/Discord
           <img src={image} alt="" className="size-8 rounded-full" />
@@ -72,6 +75,11 @@ export function UserMenu({
           <Users aria-hidden="true" />
           <span className="flex-1">Amis</span>
           {friendRequests > 0 && <span className="rounded-full bg-coral px-1.5 font-mono text-[11px] font-bold text-bg">{friendRequests}</span>}
+        </Link>
+        <Link role="menuitem" href="/echanges" className={item} onClick={() => setOpen(false)}>
+          <Repeat2 aria-hidden="true" />
+          <span className="flex-1">Échanges</span>
+          {pendingTrades > 0 && <span className="rounded-full bg-coral px-1.5 font-mono text-[11px] font-bold text-bg">{pendingTrades}</span>}
         </Link>
         <Link role="menuitem" href="/guildes" className={item} onClick={() => setOpen(false)}>
           <Shield aria-hidden="true" />

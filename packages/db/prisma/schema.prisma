@@ -65,6 +65,8 @@ model User {
   receivedMessages DirectMessage[] @relation("dmRecipient")
   favorites   FavoriteCard[]
   wishlist    WishlistCard[]
+  tradesOut   Trade[]          @relation("tradeProposer")
+  tradesIn    Trade[]          @relation("tradeRecipient")
 }
 
 // ───────── Modèles standard Auth.js (adaptateur Prisma) ─────────
@@ -219,6 +221,7 @@ model Card {
   sales          Sale[]
   favoritedBy    FavoriteCard[]
   wishedBy       WishlistCard[]
+  tradeItems     TradeItem[]
 
   @@index([setId, sortKey])
   @@index([tier, droppable])
@@ -265,11 +268,12 @@ model CardCopy {
   card        Card       @relation(fields: [cardId], references: [id])
   finish      Finish     @default(normal)
   status      CopyStatus @default(owned)
-  /// booster | set_booster | market | seed
+  /// booster | set_booster | market | trade | seed
   obtainedVia String
   openingId   String?
   obtainedAt  DateTime   @default(now())
   listings    Listing[]
+  tradeItems  TradeItem[]
 
   @@index([ownerId, cardId])
   @@index([ownerId, obtainedAt])
@@ -574,6 +578,59 @@ model WishlistCard {
   @@id([userId, cardId])
   @@index([userId, createdAt])
   @@index([cardId])
+}
+
+// ───────── Échanges entre joueurs ─────────
+
+enum TradeStatus {
+  pending
+  accepted
+  declined
+  cancelled
+  /// Remplacée par une contre-proposition (`counterOf` de la nouvelle offre).
+  countered
+  expired
+  /// Une carte n'était plus disponible au moment d'accepter (vendue, recyclée, mise en vente, échangée…).
+  unavailable
+}
+
+/// Proposition d'échange carte contre carte. Les exemplaires ne sont pas réservés : tout est revérifié à l'acceptation.
+model Trade {
+  id          String      @id @default(cuid())
+  proposerId  String
+  proposer    User        @relation("tradeProposer", fields: [proposerId], references: [id], onDelete: Cascade)
+  recipientId String
+  recipient   User        @relation("tradeRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  status      TradeStatus @default(pending)
+  message     String?
+  /// Offre à laquelle celle-ci répond (contre-proposition).
+  counterOfId String?     @unique
+  counterOf   Trade?      @relation("counter", fields: [counterOfId], references: [id], onDelete: SetNull)
+  counteredBy Trade?      @relation("counter")
+  createdAt   DateTime    @default(now())
+  expiresAt   DateTime
+  closedAt    DateTime?
+  items       TradeItem[]
+
+  @@index([recipientId, status])
+  @@index([proposerId, status])
+}
+
+/// Exemplaire d'un échange, donné par `fromUserId`. Carte et finition dénormalisées pour l'historique.
+model TradeItem {
+  id         String    @id @default(cuid())
+  tradeId    String
+  trade      Trade     @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  fromUserId String
+  /// Null si l'exemplaire a été recyclé depuis.
+  copyId     String?
+  copy       CardCopy? @relation(fields: [copyId], references: [id], onDelete: SetNull)
+  cardId     String
+  card       Card      @relation(fields: [cardId], references: [id])
+  finish     Finish
+
+  @@index([tradeId])
+  @@index([copyId])
 }
 
 /// Classement figé toutes les heures (les pages lisent le dernier instantané, jamais un calcul en direct).

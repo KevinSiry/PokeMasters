@@ -98,6 +98,16 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 - **Alerte en direct** quand une carte de sa wishlist est mise en vente (prix fixe ou enchère) : après la mise en vente, le client du vendeur prévient le serveur temps réel, qui vérifie en base que l'annonce est active, récente (moins de 2 minutes) et bien à lui, puis notifie les joueurs concernés, hors vendeur et hors blocages. Une seule alerte par annonce. Pas d'alerte hors connexion (pas d'e-mail ni de notification stockée).
 - **Marché** : filtre « Ma wishlist » et cœur sur les annonces des cartes recherchées. La vue Wishlist de la collection indique les cartes en vente et leur prix le plus bas.
 
+## Échanges entre joueurs
+
+- **Carte contre carte** (demande de Kevin, 2026-10-13) : au moins une carte de chaque côté, 6 au plus (`trades` dans `config/game.ts`). Pas de Jetons dans un échange pour l'instant : le marché couvre la vente.
+- **Ouvert à tous, hors blocages** par défaut (réglage `trades.audience` : `everyone` ou `friends`). Proposer, accepter, refuser, contre-proposer (l'offre reçue passe « contre-proposition » et une nouvelle offre part en sens inverse), annuler la sienne. Sans réponse, une offre expire au bout de 7 jours. 20 offres envoyées en attente au plus.
+- **Aucun exemplaire n'est réservé** par une offre : on évite qu'un joueur bloque les cartes d'un autre. À l'acceptation, une seule transaction verrouille les deux joueurs puis l'offre, revérifie chaque exemplaire (toujours chez son propriétaire, ni en vente, ni recyclé, ni déjà échangé) et les transfère tous, ou aucun. Si une carte manque, l'offre passe « carte indisponible » et rien ne bouge ; la page Échanges grise d'avance les cartes devenues indisponibles.
+- **Finition conservée** : c'est l'exemplaire qui change de main (`obtainedVia = trade`). Une carte reçue quitte la wishlist de celui qui la reçoit ; un set complété par un échange verse son bonus comme d'habitude.
+- **Les favoris ne s'échangent pas** : il faut d'abord retirer la carte de ses favoris. Les cartes favorites et en vente n'apparaissent pas parmi les cartes échangeables d'un joueur.
+- **La wishlist guide l'échange** : la page Échanges suggère les joueurs qui ont des cartes de ta wishlist, la fiche d'une carte liste ceux qui peuvent l'échanger, et le choix des cartes met en tête celles de ta wishlist (côté demandé) et celles que l'autre recherche (côté proposé, si sa wishlist t'est visible). Les cartes échangeables d'un joueur sont donc visibles des autres joueurs connectés.
+- **Notifications** : pastille et compteur « Échanges » dans le menu du joueur ; en direct, le serveur temps réel prévient l'autre joueur (nouvelle offre, contre-proposition, acceptation, refus, annulation) après avoir vérifié en base que l'action vient d'avoir lieu. Hors connexion, les offres attendent sur la page Échanges.
+
 ## Finitions (phase 8)
 
 - **Polices servies par `next/font`** (fichiers Fontsource, sous-ensemble latin) : préchargées, avec une police de repli aux mêmes métriques. Le titre de l'accueil s'affiche sans attendre le téléchargement (Lighthouse mobile de l'accueil : 80 → 97).

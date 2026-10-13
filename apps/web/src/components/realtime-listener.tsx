@@ -15,7 +15,7 @@ interface DirectMessage {
 
 /**
  * Notifications en direct pour un joueur connecté, sur toutes les pages :
- * message privé, demande d'ami, exclusion de guilde, carte de la wishlist mise en vente.
+ * message privé, demande d'ami, exclusion de guilde, carte de la wishlist mise en vente, échanges.
  * Les compteurs de l'en-tête (messages non lus, demandes d'ami) sont rafraîchis au passage.
  */
 export function RealtimeListener({ me }: { me: string }) {
@@ -64,6 +64,22 @@ export function RealtimeListener({ me }: { me: string }) {
       tone: "info",
       action: { label: "Voir", href: `/marche/${l.id}` },
     });
+  });
+
+  useSocketEvent<{ kind: "offer" | "counter" | "accepted" | "declined" | "cancelled"; from: { name: string } }>("trade:update", ({ kind, from }) => {
+    router.refresh();
+    if (kind === "offer" || kind === "counter") {
+      toast({
+        title: kind === "counter" ? "Contre-proposition reçue" : "Nouvelle proposition d'échange",
+        description: `${from.name} ${kind === "counter" ? "te répond avec une autre offre." : "veut échanger des cartes avec toi."}`,
+        tone: "info",
+        action: pathname === "/echanges" ? undefined : { label: "Voir", href: "/echanges" },
+      });
+    } else if (kind === "accepted") {
+      toast({ title: "Échange conclu !", description: `${from.name} a accepté ta proposition.`, action: { label: "Voir", href: "/echanges" } });
+    } else {
+      toast({ title: kind === "declined" ? `${from.name} a refusé ta proposition` : `${from.name} a annulé sa proposition`, tone: "info" });
+    }
   });
 
   return null;

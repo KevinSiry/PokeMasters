@@ -107,6 +107,8 @@ Le **Marché** permet d'acheter et de vendre des cartes entre joueurs, à prix f
 
 Sur la fiche d'une carte, l'étoile la met en **favori** (cartes de ta collection, jamais recyclées avec les doublons) et le cœur ajoute une carte qui te manque à ta **wishlist** (elle en sort d'elle-même quand tu l'obtiens). Les deux listes sont dans la Collection ; une alerte s'affiche dès qu'un joueur met en vente une carte de ta wishlist, et le Marché a un filtre « Ma wishlist ».
 
+**Échanges** : depuis le profil d'un joueur (« Échanger ») ou la fiche d'une carte (« À l'échange »), propose un échange carte contre carte. L'autre joueur accepte, refuse ou contre-propose depuis la page Échanges (menu du joueur) ; tout est revérifié par le serveur au moment d'accepter. Les favoris ne s'échangent pas.
+
 Côté **social**, chaque joueur a un profil public avec une vitrine de 6 cartes (`/joueurs/<pseudo>`). Le menu de l'avatar mène aux **Amis**, aux **Guildes** (chat en direct, fonder coûte 2 000 Jetons) et aux **Classements**, mis à jour toutes les heures ; la bulle de l'en-tête ouvre les **Messages**. Pour essayer à deux, utilise une fenêtre privée avec un autre compte de démo.
 
 ### 6. Brancher la connexion Twitch et Discord

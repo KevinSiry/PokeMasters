@@ -1,11 +1,12 @@
 import { FINISH_LABELS_FR, gameConfig, TIER_LABELS_FR, type Finish } from "@pokeflex/config";
-import { countWishers, getCardListState, getCardMarket } from "@pokeflex/server";
-import { ChevronLeft, ChevronRight, Heart, Palette } from "lucide-react";
+import { countWishers, getCardListState, getCardMarket, getCardTraders } from "@pokeflex/server";
+import { ChevronLeft, ChevronRight, Heart, Palette, Repeat2 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CardTile } from "@/components/catalog/card-tile";
 import { MyCopies } from "@/components/economy/my-copies";
+import { PlayerAvatar } from "@/components/player-avatar";
 import { CardListButtons } from "@/components/lists/card-list-buttons";
 import { Jetons } from "@/components/jetons";
 import { ListingTile } from "@/components/market/listing-tile";
@@ -54,7 +55,9 @@ export default async function CardPage({ params }: { params: Params }) {
     countWishers(card.id),
   ]);
   const suggestedPrice = market.stats.average ?? Math.max(5, gameConfig.economy.recycleValue[card.tier] * 3);
-  const [copies, lists] = player ? await Promise.all([getMyCopies(player.id, card.id), getCardListState(player.id, card.id)]) : [null, null];
+  const [copies, lists, traders] = player
+    ? await Promise.all([getMyCopies(player.id, card.id), getCardListState(player.id, card.id), getCardTraders(card.id, player.id)])
+    : [null, null, []];
   const finishes = (Object.keys(FINISH_LABELS_FR) as Finish[]).filter((f) => card.variants?.[f]);
   const price = formatEur(card.priceEurTrend);
 
@@ -332,6 +335,39 @@ export default async function CardPage({ params }: { params: Params }) {
           </ul>
         )}
       </section>
+
+      {traders.length > 0 && (
+        <section aria-labelledby="a-l-echange" className="grid min-w-0 gap-4">
+          <div className="grid gap-1">
+            <h2 id="a-l-echange" className="flex items-center gap-2 font-display text-xl font-bold">
+              <Repeat2 aria-hidden="true" className="size-5 text-accent" />
+              À l&apos;échange
+            </h2>
+            <p className="text-sm text-muted">
+              {lists?.wished ? "Elle est dans ta wishlist : ces joueurs peuvent te l'échanger." : "Ces joueurs en ont un exemplaire libre à échanger."}
+            </p>
+          </div>
+          <ul className="pf-scroll-x -mx-4 flex snap-x gap-3 px-4 pb-2">
+            {traders.map((t) => (
+              <li key={t.id} className="w-44 shrink-0 snap-start">
+                <Link
+                  href={`/echanges/nouveau?avec=${encodeURIComponent(t.handle ?? "")}&carte=${encodeURIComponent(card.id)}`}
+                  className="grid gap-2 rounded-2xl border border-line bg-surface p-3 transition-colors hover:border-accent"
+                >
+                  <span className="flex items-center gap-2">
+                    <PlayerAvatar name={t.name} image={t.image} size="sm" />
+                    <span className="grid min-w-0">
+                      <span className="truncate text-sm font-semibold">{t.name}</span>
+                      <span className="font-mono text-[11px] text-muted">×{t.copies}</span>
+                    </span>
+                  </span>
+                  <span className="text-xs font-semibold text-accent">Proposer un échange</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {same.length > 0 && (
         <section aria-labelledby="same" className="grid min-w-0 gap-4">

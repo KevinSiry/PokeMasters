@@ -1,5 +1,6 @@
+import { gameConfig } from "@pokeflex/config";
 import { getProfileWishlist, getPublicProfile } from "@pokeflex/server";
-import { CalendarDays, Layers, Pencil, Shield, Store, Trophy, Users } from "lucide-react";
+import { CalendarDays, Layers, Pencil, Repeat2, Shield, Store, Trophy, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -24,6 +25,12 @@ export async function generateMetadata({ params }: { params: Promise<{ handle: s
     title: `${profile.player.name} (@${profile.player.handle})`,
     description: profile.bio ?? `Profil et vitrine de ${profile.player.name} sur PokeFlex : ${profile.stats.distinctCards} cartes collectionnées.`,
   };
+}
+
+/** Le bouton « Échanger » suit `trades.audience` ; le serveur revérifie à chaque action. */
+function canTrade(relation: string): boolean {
+  if (relation === "blocked" || relation === "blocked_by" || relation === "self") return false;
+  return (gameConfig.trades.audience as string) === "everyone" || relation === "friends";
 }
 
 const joined = new Intl.DateTimeFormat("fr-FR", {
@@ -88,14 +95,24 @@ export default async function PlayerPage({ params }: { params: Promise<{ handle:
               </Link>
             </Button>
           ) : viewer && profile.relation ? (
-            <ProfileActions
-              target={{
-                id: player.id,
-                name: player.name,
-                handle: player.handle!,
-              }}
-              relation={profile.relation}
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              {canTrade(profile.relation) && (
+                <Button asChild variant="secondary" size="sm">
+                  <Link href={`/echanges/nouveau?avec=${encodeURIComponent(player.handle!)}`}>
+                    <Repeat2 aria-hidden="true" />
+                    Échanger
+                  </Link>
+                </Button>
+              )}
+              <ProfileActions
+                target={{
+                  id: player.id,
+                  name: player.name,
+                  handle: player.handle!,
+                }}
+                relation={profile.relation}
+              />
+            </div>
           ) : (
             <Button asChild size="sm">
               <Link href={`/connexion?suite=/joueurs/${player.handle}`}>Se connecter pour l&apos;ajouter</Link>
