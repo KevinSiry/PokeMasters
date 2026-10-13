@@ -96,6 +96,7 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 - **Une carte obtenue quitte la wishlist d'elle-même** (décision de Kevin, 2026-10-13) : booster, booster de set, achat ou enchère gagnée la retirent dans la même transaction. Une carte déjà possédée ne peut pas y être ajoutée.
 - **Wishlist publique** (choix de Kevin, 2026-10-13) : visible sur le profil public (12 dernières cartes) et compteur « N joueurs recherchent cette carte » sur la fiche. Réglage `lists.wishlistVisibility` (`public`, `friends` ou `private`).
 - **Alerte en direct** quand une carte de sa wishlist est mise en vente (prix fixe ou enchère) : après la mise en vente, le client du vendeur prévient le serveur temps réel, qui vérifie en base que l'annonce est active, récente (moins de 2 minutes) et bien à lui, puis notifie les joueurs concernés, hors vendeur et hors blocages. Une seule alerte par annonce. Pas d'alerte hors connexion (pas d'e-mail ni de notification stockée).
+- **Depuis la grille d'un set** (demande de Kevin, 2026-10-13) : chaque vignette porte une seule bascule en haut à gauche, étoile pour une carte possédée, cœur pour une carte manquante, avec les mêmes règles et toasts que la fiche. Zone tactile de 40 px, pastille de 28 px pour ne pas masquer l'illustration ; mise à jour optimiste, annulée si le serveur refuse. Rien pour les visiteurs.
 - **Marché** : filtre « Ma wishlist » et cœur sur les annonces des cartes recherchées. La vue Wishlist de la collection indique les cartes en vente et leur prix le plus bas.
 
 ## Échanges entre joueurs
