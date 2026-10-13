@@ -1,6 +1,7 @@
 import { gameConfig } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
 import { setCompletionBonus } from "@pokeflex/game";
+import { getFavoriteCardIds, getWishlistCardIds } from "@pokeflex/server";
 import { CheckCircle2, ChevronLeft, Sparkles } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -32,16 +33,23 @@ export default async function SetPage({ params }: { params: Params }) {
   const set = await getSet(setId);
   if (!set) notFound();
   const [cards, player, logo] = await Promise.all([getSetCards(set.id), getCurrentPlayerSafe(), resolveLogo(set.logo)]);
-  const [owned, completion] = player
+  const [owned, completion, favoriteIds, wishlistIds] = player
     ? await Promise.all([
         getOwnedCounts(player.id, set.id),
         prisma.setCompletion.findUnique({ where: { userId_setId: { userId: player.id, setId: set.id } } }),
+        getFavoriteCardIds(player.id),
+        getWishlistCardIds(player.id),
       ])
-    : [null, null];
+    : [null, null, null, null];
   // Seules les cartes tirables (avec image) comptent pour compléter un set.
   const collectable = cards.filter((c) => c.droppable);
   const ownedCount = owned ? collectable.filter((c) => owned[c.id]).length : 0;
   const bonus = setCompletionBonus(set.cardCountOfficial, gameConfig.economy.setCompletionBonusPerCard);
+  // Seules les listes de ce set partent vers le client.
+  const setCardIds = new Set(cards.map((c) => c.id));
+  const inSet = (id: string) => setCardIds.has(id);
+  const lists =
+    favoriteIds && wishlistIds ? { favorites: [...favoriteIds].filter(inSet), wishlist: wishlistIds.filter(inSet) } : null;
   const hasBooster = collectable.length >= gameConfig.setBoosters.minDroppableCards;
 
   return (
@@ -126,7 +134,7 @@ export default async function SetPage({ params }: { params: Params }) {
       {cards.length === 0 ? (
         <p className="text-muted">Aucune carte importée pour ce set ({plural(set.cardCountTotal, "carte")} attendues).</p>
       ) : (
-        <CardGrid cards={cards} owned={owned} />
+        <CardGrid cards={cards} owned={owned} lists={lists} />
       )}
     </div>
   );

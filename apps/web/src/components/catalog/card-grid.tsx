@@ -5,6 +5,7 @@ import { Search, X } from "lucide-react";
 import { useDeferredValue, useMemo, useState } from "react";
 import { CardTile } from "@/components/catalog/card-tile";
 import { EnergyIcon, TYPE_LABELS } from "@/components/energy-icon";
+import { TileListToggle } from "@/components/lists/tile-list-toggle";
 import { TIER_ICON } from "@/components/tier-badge";
 import type { CardTile as CardTileData } from "@/lib/catalog";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,8 @@ interface CardGridProps {
   cards: CardTileData[];
   /** Exemplaires possédés par carte (joueur connecté) ; null = visiteur. */
   owned?: Record<string, number> | null;
+  /** Favoris et wishlist du joueur connecté : affiche une bascule sur chaque vignette. */
+  lists?: { favorites: string[]; wishlist: string[] } | null;
   subtitle?: (c: CardTileData) => string;
 }
 
@@ -29,7 +32,7 @@ const norm = (s: string) =>
     .toLowerCase();
 
 /** Grille filtrable (texte, tier, catégorie, type, possession) d'un ensemble de cartes. */
-export function CardGrid({ cards, owned = null, subtitle }: CardGridProps) {
+export function CardGrid({ cards, owned = null, lists = null, subtitle }: CardGridProps) {
   const [query, setQuery] = useState("");
   const [tiers, setTiers] = useState<Set<Tier>>(new Set());
   const [category, setCategory] = useState<string | null>(null);
@@ -37,6 +40,8 @@ export function CardGrid({ cards, owned = null, subtitle }: CardGridProps) {
   const [ownership, setOwnership] = useState<"all" | "owned" | "missing">("all");
   const q = useDeferredValue(norm(query.trim()));
 
+  const favorites = useMemo(() => new Set(lists?.favorites), [lists]);
+  const wishlist = useMemo(() => new Set(lists?.wishlist), [lists]);
   const presentTiers = useMemo(() => TIERS.filter((t) => cards.some((c) => c.tier === t)), [cards]);
   const presentTypes = useMemo(() => [...new Set(cards.flatMap((c) => c.types))].sort(), [cards]);
   const presentCategories = CATEGORIES.filter((c) => cards.some((x) => x.category === c.id));
@@ -160,7 +165,7 @@ export function CardGrid({ cards, owned = null, subtitle }: CardGridProps) {
           {shown.map((c, i) => {
             const count = owned ? (owned[c.id] ?? 0) : null;
             return (
-              <li key={c.id}>
+              <li key={c.id} className="relative">
                 <CardTile
                   card={c}
                   priority={i < 12}
@@ -174,6 +179,9 @@ export function CardGrid({ cards, owned = null, subtitle }: CardGridProps) {
                     ) : null
                   }
                 />
+                {lists && count !== null && (
+                  <TileListToggle cardId={c.id} cardName={c.name} owned={count > 0} favorite={favorites.has(c.id)} wished={wishlist.has(c.id)} />
+                )}
               </li>
             );
           })}

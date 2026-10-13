@@ -51,6 +51,45 @@ test.describe("favoris et wishlist", () => {
     await expect(page.getByText("Retirée de ta wishlist")).toBeVisible();
   });
 
+  test("bascule wishlist et favori depuis la grille du catalogue", async ({ page }) => {
+    await page.goto("/catalogue/base1");
+
+    // Carte manquante : le cœur l'ajoute à la wishlist, sans quitter la grille.
+    const missingTile = page.locator("main li").filter({ has: page.locator("a[data-missing]") }).first();
+    const missingName = (await missingTile.locator("a span.truncate").first().textContent())!.trim();
+    const wishToggle = missingTile.locator("button[data-list='wishlist']");
+    await wishToggle.click();
+    await expect(wishToggle).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByText("Ajoutée à ta wishlist")).toBeVisible();
+    await expect(page).toHaveURL(/\/catalogue\/base1$/);
+
+    // Carte possédée : l'étoile la met en favori.
+    const ownedTile = page.locator("main li").filter({ has: page.locator("a.pf-tile:not([data-missing])") }).first();
+    const ownedName = (await ownedTile.locator("a span.truncate").first().textContent())!.trim();
+    const favToggle = ownedTile.locator("button[data-list='favorite']");
+    await favToggle.click();
+    await expect(favToggle).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByText("Ajoutée à tes favoris")).toBeVisible();
+
+    await page.goto("/collection?vue=wishlist");
+    await expect(page.locator("main ul li").filter({ hasText: missingName }).first()).toBeVisible();
+    await page.goto("/collection?vue=favoris");
+    await expect(page.locator("main ul li").filter({ hasText: ownedName }).first()).toBeVisible();
+
+    // L'état est relu au retour sur la grille, et un second appui retire la carte.
+    await page.goto("/catalogue/base1");
+    const wishOn = page.getByRole("button", { name: `Retirer ${missingName} de ta wishlist` }).first();
+    await expect(wishOn).toHaveAttribute("aria-pressed", "true");
+    await wishOn.click();
+    await expect(page.getByText("Retirée de ta wishlist")).toBeVisible();
+    const favOn = page.getByRole("button", { name: `Retirer ${ownedName} de tes favoris` }).first();
+    await expect(favOn).toHaveAttribute("aria-pressed", "true");
+    await favOn.click();
+    await expect(page.getByText("Retirée de tes favoris")).toBeVisible();
+    await page.goto("/collection?vue=favoris");
+    await expect(page.getByText("Aucune carte favorite")).toBeVisible();
+  });
+
   test("prévient en direct quand une carte de la wishlist est mise en vente", async ({ page, browser }) => {
     // Une carte que demo-marchand possède (libre) et que demo-collection n'a pas.
     const [seller, fan] = await Promise.all(["demo-marchand", "demo-collection"].map((handle) => prisma.user.findUniqueOrThrow({ where: { handle }, select: { id: true } })));
