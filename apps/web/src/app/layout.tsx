@@ -6,6 +6,7 @@ import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import { BottomNav } from "@/components/main-nav";
 import { SiteFooter } from "@/components/site-footer";
+import { RealtimeListener } from "@/components/realtime-listener";
 import { SiteHeader } from "@/components/site-header";
 import { Toaster } from "@/components/toaster";
 import { getCurrentPlayerSafe } from "@/lib/player";
@@ -43,6 +44,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <SiteFooter />
         <BottomNav loggedIn={Boolean(player)} />
         <Toaster />
+        {player && <RealtimeListener me={player.id} />}
       </body>
     </html>
   );

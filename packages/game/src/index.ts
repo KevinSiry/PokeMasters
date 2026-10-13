@@ -5,3 +5,4 @@ export * from "./booster";
 export * from "./economy";
 export * from "./quests";
 export * from "./market";
+export * from "./social";

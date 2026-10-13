@@ -38,6 +38,13 @@ export default async function globalSetup() {
       }),
     );
   }
+  // Parcours social rejouables : amitiés, blocages et messages entre comptes de démo remis à zéro.
+  const demo = (await prisma.user.findMany({ where: { handle: { startsWith: "demo-" } }, select: { id: true } })).map((u) => u.id);
+  await prisma.$transaction([
+    prisma.friendship.deleteMany({ where: { userId: { in: demo }, friendId: { in: demo } } }),
+    prisma.block.deleteMany({ where: { userId: { in: demo }, blockedId: { in: demo } } }),
+    prisma.directMessage.deleteMany({ where: { senderId: { in: demo }, recipientId: { in: demo } } }),
+  ]);
   await prisma.$disconnect();
   void port;
 }

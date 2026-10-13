@@ -19,11 +19,21 @@ export default defineConfig({
     { name: "mobile", use: { ...devices["Pixel 7"] } },
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
   ],
-  webServer: {
-    // L'app doit être construite au préalable (npm run build).
-    command: "npm run start -w @pokeflex/web",
-    url: `http://localhost:${port}`,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      // L'app doit être construite au préalable (npm run build).
+      command: "npm run start -w @pokeflex/web",
+      url: `http://localhost:${port}`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    {
+      // Serveur temps réel (messagerie).
+      command: "npm run start -w @pokeflex/realtime",
+      url: "http://localhost:3001/health",
+      reuseExistingServer: !process.env.CI,
+      env: { CATALOG_AUTO_SYNC: "false" },
+      timeout: 60_000,
+    },
+  ],
 });

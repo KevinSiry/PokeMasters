@@ -27,6 +27,10 @@ model User {
   emailVerified DateTime?
   image         String?
   role          Role      @default(player)
+  /// Présentation courte affichée sur le profil public.
+  bio           String?
+  /// Vitrine du profil : cartes choisies parmi celles possédées (ordre d'affichage).
+  showcase      String[]  @default([])
 
   /// Solde de Jetons. Contrainte SQL `balance >= 0` (voir migration). Toujours modifié avec une ligne de ledger (phase 4).
   balance         Int      @default(0)
@@ -48,6 +52,17 @@ model User {
   bids        Bid[]
   purchases   Sale[]           @relation("buyer")
   sales       Sale[]           @relation("seller")
+  friendsOut  Friendship[]     @relation("friendFrom")
+  friendsIn   Friendship[]     @relation("friendTo")
+  blocks      Block[]          @relation("blocker")
+  blockedBy   Block[]          @relation("blocked")
+  reports     Report[]         @relation("reporter")
+  reported    Report[]         @relation("reportedUser")
+  guildMember GuildMember?
+  guildsOwned Guild[]
+  guildMessages GuildMessage[]
+  sentMessages     DirectMessage[] @relation("dmSender")
+  receivedMessages DirectMessage[] @relation("dmRecipient")
 }
 
 // ───────── Modèles standard Auth.js (adaptateur Prisma) ─────────
@@ -417,4 +432,127 @@ model Sale {
 
   @@index([cardId, createdAt])
   @@index([createdAt])
+}
+
+// ───────── Social (phase 7) ─────────
+
+enum FriendshipStatus {
+  pending
+  accepted
+}
+
+/// Lien d'amitié orienté : une demande crée (A → B, pending) ; l'acceptation passe la ligne
+/// en accepted et crée la ligne miroir (B → A, accepted).
+model Friendship {
+  userId    String
+  user      User             @relation("friendFrom", fields: [userId], references: [id], onDelete: Cascade)
+  friendId  String
+  friend    User             @relation("friendTo", fields: [friendId], references: [id], onDelete: Cascade)
+  status    FriendshipStatus @default(pending)
+  createdAt DateTime         @default(now())
+
+  @@id([userId, friendId])
+  @@index([friendId, status])
+}
+
+/// Un joueur bloqué ne peut plus écrire ni demander en ami celui qui l'a bloqué (et inversement).
+model Block {
+  userId    String
+  user      User     @relation("blocker", fields: [userId], references: [id], onDelete: Cascade)
+  blockedId String
+  blocked   User     @relation("blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userId, blockedId])
+}
+
+enum ReportStatus {
+  open
+  reviewed
+}
+
+model Report {
+  id         String       @id @default(cuid())
+  reporterId String
+  reporter   User         @relation("reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  targetId   String
+  target     User         @relation("reportedUser", fields: [targetId], references: [id], onDelete: Cascade)
+  /// spam | insult | cheat | name | other
+  reason     String
+  details    String?
+  /// Message signalé, le cas échéant ("dm:<id>" ou "guild:<id>").
+  context    String?
+  status     ReportStatus @default(open)
+  createdAt  DateTime     @default(now())
+
+  @@index([status, createdAt])
+}
+
+enum GuildRole {
+  owner
+  officer
+  member
+}
+
+model Guild {
+  id          String         @id @default(cuid())
+  name        String         @unique
+  /// Sigle court affiché à côté des pseudos (2 à 5 caractères).
+  tag         String         @unique
+  description String?
+  ownerId     String
+  owner       User           @relation(fields: [ownerId], references: [id])
+  createdAt   DateTime       @default(now())
+  members     GuildMember[]
+  messages    GuildMessage[]
+}
+
+model GuildMember {
+  guildId  String
+  guild    Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  /// Un joueur n'appartient qu'à une guilde à la fois.
+  userId   String    @unique
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     GuildRole @default(member)
+  joinedAt DateTime  @default(now())
+
+  @@id([guildId, userId])
+}
+
+model GuildMessage {
+  id        String   @id @default(cuid())
+  guildId   String
+  guild     Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([guildId, createdAt])
+}
+
+model DirectMessage {
+  id          String    @id @default(cuid())
+  senderId    String
+  sender      User      @relation("dmSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipientId String
+  recipient   User      @relation("dmRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  body        String
+  createdAt   DateTime  @default(now())
+  readAt      DateTime?
+
+  @@index([senderId, recipientId, createdAt])
+  @@index([recipientId, readAt])
+}
+
+/// Classement figé toutes les heures (les pages lisent le dernier instantané, jamais un calcul en direct).
+model LeaderboardSnapshot {
+  id      String   @id @default(cuid())
+  /// collection | sets | market
+  kind    String
+  takenAt DateTime @default(now())
+  /// [{ userId, name, handle, image, value }] triés, 100 premiers.
+  entries Json
+
+  @@index([kind, takenAt])
 }

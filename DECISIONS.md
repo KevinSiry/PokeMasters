@@ -77,6 +77,16 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 
 - **Les duels quiz ont été retirés du jeu** (décision de Kevin, 2026-10-12), après leur fusion en phase 6. Tables, écrans, onglet, quête « Gagner 1 duel » et moteur temps réel sont supprimés ; une migration rend les cartes encore misées et efface les quêtes de duel non réclamées. Les lignes de registre `duel_*` restent pour que l'historique des Jetons reste juste.
 
+## Social (phase 7)
+
+- **Pseudo public obligatoire**, attribué automatiquement à la création du compte Twitch/Discord à partir du nom affiché (`sacha-ketchum`, puis `sacha-ketchum-2`…) et modifiable dans « Modifier mon profil ». Les profils publics sont à `/joueurs/<pseudo>` et visibles sans compte.
+- **Vitrine** : jusqu'à 6 cartes choisies parmi celles possédées ; une carte vendue ou recyclée disparaît de la vitrine d'elle-même (filtrée à l'affichage).
+- **Amitié en deux lignes** (A→B, B→A) une fois acceptée : listes et compteurs simples. Une demande croisée est acceptée directement. 200 amis au plus.
+- **Blocage silencieux** : l'autre joueur n'est pas prévenu. Il coupe l'amitié et empêche messages et demandes d'ami dans les deux sens ; les recherches de joueurs n'affichent plus l'autre. Les signalements (motif + précisions, message visé le cas échéant) sont stockés pour une future modération ; un seul par heure et par joueur visé.
+- **Messages privés ouverts à tous** (sauf blocage), envoyés par le serveur temps réel puis enregistrés en base. Anti-spam : 6 messages par 10 secondes, vérifié en mémoire et en base. Accusés de lecture (« Vu ») et compteur de non-lus dans l'en-tête.
+- **Guildes ouvertes** : n'importe qui rejoint tant qu'il reste de la place (30 membres). Fonder coûte 2 000 Jetons (ligne de registre `guild_create`, non remboursée). Le chef nomme des officiers, qui peuvent exclure des membres ; s'il part, le rôle passe au plus ancien officier, puis au plus ancien membre ; le dernier à partir dissout la guilde. Nom et sigle uniques sans tenir compte de la casse.
+- **Classements figés toutes les heures** (collection, sets complétés, ventes au marché) par le serveur temps réel, 100 premiers, deux jours d'historique. Les pages lisent l'instantané, jamais un calcul en direct ; pseudo et avatar restent à jour. Ex aequo au même rang.
+
 ## Docker Compose (phase 5)
 
 - **`docker compose up --build` lance tout le jeu** (Postgres, Redis, site, temps réel) sans Node.js ni `.env` sur la machine. Une seule image sert au site, au temps réel et au service `init` (migrations, échantillon de catalogue, comptes de démo), qui s'exécute avant les deux autres à chaque démarrage ; tout y est idempotent.
