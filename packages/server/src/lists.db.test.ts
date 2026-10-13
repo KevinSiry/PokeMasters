@@ -143,7 +143,7 @@ describe.skipIf(skip)("favoris et wishlist (Postgres)", () => {
   });
 
   it("compte les exemplaires possédés par carte, en vente compris", async () => {
-    const seller = await newUser();
+    const seller = await newUser(100);
     const [a] = await give(seller, cardIds[0]!, 2);
     await give(seller, cardIds[1]!);
     await createListing(seller, { copyId: a!.id, type: "fixed", price: 50 });
