@@ -182,7 +182,8 @@ export async function getProfileWishlist(ownerId: string, viewerId: string | nul
   return { cards: rows.map((r) => toListCard(r.card, r.createdAt)), total };
 }
 
-async function canSeeWishlist(ownerId: string, viewerId: string | null): Promise<boolean> {
+/** Vrai si le visiteur peut voir la wishlist du joueur (réglage `lists.wishlistVisibility`). */
+export async function canSeeWishlist(ownerId: string, viewerId: string | null): Promise<boolean> {
   if (viewerId === ownerId) return true;
   const visibility: string = rules.wishlistVisibility;
   if (visibility === "public") return true;

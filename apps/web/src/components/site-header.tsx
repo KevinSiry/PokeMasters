@@ -33,6 +33,7 @@ export function SiteHeader({ player }: { player: CurrentPlayer | null }) {
               handle={player.handle}
               image={player.image}
               friendRequests={player.friendRequests}
+              pendingTrades={player.pendingTrades}
               signOutAction={async () => {
                 "use server";
                 await signOut({ redirectTo: "/" });

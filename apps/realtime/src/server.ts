@@ -1,5 +1,5 @@
 /**
- * Serveur temps réel PokeFlex : connexion authentifiée, messages privés et chat de guilde,
+ * Serveur temps réel PokeFlex : connexion authentifiée, messages privés et chat de guilde, échanges,
  * tâches de fond (enchères, catalogue, classements).
  */
 import { createServer } from "node:http";
@@ -13,6 +13,7 @@ import {
   sendDirectMessage,
   sendGuildMessage,
   SocialError,
+  tradeNoticeFor,
   wishlistAlertForListing,
 } from "@pokeflex/server";
 import { Server } from "socket.io";
@@ -59,6 +60,8 @@ interface ClientEvents {
   "social:ping": (p: { to: string }) => void;
   /** Après une mise en vente : prévient les joueurs qui ont cette carte dans leur wishlist (vérifié en base). */
   "market:listed": (p: { listingId: string }) => void;
+  /** Après une action sur un échange : prévient l'autre joueur (vérifié en base). */
+  "trade:ping": (p: { tradeId: string }) => void;
 }
 
 const io = new Server<ClientEvents, Record<string, (...args: never[]) => void>, Record<string, never>, SocketData>(httpServer, {
@@ -72,7 +75,7 @@ const errorMessage = (err: unknown) =>
 const chatLimiter = new RateLimiter(gameConfig.social.messageRate.count, gameConfig.social.messageRate.windowMs);
 const tooFast = "Doucement ! Attends quelques secondes avant d'envoyer un autre message.";
 
-// Une annonce ne déclenche qu'une alerte wishlist, même si le vendeur renvoie l'événement.
+// Une annonce (ou une action d'échange) ne déclenche qu'une alerte, même si l'événement est renvoyé.
 const alerted = new Set<string>();
 function markAlerted(listingId: string): boolean {
   if (alerted.has(listingId)) return false;
@@ -173,6 +176,14 @@ io.on("connection", (socket) => {
     if (relation === "request_sent" || relation === "friends") {
       io.to(`user:${to}`).emit("social:update", { kind: relation === "friends" ? "friend_accepted" : "friend_request", from: userId } as never);
     }
+  });
+
+  socket.on("trade:ping", async (p) => {
+    const tradeId = String(p?.tradeId ?? "");
+    if (!tradeId) return;
+    const notice = await tradeNoticeFor(userId, tradeId).catch(() => null);
+    if (!notice || !markAlerted(`trade:${tradeId}:${notice.payload.kind}`)) return;
+    io.to(`user:${notice.to}`).emit("trade:update", notice.payload as never);
   });
 
   socket.on("market:listed", async (p) => {

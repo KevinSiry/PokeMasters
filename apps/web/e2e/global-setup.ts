@@ -47,6 +47,8 @@ export default async function globalSetup() {
     // Parcours favoris et wishlist rejouables.
     prisma.favoriteCard.deleteMany({ where: { userId: { in: demo } } }),
     prisma.wishlistCard.deleteMany({ where: { userId: { in: demo } } }),
+    // Parcours échanges rejouable.
+    prisma.trade.deleteMany({ where: { proposerId: { in: demo }, recipientId: { in: demo } } }),
   ]);
   await prisma.$disconnect();
   void port;

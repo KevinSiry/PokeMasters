@@ -1,7 +1,7 @@
 import { gameConfig } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
 import { boosterStatus } from "@pokeflex/game";
-import { countPendingFriendRequests, countUnreadMessages, ensureHandle } from "@pokeflex/server";
+import { countPendingFriendRequests, countPendingTrades, countUnreadMessages, ensureHandle } from "@pokeflex/server";
 import { unstable_rethrow } from "next/navigation";
 import { auth } from "@/auth";
 
@@ -16,7 +16,11 @@ export async function getCurrentPlayer() {
   if (!user) return null;
   // Anciens comptes sans pseudo : on en attribue un à la première visite.
   const handle = user.handle ?? (await ensureHandle(user.id));
-  const [unreadMessages, friendRequests] = await Promise.all([countUnreadMessages(user.id), countPendingFriendRequests(user.id)]);
+  const [unreadMessages, friendRequests, pendingTrades] = await Promise.all([
+    countUnreadMessages(user.id),
+    countPendingFriendRequests(user.id),
+    countPendingTrades(user.id),
+  ]);
   const status = boosterStatus(
     { stock: user.boosterStock, anchorAt: user.boosterAnchorAt },
     new Date(),
@@ -28,6 +32,7 @@ export async function getCurrentPlayer() {
     handle,
     unreadMessages,
     friendRequests,
+    pendingTrades,
     image: user.image,
     balance: user.balance,
     boosters: { available: status.available, maxStock: status.maxStock, nextAt: status.nextAt?.toISOString() ?? null },

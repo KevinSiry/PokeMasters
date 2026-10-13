@@ -7,3 +7,4 @@ export * from "./quests";
 export * from "./market";
 export * from "./social";
 export * from "./lists";
+export * from "./trades";
