@@ -21,7 +21,11 @@ export function useImgFallback(sources: string[]) {
   return { src, ref, onError: () => setIndex((i) => i + 1) };
 }
 
-/** Sources d'un logo TCGdex : WebP d'abord, PNG ensuite (certains sets récents n'ont que le PNG). */
+/**
+ * Sources d'un logo TCGdex : WebP d'abord, PNG ensuite (certains sets récents n'ont que le PNG).
+ * Une URL déjà résolue avec son extension (voir lib/logo.ts) est utilisée telle quelle.
+ */
 export function logoSources(base: string | null | undefined): string[] {
-  return base ? [`${base}.webp`, `${base}.png`] : [];
+  if (!base) return [];
+  return /\.(png|webp)$/.test(base) ? [base] : [`${base}.webp`, `${base}.png`];
 }

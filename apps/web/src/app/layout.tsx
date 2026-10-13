@@ -1,7 +1,3 @@
-import "@fontsource-variable/inter";
-import "@fontsource-variable/unbounded";
-import "@fontsource/space-mono/400.css";
-import "@fontsource/space-mono/700.css";
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import { BottomNav } from "@/components/main-nav";
@@ -10,6 +6,7 @@ import { RealtimeListener } from "@/components/realtime-listener";
 import { SiteHeader } from "@/components/site-header";
 import { Toaster } from "@/components/toaster";
 import { getCurrentPlayerSafe } from "@/lib/player";
+import { inter, spaceMono, unbounded } from "./fonts";
 
 export const metadata: Metadata = {
   title: { default: "PokeFlex", template: "%s · PokeFlex" },
@@ -29,7 +26,7 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const player = await getCurrentPlayerSafe();
   return (
-    <html lang="fr">
+    <html lang="fr" className={`${inter.variable} ${unbounded.variable} ${spaceMono.variable}`}>
       <body>
         <a
           href="#contenu"

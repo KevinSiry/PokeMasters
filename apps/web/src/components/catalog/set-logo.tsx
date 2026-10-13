@@ -7,8 +7,9 @@ import { cn } from "@/lib/utils";
 /**
  * Logo d'un set (CDN TCGdex, WebP puis PNG), contenu dans la boîte de son parent.
  * Sans logo : un pictogramme neutre (le nom est déjà affiché à côté).
+ * `priority` : logo visible dès l'arrivée sur la page, chargé tout de suite plutôt qu'à l'approche.
  */
-export function SetLogo({ logo, name, className }: { logo: string | null; name: string; className?: string }) {
+export function SetLogo({ logo, name, className, priority = false }: { logo: string | null; name: string; className?: string; priority?: boolean }) {
   const { src, ref, onError } = useImgFallback(logoSources(logo));
   if (!src) {
     return (
@@ -23,7 +24,8 @@ export function SetLogo({ logo, name, className }: { logo: string | null; name: 
       ref={ref}
       src={src}
       alt={name}
-      loading="lazy"
+      loading={priority ? "eager" : "lazy"}
+      fetchPriority={priority ? "high" : "auto"}
       decoding="async"
       onError={onError}
       className={cn("h-full w-full object-contain drop-shadow-[0_6px_14px_rgb(0_0_0/0.55)]", className)}

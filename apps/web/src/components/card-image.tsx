@@ -15,6 +15,7 @@ interface CardImageProps {
 /**
  * Image de carte servie par le CDN TCGdex, avec apparition en fondu et visuel
  * de remplacement si l'image manque ou ne charge pas.
+ * `priority` : image visible dès l'arrivée, chargée tout de suite et affichée sans fondu (pas d'attente de l'hydratation).
  */
 export function CardImage({ image, name, quality = "low", priority, className }: CardImageProps) {
   const ref = useRef<HTMLImageElement>(null);
@@ -60,7 +61,7 @@ export function CardImage({ image, name, quality = "low", priority, className }:
         onError={() => setState("failed")}
         className={cn(
           "absolute inset-0 h-full w-full object-cover transition-opacity duration-300",
-          state === "ready" ? "opacity-100" : "opacity-0",
+          priority || state === "ready" ? "opacity-100" : "opacity-0",
         )}
       />
     </div>

@@ -73,6 +73,7 @@ export function TiltCard({ image, name, tier, quality = "high", className, prior
           src={src}
           alt={name}
           loading={priority ? "eager" : "lazy"}
+          fetchPriority={priority ? "high" : "auto"}
           decoding="async"
           draggable={false}
           onError={() => setFailed(true)}

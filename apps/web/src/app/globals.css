@@ -26,9 +26,9 @@
   --color-tier-legendary: #F5A524;
   --color-tier-mythic: #FFD86B;
 
-  --font-display: "Unbounded Variable", "Arial Black", system-ui, sans-serif;
-  --font-sans: "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "Space Mono", ui-monospace, Consolas, monospace;
+  --font-display: var(--font-unbounded), "Arial Black", system-ui, sans-serif;
+  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-space-mono), ui-monospace, Consolas, monospace;
 
   --radius-card: 0.9rem;
 }

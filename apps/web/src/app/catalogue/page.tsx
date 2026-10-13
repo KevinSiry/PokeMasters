@@ -4,14 +4,19 @@ import { SearchBox } from "@/components/catalog/search-box";
 import { SetLogo } from "@/components/catalog/set-logo";
 import { getCatalogue, getCatalogueStats } from "@/lib/catalog";
 import { formatYear, plural } from "@/lib/format";
+import { resolveLogo } from "@/lib/logo";
 
 export const metadata: Metadata = {
   title: "Catalogue",
   description: "Toutes les cartes Pokémon sorties depuis 1999, rangées par série et par set.",
 };
 
+const PRIORITY_LOGOS = 4;
+
 export default async function CataloguePage() {
   const [series, stats] = await Promise.all([getCatalogue(), getCatalogueStats()]);
+  // Logos visibles dès l'arrivée : bonne URL rendue directement, sans attendre le repli côté client.
+  const firstLogos = await Promise.all((series[0]?.sets ?? []).slice(0, PRIORITY_LOGOS).map((set) => resolveLogo(set.logo)));
 
   return (
     <div className="grid grid-cols-1 gap-8 py-8 sm:py-12">
@@ -47,7 +52,7 @@ export default async function CataloguePage() {
           </nav>
 
           <div className="grid grid-cols-1 gap-12">
-            {series.map((s) => {
+            {series.map((s, si) => {
               const years = s.sets.map((x) => x.releaseDate).filter((d): d is Date => d !== null);
               const from = formatYear(years.length ? new Date(Math.min(...years.map(Number))) : null);
               const to = formatYear(years.length ? new Date(Math.max(...years.map(Number))) : null);
@@ -62,14 +67,18 @@ export default async function CataloguePage() {
                     </span>
                   </div>
                   <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                    {s.sets.map((set) => (
+                    {s.sets.map((set, i) => (
                       <li key={set.id}>
                         <Link
                           href={`/catalogue/${set.id}`}
                           className="group grid h-full content-between gap-3 rounded-[var(--radius-card)] border border-line bg-surface p-3 transition-[border-color,transform,background-color] hover:-translate-y-0.5 hover:border-accent hover:bg-elev sm:p-4"
                         >
                           <div className="flex h-16 items-center justify-center rounded-lg bg-[radial-gradient(circle_at_50%_30%,color-mix(in_srgb,var(--color-accent)_14%,transparent),transparent_70%)] px-2 sm:h-20">
-                            <SetLogo logo={set.logo} name={set.name} />
+                            {si === 0 && i < PRIORITY_LOGOS ? (
+                              <SetLogo logo={firstLogos[i] ?? set.logo} name={set.name} priority />
+                            ) : (
+                              <SetLogo logo={set.logo} name={set.name} />
+                            )}
                           </div>
                           <div className="grid gap-0.5">
                             <span className="line-clamp-2 text-sm leading-snug font-semibold">{set.name}</span>
