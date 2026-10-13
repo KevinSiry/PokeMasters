@@ -9,7 +9,8 @@ import { cn } from "@/lib/utils";
 
 /**
  * Boutons « Favori » et « Wishlist » de la fiche carte. Mise à jour optimiste, annulée si le serveur refuse.
- * Le favori n'est proposé que pour une carte possédée (ou déjà favorite, pour pouvoir la retirer).
+ * Le favori n'est proposé que pour une carte possédée, la wishlist que pour une carte manquante
+ * (chacune reste affichée si elle est déjà cochée, pour pouvoir la retirer).
  */
 export function CardListButtons({ cardId, cardName, owned, favorite, wished }: { cardId: string; cardName: string; owned: boolean; favorite: boolean; wished: boolean }) {
   const router = useRouter();
@@ -68,6 +69,7 @@ export function CardListButtons({ cardId, cardName, owned, favorite, wished }: {
           {fav ? "Favorite" : "Mettre en favori"}
         </button>
       )}
+      {(!owned || wish) && (
       <button
         type="button"
         onClick={toggleWishlist}
@@ -78,6 +80,7 @@ export function CardListButtons({ cardId, cardName, owned, favorite, wished }: {
         <Heart aria-hidden="true" className={cn(wish && "fill-current")} />
         {wish ? "Dans ma wishlist" : "Ajouter à ma wishlist"}
       </button>
+      )}
     </div>
   );
 }

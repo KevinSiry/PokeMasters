@@ -7,6 +7,7 @@ import { prisma } from "@pokeflex/db";
 import { boosterStatus, consumeBooster, cryptoRng, drawBoosterTiers, drawFinish, drawIndex, InsufficientFundsError, type Rng } from "@pokeflex/game";
 import { checkSetCompletions, type CompletedSet } from "./completion";
 import { applyLedger, lockUser } from "./ledger";
+import { removeObtainedFromWishlist } from "./lists";
 import { bumpQuest, type QuestProgressed } from "./quests";
 
 const POOL_TTL_MS = 10 * 60_000;
@@ -153,6 +154,7 @@ export async function openBooster(userId: string, what: BoosterKind, rng: Rng = 
       })),
       select: { id: true },
     });
+    await removeObtainedFromWishlist(tx, userId, ids);
 
     const seen = new Set<string>();
     const pulled: PulledCard[] = ids.map((id, i) => {

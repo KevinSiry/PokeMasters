@@ -104,7 +104,7 @@ Les **Jetons** (sans valeur réelle) se gagnent en recyclant des cartes, en term
 
 Le **Marché** permet d'acheter et de vendre des cartes entre joueurs, à prix fixe ou aux enchères. Pour vendre, ouvre la fiche d'une carte possédée, section « Dans ta collection », bouton **Vendre**. Tes annonces sont dans « Mes ventes », tes offres dans « Mes enchères ». Le compte **demo-marchand** a déjà 16 cartes en vente pour essayer.
 
-Sur la fiche d'une carte, l'étoile la met en **favori** (cartes de ta collection, jamais recyclées avec les doublons) et le cœur l'ajoute à ta **wishlist** (cartes recherchées). Les deux listes sont dans la Collection ; une alerte s'affiche dès qu'un joueur met en vente une carte de ta wishlist, et le Marché a un filtre « Ma wishlist ».
+Sur la fiche d'une carte, l'étoile la met en **favori** (cartes de ta collection, jamais recyclées avec les doublons) et le cœur ajoute une carte qui te manque à ta **wishlist** (elle en sort d'elle-même quand tu l'obtiens). Les deux listes sont dans la Collection ; une alerte s'affiche dès qu'un joueur met en vente une carte de ta wishlist, et le Marché a un filtre « Ma wishlist ».
 
 Côté **social**, chaque joueur a un profil public avec une vitrine de 6 cartes (`/joueurs/<pseudo>`). Le menu de l'avatar mène aux **Amis**, aux **Guildes** (chat en direct, fonder coûte 2 000 Jetons) et aux **Classements**, mis à jour toutes les heures ; la bulle de l'en-tête ouvre les **Messages**. Pour essayer à deux, utilise une fenêtre privée avec un autre compte de démo.
 

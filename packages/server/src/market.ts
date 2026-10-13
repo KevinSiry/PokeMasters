@@ -8,6 +8,7 @@ import { type ListingStatus, type ListingType, type Prisma, prisma } from "@poke
 import { assertValidPrice, extendForSniping, InsufficientFundsError, listingFee, MarketRuleError, minNextBid } from "@pokeflex/game";
 import { checkSetCompletions, type CompletedSet } from "./completion";
 import { applyLedger, lockUser, lockUsers, type Tx, withTxRetry } from "./ledger";
+import { removeObtainedFromWishlist } from "./lists";
 
 const rules = gameConfig.market;
 
@@ -138,6 +139,7 @@ async function transferCopy(tx: Tx, l: ListingRow & { copyId: string }, buyerId:
     where: { id: l.copyId },
     data: { ownerId: buyerId, status: "owned", obtainedVia: "market", obtainedAt: now, openingId: null },
   });
+  await removeObtainedFromWishlist(tx, buyerId, [l.cardId]);
   await tx.listing.update({ where: { id: l.id }, data: { status: "sold", closedAt: now } });
   await tx.sale.create({ data: { listingId: l.id, cardId: l.cardId, finish: l.finish, price, sellerId: l.sellerId, buyerId } });
   const card = await tx.card.findUniqueOrThrow({ where: { id: l.cardId }, select: { setId: true } });

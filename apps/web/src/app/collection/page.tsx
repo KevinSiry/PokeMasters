@@ -262,7 +262,7 @@ async function WishlistView({ userId }: { userId: string }) {
   if (cards.length === 0) {
     return (
       <ListEmpty icon={<Heart aria-hidden="true" className="size-7 text-coral" />} title="Ta wishlist est vide">
-        Ajoute les cartes que tu cherches depuis leur fiche, avec « Ajouter à ma wishlist ». Une alerte s&apos;affiche dès qu&apos;un joueur en met une en vente.
+        Ajoute les cartes que tu cherches depuis leur fiche, avec « Ajouter à ma wishlist ». Une alerte s&apos;affiche dès qu&apos;un joueur en met une en vente, et une carte obtenue quitte la liste d&apos;elle-même.
       </ListEmpty>
     );
   }
@@ -289,14 +289,7 @@ async function WishlistView({ userId }: { userId: string }) {
             <CardTile
               card={c}
               priority={i < 12}
-              subtitle={c.owned > 0 ? "obtenue" : c.setName}
-              badge={
-                c.owned > 0 ? (
-                  <span className="absolute right-1.5 bottom-1.5 grid size-6 place-items-center rounded-full bg-lime text-bg">
-                    <CheckCircle2 aria-label="Obtenue" className="size-4" />
-                  </span>
-                ) : null
-              }
+              subtitle={c.setName}
             />
             {c.onSale > 0 && c.lowestPrice !== null && (
               <Link href={`/cartes/${c.id}#au-marche`} className="inline-flex items-center gap-1 px-0.5 text-[11px] text-coral hover:underline">

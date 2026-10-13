@@ -2,6 +2,7 @@
  * Tests d'intégration des favoris et de la wishlist sur Postgres. Ignorés si SKIP_DB_TESTS=1.
  */
 import { prisma } from "@pokeflex/db";
+import { seededRng } from "@pokeflex/game";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   countWishers,
@@ -14,7 +15,8 @@ import {
   setWishlisted,
   wishlistAlertForListing,
 } from "./lists";
-import { createListing, getMarketListings } from "./market";
+import { openFreeBooster } from "./boosters";
+import { buyListing, createListing, getMarketListings } from "./market";
 import { previewDuplicates, recycleDuplicates } from "./recycle";
 
 const skip = process.env.SKIP_DB_TESTS === "1";
@@ -102,7 +104,7 @@ describe.skipIf(skip)("favoris et wishlist (Postgres)", () => {
     // D'autres annonces de cette carte peuvent exister (annonces de démo du seed).
     const others = await prisma.listing.findMany({ where: { cardId: cardIds[2]!, status: "active", sellerId: { not: buyer } }, select: { price: true, currentBid: true } });
     const onSale = list.find((c) => c.id === cardIds[2])!;
-    expect(onSale).toMatchObject({ onSale: others.length, lowestPrice: Math.min(...others.map((l) => l.currentBid ?? l.price)), owned: 0 });
+    expect(onSale).toMatchObject({ onSale: others.length, lowestPrice: Math.min(...others.map((l) => l.currentBid ?? l.price)) });
     expect(onSale.onSale).toBeGreaterThanOrEqual(1);
 
     const market = await getMarketListings({ cardIds: [cardIds[2]!, cardIds[3]!], perPage: 100 });
@@ -116,6 +118,27 @@ describe.skipIf(skip)("favoris et wishlist (Postgres)", () => {
 
     await setWishlisted(buyer, cardIds[3]!, false);
     expect((await getWishlist(buyer)).map((c) => c.id)).toEqual([cardIds[2]]);
+  });
+
+  it("retire de la wishlist une carte obtenue, et refuse une carte déjà possédée", async () => {
+    const buyer = await newUser(1000);
+    const seller = await newUser(1000);
+    await setWishlisted(buyer, cardIds[3]!, true);
+    const [copy] = await give(seller, cardIds[3]!);
+    const { listingId } = await createListing(seller, { copyId: copy!.id, type: "fixed", price: 30 });
+    await buyListing(buyer, listingId);
+    expect(await getCardListState(buyer, cardIds[3]!)).toEqual({ favorite: false, wished: false });
+    expect(await code(setWishlisted(buyer, cardIds[3]!, true))).toBe("owned");
+  });
+
+  it("retire de la wishlist les cartes tirées dans un booster", async () => {
+    // Même graine, même tirage : le premier joueur révèle les cartes que le second va tirer.
+    const [scout, fan] = [await newUser(), await newUser()];
+    await prisma.user.updateMany({ where: { id: { in: [scout, fan] } }, data: { boosterStock: 1, boosterAnchorAt: new Date() } });
+    const pulled = (await openFreeBooster(scout, seededRng(7))).cards.map((c) => c.id);
+    for (const id of new Set(pulled)) await setWishlisted(fan, id, true);
+    await openFreeBooster(fan, seededRng(7));
+    expect(await getWishlist(fan)).toEqual([]);
   });
 
   it("alerte les joueurs qui recherchent la carte, sauf blocage, et seulement à la demande du vendeur", async () => {

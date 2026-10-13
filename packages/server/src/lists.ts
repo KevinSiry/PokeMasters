@@ -12,7 +12,7 @@ const rules = gameConfig.lists;
 
 export class ListError extends Error {
   constructor(
-    readonly code: "not_found" | "not_owned" | "full",
+    readonly code: "not_found" | "not_owned" | "owned" | "full",
     message: string,
   ) {
     super(message);
@@ -68,7 +68,7 @@ export async function setFavorite(userId: string, cardId: string, on: boolean): 
   return { favorite: true };
 }
 
-/** Ajoute ou retire une carte de la wishlist (toute carte du catalogue, possédée ou non). */
+/** Ajoute ou retire une carte de la wishlist (une carte du catalogue que le joueur n'a pas encore). */
 export async function setWishlisted(userId: string, cardId: string, on: boolean): Promise<{ wished: boolean }> {
   if (!on) {
     await prisma.wishlistCard.deleteMany({ where: { userId, cardId } });
@@ -77,9 +77,17 @@ export async function setWishlisted(userId: string, cardId: string, on: boolean)
   await assertCard(cardId);
   const already = await prisma.wishlistCard.findUnique({ where: { userId_cardId: { userId, cardId } }, select: { cardId: true } });
   if (already) return { wished: true };
+  const owned = await prisma.cardCopy.count({ where: { ownerId: userId, cardId } });
+  if (owned > 0) throw new ListError("owned", "Tu as déjà cette carte dans ta collection.");
   await assertRoom("wishlist", userId);
   await prisma.wishlistCard.createMany({ data: [{ userId, cardId }], skipDuplicates: true });
   return { wished: true };
+}
+
+/** Une carte obtenue (booster, marché) quitte la wishlist, dans la transaction qui la donne au joueur. */
+export async function removeObtainedFromWishlist(tx: Tx, userId: string, cardIds: readonly string[]) {
+  if (cardIds.length === 0) return;
+  await tx.wishlistCard.deleteMany({ where: { userId, cardId: { in: [...new Set(cardIds)] } } });
 }
 
 /** État des deux listes pour une carte (fiche carte). */
@@ -119,8 +127,6 @@ export async function getFavorites(userId: string): Promise<(ListCard & { copies
 }
 
 export interface WishlistEntry extends ListCard {
-  /** Exemplaires déjà possédés (la carte reste dans la wishlist, marquée « obtenue »). */
-  owned: number;
   /** Annonces actives des autres joueurs, et le prix le plus bas (offre courante pour une enchère). */
   onSale: number;
   lowestPrice: number | null;
@@ -135,14 +141,10 @@ export async function getWishlist(userId: string): Promise<WishlistEntry[]> {
   });
   const ids = rows.map((r) => r.card.id);
   if (ids.length === 0) return [];
-  const [owned, listings] = await Promise.all([
-    prisma.cardCopy.groupBy({ by: ["cardId"], where: { ownerId: userId, cardId: { in: ids } }, _count: { _all: true } }),
-    prisma.listing.findMany({
-      where: { cardId: { in: ids }, status: "active", sellerId: { not: userId } },
-      select: { cardId: true, price: true, currentBid: true },
-    }),
-  ]);
-  const ownedBy = new Map(owned.map((o) => [o.cardId, o._count._all]));
+  const listings = await prisma.listing.findMany({
+    where: { cardId: { in: ids }, status: "active", sellerId: { not: userId } },
+    select: { cardId: true, price: true, currentBid: true },
+  });
   const sale = new Map<string, { n: number; min: number }>();
   for (const l of listings) {
     const amount = l.currentBid ?? l.price;
@@ -151,7 +153,6 @@ export async function getWishlist(userId: string): Promise<WishlistEntry[]> {
   }
   return rows.map((r) => ({
     ...toListCard(r.card, r.createdAt),
-    owned: ownedBy.get(r.card.id) ?? 0,
     onSale: sale.get(r.card.id)?.n ?? 0,
     lowestPrice: sale.get(r.card.id)?.min ?? null,
   }));
