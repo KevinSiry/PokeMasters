@@ -34,6 +34,7 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 - **Prix** : tendance Cardmarket (EUR), sinon moyenne. Sert uniquement au bonus de tier, jamais affiché comme un prix d'achat.
 - **Synchro quotidienne dans le serveur temps réel** (vérification horaire, garde « dernière synchro réussie > 24 h » en base) plutôt que BullMQ + cron : rien à installer sous Windows, et un redémarrage ne relance pas une synchro déjà faite. Désactivable avec `CATALOG_AUTO_SYNC=false`.
 - **Recherche** : `pg_trgm` + `unaccent` (fonction `pf_unaccent` immuable pour l'index GIN) sur les noms FR et EN. « charizard », « dracofeu » ou « electhor » trouvent la bonne carte.
+- **Nom français déduit pour les cartes importées en anglais** (demande de Kevin, 2026-10-13) : même nom anglais qu'une carte française du catalogue, sinon nom de l'espèce remplacé via le numéro de Pokédex (« Charmander V » → « Salamèche V »). Seules les vraies cartes FR servent de référence. Recalculé à la fin de chaque synchro, ou à la demande avec `npm run sync:catalog -- --names`. Une carte sans correspondance (dresseur propre à un set anglais) garde son nom anglais.
 - **Échantillon de catalogue dans le seed** (Set de Base + 151, données réelles exportées par `npm run fixture:export`) : la CI et une première découverte hors ligne ont des cartes à montrer.
 - **Navigation mobile** : barre d'onglets en bas de l'écran (zone du pouce), liens dans l'en-tête sur ordinateur.
 
