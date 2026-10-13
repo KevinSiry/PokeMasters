@@ -72,6 +72,7 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 - **Clôture des enchères** toutes les 15 s par le serveur temps réel, et à l'affichage d'une page du marché, pour ne jamais montrer une enchère échue comme active. Sans offre, la carte revient au vendeur.
 - **Achat et enchère sérialisés** : verrou sur les deux joueurs (ordre fixe, sans interblocage) puis sur l'annonce. Deux acheteurs simultanés : un seul paie (tests de concurrence en base).
 - **Historique des ventes conservé** même si l'exemplaire est recyclé ensuite (`Listing.copyId` passe à NULL). La cote d'une carte = prix moyen des ventes des 30 derniers jours ; le prix suggéré à la mise en vente en découle (sinon 3 × la valeur de recyclage).
+- **Carte déjà obtenue ou non** (demande de Kevin, 2026-10-13) : pour un joueur connecté, chaque annonce d'un autre joueur porte « ✓ ×N » (exemplaires possédés) ou « NEW » (pas encore dans sa collection), et la fiche de l'annonce « Déjà obtenue · N ex. » ou « Pas encore obtenue ». Même règle que le Pokédex : la finition est ignorée, et un exemplaire en vente compte encore. Une carte de la wishlist garde son cœur (elle n'est jamais possédée).
 - **Annonces de démo** : le seed met en vente 16 cartes de demo-marchand (doublons puis cartes rares, une sur quatre aux enchères), frais payés au registre.
 
 ## Duels retirés
@@ -130,6 +131,12 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 - **Aucune page ne doit dépasser 360 px de large** : au-delà, le navigateur du téléphone dézoome tout le site. Un test e2e (`mobile.spec.ts`) le vérifie sur chaque page principale, mesuré contre l'écran émulé et non `window.innerWidth`, qui s'élargit avec le contenu.
 - **En-tête connecté sur téléphone** : monogramme seul (sans « PokeFlex »), boutons de 40 px ; sous 360 px, le minuteur disparaît et l'onglet Boosters de la barre du bas affiche le nombre de boosters prêts.
 - **Effets de survol réservés à la souris** (`@media (hover: hover)`), sinon ils restent figés après un tap ; au doigt, retour de pression et puces de filtre de 40 px.
+
+## Ouverture de booster
+
+- **Ouverture au doigt, comme un vrai booster** (demande de Kevin, 2026-10-13) : la pochette s'incline sous le doigt, on la déchire en glissant le long du haut (ou d'un tap, ou du bouton « Déchirer le booster »), la languette s'envole, les cartes montent hors du sachet puis on les retourne une à une et on les fait glisser hors de la pile. La carte la plus rare reste en dernier (ordre du tirage).
+- **Le tirage part au serveur dès « Ouvrir »**, avant la déchirure : le geste masque l'attente, et le client ne fait toujours que révéler un résultat déjà enregistré. Une erreur serveur ramène la pochette intacte avec le message.
+- **Fluidité** : tout ce qui bouge passe par `transform` et `opacity` (valeurs animées hors du rendu React, halos animés en opacité plutôt qu'en `box-shadow`). Avec « réduire les animations », on passe directement de « Ouvrir » aux cartes.
 
 ## GitHub
 

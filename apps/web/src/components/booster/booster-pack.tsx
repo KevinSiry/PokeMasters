@@ -31,10 +31,12 @@ interface BoosterPackArtProps {
   logo?: string | null;
   /** Graine des couleurs (id du set) ; sans graine, la pochette prisme par défaut. */
   palette?: string;
+  /** Calques ajoutés par-dessus le visuel (reflet qui suit l'inclinaison), découpés à la forme de la pochette. */
+  children?: React.ReactNode;
 }
 
 /** Visuel d'une pochette de booster. Le haut et le corps peuvent être rendus séparément pour l'animation de déchirure. */
-export function BoosterPackArt({ label = "Toutes époques", count = 5, className, empty, logo, palette }: BoosterPackArtProps) {
+export function BoosterPackArt({ label = "Toutes époques", count = 5, className, empty, logo, palette, children }: BoosterPackArtProps) {
   return (
     <div
       className={cn("pf-pack select-none [container-type:inline-size]", className)}
@@ -54,6 +56,7 @@ export function BoosterPackArt({ label = "Toutes époques", count = 5, className
           </span>
         </div>
       </div>
+      {children}
     </div>
   );
 }

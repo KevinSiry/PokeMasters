@@ -110,6 +110,20 @@ export async function getWishlistCardIds(userId: string): Promise<string[]> {
   return rows.map((r) => r.cardId);
 }
 
+/**
+ * Nombre d'exemplaires possédés par carte, toutes finitions confondues comme au Pokédex
+ * (un exemplaire en vente compte encore). Les cartes absentes de la collection n'ont pas d'entrée.
+ */
+export async function getOwnedCopyCounts(userId: string, cardIds: string[]): Promise<Map<string, number>> {
+  if (cardIds.length === 0) return new Map();
+  const counts = await prisma.cardCopy.groupBy({
+    by: ["cardId"],
+    where: { ownerId: userId, cardId: { in: [...new Set(cardIds)] } },
+    _count: { _all: true },
+  });
+  return new Map(counts.map((c) => [c.cardId, c._count._all]));
+}
+
 /** Cartes favorites, les plus récemment ajoutées d'abord, avec le nombre d'exemplaires possédés. */
 export async function getFavorites(userId: string): Promise<(ListCard & { copies: number })[]> {
   const rows = await prisma.favoriteCard.findMany({
@@ -117,12 +131,7 @@ export async function getFavorites(userId: string): Promise<(ListCard & { copies
     orderBy: { createdAt: "desc" },
     select: { createdAt: true, card: { select: listCardSelect } },
   });
-  const counts = await prisma.cardCopy.groupBy({
-    by: ["cardId"],
-    where: { ownerId: userId, cardId: { in: rows.map((r) => r.card.id) } },
-    _count: { _all: true },
-  });
-  const byCard = new Map(counts.map((c) => [c.cardId, c._count._all]));
+  const byCard = await getOwnedCopyCounts(userId, rows.map((r) => r.card.id));
   return rows.map((r) => ({ ...toListCard(r.card, r.createdAt), copies: byCard.get(r.card.id) ?? 0 }));
 }
 

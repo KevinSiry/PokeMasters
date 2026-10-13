@@ -1,6 +1,6 @@
 import { FINISH_LABELS_FR, TIER_LABELS_FR } from "@pokeflex/config";
-import { closeAuction, getCardMarket, getListing } from "@pokeflex/server";
-import { ChevronLeft } from "lucide-react";
+import { closeAuction, getCardMarket, getListing, getOwnedCopyCounts } from "@pokeflex/server";
+import { Check, ChevronLeft } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -30,6 +30,7 @@ export default async function ListingPage({ params }: { params: Params }) {
   const data = (await getListing(id))!;
   const l = data.listing;
   const [player, market] = await Promise.all([getCurrentPlayerSafe(), getCardMarket(l.card.id)]);
+  const owned = player && player.id !== l.seller.id ? ((await getOwnedCopyCounts(player.id, [l.card.id])).get(l.card.id) ?? 0) : null;
 
   return (
     <div className="grid grid-cols-1 gap-6 py-6 sm:py-10">
@@ -51,6 +52,15 @@ export default async function ListingPage({ params }: { params: Params }) {
                 <span className="rounded-full bg-gradient-to-r from-accent-strong to-coral-strong px-2.5 py-1 text-xs font-bold">{FINISH_LABELS_FR[l.finish]}</span>
               )}
               {l.card.lang === "en" && <span className="rounded-full bg-elev px-2.5 py-1 font-mono text-xs">EN</span>}
+              {owned !== null &&
+                (owned > 0 ? (
+                  <Link href={`/cartes/${l.card.id}`} className="inline-flex items-center gap-1 rounded-full bg-lime/15 px-2.5 py-1 text-xs font-bold text-lime hover:bg-lime/25">
+                    <Check aria-hidden="true" className="size-3.5" strokeWidth={3} />
+                    Déjà obtenue · {owned} ex.
+                  </Link>
+                ) : (
+                  <span className="rounded-full bg-lime px-2.5 py-1 text-xs font-black text-bg">Pas encore obtenue</span>
+                ))}
             </div>
             <h1 className="font-display text-2xl font-bold sm:text-3xl">{l.card.name}</h1>
             <p className="text-sm text-muted">
