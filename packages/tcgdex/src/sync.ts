@@ -3,8 +3,8 @@
  *
  * - `full`     : tous les sets, toutes les cartes (import initial). Reprenable : un run
  *                interrompu reprend après le dernier set terminé.
- * - `new-sets` : seulement les sets absents de la base ou dont le nombre de cartes a changé
- *                (job quotidien).
+ * - `new-sets` : seulement les sets absents de la base, dont le nombre de cartes a changé
+ *                ou pour lesquels TCGdex a publié de nouvelles images (job quotidien).
  * - `prices`   : rafraîchit prix et tiers d'une fraction du catalogue (rotation quotidienne).
  *
  * Idempotent : chaque carte est écrite par upsert, relancer ne crée pas de doublon.
@@ -13,7 +13,7 @@ import { RARITY_TIERS, gameConfig } from "@pokeflex/config";
 import { Prisma, type PrismaClient } from "@pokeflex/db";
 import { computeTier } from "@pokeflex/game";
 import type { TcgdexClient, TcgdexLang } from "./client";
-import { isExcludedSerie, toCardRecord, toSetRecord, type CardRecord } from "./normalize";
+import { isExcludedSerie, needsResync, toCardRecord, toSetRecord, type CardRecord } from "./normalize";
 import type { CardSummary, SetDetail } from "./schemas";
 
 export type SyncMode = "full" | "new-sets" | "prices";
@@ -107,14 +107,11 @@ export async function syncCatalog(opts: SyncOptions): Promise<SyncStats & { runI
     let setIds = [...setsFr.map((s) => s.id), ...setsEn.map((s) => s.id).filter((id) => !frIds.has(id))];
     if (opts.onlySets?.length) setIds = setIds.filter((id) => opts.onlySets!.includes(id));
 
-    const existing =
-      mode === "new-sets"
-        ? new Map(
-            (
-              await prisma.set.findMany({ select: { id: true, _count: { select: { cards: true } } } })
-            ).map((s) => [s.id, s._count.cards]),
-          )
-        : new Map<string, number>();
+    const existing = new Map<string, { cards: number; withImage: number }>();
+    if (mode === "new-sets") {
+      const counts = await prisma.card.groupBy({ by: ["setId"], _count: { _all: true, image: true } });
+      for (const c of counts) existing.set(c.setId, { cards: c._count._all, withImage: c._count.image });
+    }
 
     let index = 0;
     for (const setId of setIds) {
@@ -145,7 +142,7 @@ export async function syncCatalog(opts: SyncOptions): Promise<SyncStats & { runI
         ...(detailEn?.cards ?? []).filter((c) => !frCards.has(c.id)).map((c) => ({ summary: c, lang: "en" as const })),
       ];
 
-      if (mode === "new-sets" && (existing.get(setId) ?? -1) >= allCards.length) {
+      if (mode === "new-sets" && !needsResync(existing.get(setId), allCards.map((c) => c.summary), enCards)) {
         stats.skippedSets++;
         continue;
       }
