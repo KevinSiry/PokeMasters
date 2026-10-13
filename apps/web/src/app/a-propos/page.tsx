@@ -26,8 +26,8 @@ export default function AProposPage() {
         <p>
           Chaque carte du jeu de cartes à collectionner réel est une carte de PokeFlex. Tu reçois un booster gratuit de{" "}
           {gameConfig.boosters.size} cartes toutes les {minutes} minutes (jusqu&apos;à {gameConfig.boosters.maxStock} en
-          réserve). Tu peux recycler tes doubles contre des Jetons, acheter des boosters d&apos;un set précis, échanger
-          au marché entre joueurs et miser des cartes dans des duels de quiz.
+          réserve). Tu peux recycler tes doubles contre des Jetons, acheter des boosters d&apos;un set précis, et vendre
+          au marché entre joueurs.
         </p>
         <p className="text-muted">
           Le concept s&apos;inspire de WikiMasters, le jeu qui transforme les articles Wikipédia en cartes à

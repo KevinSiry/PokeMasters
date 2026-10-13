@@ -16,13 +16,13 @@ import { cn } from "@/lib/utils";
 export interface CopyView {
   id: string;
   finish: Finish;
-  status: "owned" | "listed" | "staked";
+  status: "owned" | "listed";
   obtainedAt: string;
   obtainedVia: string;
 }
 
 const VIA: Record<string, string> = { booster: "Booster", set_booster: "Booster de set", market: "Marché", duel: "Duel", seed: "Démo" };
-const STATUS: Record<CopyView["status"], string> = { owned: "", listed: "En vente", staked: "Misé en duel" };
+const STATUS: Record<CopyView["status"], string> = { owned: "", listed: "En vente" };
 const date = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" });
 
 /** Exemplaires possédés d'une carte, avec recyclage unitaire (confirmation en deux temps). */
