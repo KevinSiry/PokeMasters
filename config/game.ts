@@ -51,7 +51,7 @@ export const gameConfig = {
     /** Un booster gratuit est crédité toutes les `refillIntervalMs`. */
     refillIntervalMs: 10 * MINUTE,
     /** Stock maximal de boosters gratuits en attente. */
-    maxStock: 6,
+    maxStock: 10,
     /** Boosters offerts à l'inscription. */
     initialStock: 1,
     /**
