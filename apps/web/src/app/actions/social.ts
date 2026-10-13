@@ -21,13 +21,16 @@ import {
 } from "@pokeflex/server";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
+import { type ActionBucket, checkActionRate } from "@/lib/rate-limit";
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: string };
 
-async function run<T>(fn: (uid: string) => Promise<T>, label: string): Promise<Result<T>> {
+async function run<T>(fn: (uid: string) => Promise<T>, label: string, bucket: ActionBucket = "social"): Promise<Result<T>> {
   const session = await auth();
   const uid = session?.user?.id;
   if (!uid) return { ok: false, error: "Connecte-toi pour continuer." };
+  const limited = checkActionRate(uid, bucket);
+  if (limited) return { ok: false, error: limited };
   try {
     const data = await fn(uid);
     revalidatePath("/", "layout");
@@ -59,13 +62,13 @@ export async function setShowcaseAction(cardIds: string[]) {
 }
 
 export async function showcaseCandidatesAction(q: string) {
-  return run((uid) => getShowcaseCandidates(uid, str(q, 60)), "cartes de vitrine");
+  return run((uid) => getShowcaseCandidates(uid, str(q, 60)), "cartes de vitrine", "search");
 }
 
 // ───── Amis, blocages, signalements ─────
 
 export async function searchPlayersAction(q: string) {
-  return run((uid) => searchPlayers(uid, str(q, 40)), "recherche de joueurs");
+  return run((uid) => searchPlayers(uid, str(q, 40)), "recherche de joueurs", "search");
 }
 
 /** Renvoie l'identifiant du joueur visé pour que le client le prévienne en direct. */
@@ -104,7 +107,7 @@ export async function reportUserAction(targetId: string, reason: string, details
 
 /** Messages plus anciens d'une conversation (défilement vers le haut). */
 export async function olderMessagesAction(otherId: string, before: string) {
-  return run((uid) => getConversation(uid, str(otherId), 40, new Date(str(before, 40))), "messages précédents");
+  return run((uid) => getConversation(uid, str(otherId), 40, new Date(str(before, 40))), "messages précédents", "search");
 }
 
 // ───── Guildes ─────

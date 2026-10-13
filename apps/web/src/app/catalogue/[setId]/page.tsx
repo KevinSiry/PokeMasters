@@ -14,6 +14,7 @@ import { getSet, getSetCards } from "@/lib/catalog";
 import { getOwnedCounts } from "@/lib/collection";
 import { getCurrentPlayerSafe } from "@/lib/player";
 import { formatDateFr, plural } from "@/lib/format";
+import { resolveLogo } from "@/lib/logo";
 
 type Params = Promise<{ setId: string }>;
 
@@ -30,7 +31,7 @@ export default async function SetPage({ params }: { params: Params }) {
   const { setId } = await params;
   const set = await getSet(setId);
   if (!set) notFound();
-  const [cards, player] = await Promise.all([getSetCards(set.id), getCurrentPlayerSafe()]);
+  const [cards, player, logo] = await Promise.all([getSetCards(set.id), getCurrentPlayerSafe(), resolveLogo(set.logo)]);
   const [owned, completion] = player
     ? await Promise.all([
         getOwnedCounts(player.id, set.id),
@@ -54,7 +55,7 @@ export default async function SetPage({ params }: { params: Params }) {
 
       <header className="grid items-center gap-6 rounded-[calc(var(--radius-card)*1.4)] border border-line bg-surface p-5 sm:grid-cols-[minmax(0,15rem)_1fr] sm:p-8">
         <div className="flex h-24 items-center justify-center sm:h-32">
-          <SetLogo logo={set.logo} name={set.name} />
+          <SetLogo logo={logo} name={set.name} priority />
         </div>
         <div className="grid gap-3">
           <h1 className="font-display text-2xl leading-tight font-bold sm:text-4xl">{set.name}</h1>

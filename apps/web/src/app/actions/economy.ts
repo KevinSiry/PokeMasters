@@ -4,6 +4,7 @@ import type { Tier } from "@pokeflex/config";
 import { InsufficientFundsError } from "@pokeflex/game";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
+import { checkActionRate } from "@/lib/rate-limit";
 import {
   claimQuest,
   previewDuplicates,
@@ -24,6 +25,8 @@ async function userId() {
 async function run<T>(fn: (uid: string) => Promise<T>, label: string): Promise<Result<T>> {
   const uid = await userId();
   if (!uid) return { ok: false, error: "Connecte-toi pour continuer." };
+  const limited = checkActionRate(uid, "economy");
+  if (limited) return { ok: false, error: limited };
   try {
     const data = await fn(uid);
     revalidatePath("/", "layout");

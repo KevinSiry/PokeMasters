@@ -39,3 +39,27 @@ test.describe("pages publiques", () => {
     expect(overflow).toBeLessThanOrEqual(0);
   });
 });
+
+test.describe("référencement", () => {
+  test("robots.txt exclut l'espace joueur et pointe vers le sitemap", async ({ request }) => {
+    const body = await (await request.get("/robots.txt")).text();
+    expect(body).toContain("Disallow: /collection");
+    expect(body).toMatch(/Sitemap: .*\/sitemap\.xml/);
+  });
+
+  test("le sitemap liste les sets et les fiches de carte", async ({ request }) => {
+    const res = await request.get("/sitemap.xml");
+    expect(res.ok()).toBe(true);
+    const body = await res.text();
+    expect(body).toContain("/catalogue/base1</loc>");
+    expect(body).toContain("/cartes/base1-4</loc>");
+  });
+
+  test("l'image de partage est générée", async ({ page, request }) => {
+    await page.goto("/");
+    const og = await page.locator('meta[property="og:image"]').getAttribute("content");
+    expect(og).toBeTruthy();
+    const res = await request.get(new URL(og!).pathname + new URL(og!).search);
+    expect(res.headers()["content-type"]).toBe("image/png");
+  });
+});

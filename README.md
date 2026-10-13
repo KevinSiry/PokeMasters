@@ -161,6 +161,7 @@ apps/web         Next.js (App Router) : pages, connexion, actions serveur
 apps/realtime    Serveur Socket.IO (messagerie) et tâches de fond
 packages/db      Schéma Prisma, migrations, seed, client partagé
 packages/game    Logique métier pure et testée (minuteur, tirages, économie)
+packages/server  Services en base (boosters, marché, social, registre des Jetons)
 config/game.ts   Tous les paramètres d'équilibrage
 ```
 
