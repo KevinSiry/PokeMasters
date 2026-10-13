@@ -53,8 +53,8 @@ export default async function SetPage({ params }: { params: Params }) {
         </Link>
       </nav>
 
-      <header className="grid items-center gap-6 rounded-[calc(var(--radius-card)*1.4)] border border-line bg-surface p-5 sm:grid-cols-[minmax(0,15rem)_1fr] sm:p-8">
-        <div className="flex h-24 items-center justify-center sm:h-32">
+      <header className="grid items-center gap-4 rounded-[calc(var(--radius-card)*1.4)] border border-line bg-surface p-5 sm:grid-cols-[minmax(0,15rem)_1fr] sm:gap-6 sm:p-8">
+        <div className="flex h-16 items-center justify-center sm:h-32">
           <SetLogo logo={logo} name={set.name} priority />
         </div>
         <div className="grid gap-3">
