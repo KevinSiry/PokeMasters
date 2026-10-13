@@ -8,6 +8,7 @@ import {
   countWishers,
   getCardListState,
   getFavorites,
+  getOwnedCopyCounts,
   getProfileWishlist,
   getWishlist,
   ListError,
@@ -139,6 +140,18 @@ describe.skipIf(skip)("favoris et wishlist (Postgres)", () => {
     for (const id of new Set(pulled)) await setWishlisted(fan, id, true);
     await openFreeBooster(fan, seededRng(7));
     expect(await getWishlist(fan)).toEqual([]);
+  });
+
+  it("compte les exemplaires possédés par carte, en vente compris", async () => {
+    const seller = await newUser();
+    const [a] = await give(seller, cardIds[0]!, 2);
+    await give(seller, cardIds[1]!);
+    await createListing(seller, { copyId: a!.id, type: "fixed", price: 50 });
+    const counts = await getOwnedCopyCounts(seller, [cardIds[0]!, cardIds[1]!, cardIds[2]!, cardIds[0]!]);
+    expect(counts.get(cardIds[0]!)).toBe(2);
+    expect(counts.get(cardIds[1]!)).toBe(1);
+    expect(counts.has(cardIds[2]!)).toBe(false);
+    expect((await getOwnedCopyCounts(seller, [])).size).toBe(0);
   });
 
   it("alerte les joueurs qui recherchent la carte, sauf blocage, et seulement à la demande du vendeur", async () => {

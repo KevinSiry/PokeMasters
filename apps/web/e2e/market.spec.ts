@@ -21,9 +21,12 @@ test.describe("marché", () => {
     test("achète une carte au prix fixe", async ({ page }) => {
       await page.goto("/marche?type=fixed&tri=price_asc");
       await page.locator('main a[href^="/marche/c"]').first().click();
+      await expect(page.getByText(/^(Déjà obtenue|Pas encore obtenue)/)).toBeVisible();
       await page.getByRole("button", { name: "Acheter" }).click();
       await page.getByRole("dialog").getByRole("button", { name: /Payer/ }).click();
       await expect(page.getByRole("heading", { name: "Carte achetée !" })).toBeVisible();
+      await page.reload();
+      await expect(page.getByRole("link", { name: /Déjà obtenue/ })).toBeVisible();
     });
 
     test("enchérit sur une enchère", async ({ page }) => {

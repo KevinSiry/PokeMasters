@@ -1,6 +1,6 @@
 import { FINISH_LABELS_FR } from "@pokeflex/config";
 import type { ListingView } from "@pokeflex/server";
-import { Gavel, Heart, Timer } from "lucide-react";
+import { Check, Gavel, Heart, Timer } from "lucide-react";
 import Link from "next/link";
 import { CardImage } from "@/components/card-image";
 import { Jetons } from "@/components/jetons";
@@ -8,8 +8,11 @@ import { Countdown } from "@/components/market/countdown";
 import { TIER_ICON } from "@/components/tier-badge";
 import { cn } from "@/lib/utils";
 
-/** Vignette d'annonce : carte, finition, prix ou enchère courante, temps restant. */
-export function ListingTile({ l, mine, wished, priority }: { l: ListingView; mine?: boolean; wished?: boolean; priority?: boolean }) {
+/**
+ * Vignette d'annonce : carte, finition, prix ou enchère courante, temps restant.
+ * `owned` (joueur connecté) : exemplaires de la carte déjà dans sa collection, toutes finitions confondues.
+ */
+export function ListingTile({ l, mine, wished, owned, priority }: { l: ListingView; mine?: boolean; wished?: boolean; owned?: number; priority?: boolean }) {
   const amount = l.type === "auction" ? (l.currentBid ?? l.price) : l.price;
   return (
     <Link href={`/marche/${l.id}`} className="pf-tile group grid gap-2 rounded-[var(--radius-card)] outline-none" data-tier={l.card.tier}>
@@ -23,11 +26,24 @@ export function ListingTile({ l, mine, wished, priority }: { l: ListingView; min
             {FINISH_LABELS_FR[l.finish]}
           </span>
         )}
-        {wished && !mine && (
-          <span className="absolute right-1.5 bottom-1.5 grid size-6 place-items-center rounded-full bg-bg/85 text-coral backdrop-blur">
-            <Heart aria-label="Dans ta wishlist" className="size-3.5 fill-current" />
-          </span>
-        )}
+        {!mine &&
+          (wished ? (
+            <span className="absolute right-1.5 bottom-1.5 grid size-6 place-items-center rounded-full bg-bg/85 text-coral backdrop-blur">
+              <Heart aria-label="Dans ta wishlist, pas encore obtenue" className="size-3.5 fill-current" />
+            </span>
+          ) : owned === undefined ? null : owned > 0 ? (
+            <span
+              className="absolute right-1.5 bottom-1.5 inline-flex items-center gap-0.5 rounded-full bg-bg/85 px-1.5 py-0.5 font-mono text-[10px] font-bold text-lime backdrop-blur"
+              title={`Déjà obtenue : ${owned} exemplaire${owned > 1 ? "s" : ""}`}
+            >
+              <Check aria-hidden="true" className="size-3" strokeWidth={3} />
+              <span className="sr-only">Déjà obtenue, exemplaires :</span>×{owned}
+            </span>
+          ) : (
+            <span className="absolute right-1.5 bottom-1.5 rounded-full bg-lime px-1.5 text-[10px] font-black text-bg" title="Pas encore dans ta collection">
+              NEW<span className="sr-only"> : pas encore obtenue</span>
+            </span>
+          ))}
         {l.type === "auction" && l.endsAt && l.status === "active" && (
           <span className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 rounded-full bg-bg/85 px-2 py-0.5 text-[11px] backdrop-blur">
             <Timer aria-hidden="true" className="size-3" />

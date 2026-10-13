@@ -1,6 +1,6 @@
 import { TIER_LABELS_FR, TIERS, type Tier } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
-import { closeDueAuctions, getHeldBids, getMarketListings, getWishlistCardIds, type MarketSort } from "@pokeflex/server";
+import { closeDueAuctions, getHeldBids, getMarketListings, getOwnedCopyCounts, getWishlistCardIds, type MarketSort } from "@pokeflex/server";
 import { Gavel, Heart, Search, Store, Tag } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -45,7 +45,9 @@ export default async function MarketPage({ searchParams }: { searchParams: Searc
     prisma.sale.count({ where: { createdAt: { gte: new Date(Date.now() - 24 * 3_600_000) } } }),
   ]);
   const wished = new Set(wishIds);
-  const held = player ? await getHeldBids(player.id) : null;
+  const [held, owned] = player
+    ? await Promise.all([getHeldBids(player.id), getOwnedCopyCounts(player.id, result.listings.map((l) => l.card.id))])
+    : [null, null];
 
   const qs = (patch: Record<string, string | undefined>) => {
     const p = new URLSearchParams();
@@ -171,7 +173,7 @@ export default async function MarketPage({ searchParams }: { searchParams: Searc
         <ul className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
           {result.listings.map((l, i) => (
             <li key={l.id} className="min-w-0">
-              <ListingTile l={l} mine={l.seller.id === player?.id} wished={wished.has(l.card.id)} priority={i < 12} />
+              <ListingTile l={l} mine={l.seller.id === player?.id} wished={wished.has(l.card.id)} owned={owned ? (owned.get(l.card.id) ?? 0) : undefined} priority={i < 12} />
             </li>
           ))}
         </ul>
