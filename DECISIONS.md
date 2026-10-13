@@ -46,6 +46,7 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 - **Finition tirée parmi les variantes réelles** de la carte (normale, reverse, holo, 1re édition) selon les poids de `config/game.ts` ; sans variante connue, finition normale.
 - **Pools de tirage en mémoire** (ids par tier, rafraîchis toutes les 10 minutes) : l'ouverture ne scanne pas 21 000 cartes. Le tier enregistré est celui du tirage.
 - **Animation avec `motion`** (ex-Framer Motion) : machine d'états charge → déchirure → révélation → récapitulatif, suspense et lueur proportionnels à la rareté, flash et rayons pour Légendaire et Mythique, retour haptique, clavier (Espace, Entrée, flèche droite), balayage, « Tout révéler ». Tout est respecté en mouvement réduit.
+- **Stock maximal de boosters gratuits porté à 10** (demande de Kevin, 2026-10-13, au lieu de 6) : toujours un booster toutes les 10 minutes, la réserve se remplit donc en 1 h 40 au lieu d'une heure.
 - **Dos de carte original PokeFlex** : aucun visuel officiel n'est copié.
 - **Pokédex de cartes par génération** : un Pokémon compte comme « vu » dès qu'une de ses cartes est possédée ; les cartes non possédées s'affichent en silhouette.
 - **Collections de démo simulées par le seed** (RNG à graine fixe : 120 boosters pour demo-collection, 60 pour demo-marchand) afin de voir la collection, le Pokédex et plus tard le marché remplis.

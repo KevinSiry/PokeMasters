@@ -5,6 +5,7 @@
 import { randomBytes } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { gameConfig } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
 
 export const AUTH_DIR = path.resolve(process.cwd(), "playwright/.auth");
@@ -40,7 +41,7 @@ export default async function globalSetup() {
     const user = await prisma.user.findUnique({ where: { handle } });
     if (!user) throw new Error(`Compte ${handle} absent : lance npm run db:seed avant les tests e2e.`);
     if (handle === "demo-dresseur") {
-      await prisma.user.update({ where: { id: user.id }, data: { boosterStock: 6, boosterAnchorAt: new Date() } });
+      await prisma.user.update({ where: { id: user.id }, data: { boosterStock: gameConfig.boosters.maxStock, boosterAnchorAt: new Date() } });
     }
     if (handle !== "demo-dresseur" && user.balance < 1000) {
       // Les parcours économie et marché dépensent des Jetons : on recharge, inscrit au registre comme tout mouvement.

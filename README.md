@@ -100,7 +100,7 @@ Sans import, `npm run db:seed` charge un petit échantillon (Set de Base et 151)
 
 ### Jouer
 
-Connecte-toi (en développement, avec un compte de démo), puis ouvre l'onglet **Boosters** : un booster gratuit se recharge toutes les 10 minutes, jusqu'à 6 en réserve (réglable dans `config/game.ts`). Les cartes tirées rejoignent ta **Collection** (progression par set, Pokédex par génération, illustrateurs). Le compte **demo-collection** a déjà 600 cartes pour voir une collection remplie.
+Connecte-toi (en développement, avec un compte de démo), puis ouvre l'onglet **Boosters** : un booster gratuit se recharge toutes les 10 minutes, jusqu'à 10 en réserve (réglable dans `config/game.ts`). Les cartes tirées rejoignent ta **Collection** (progression par set, Pokédex par génération, illustrateurs). Le compte **demo-collection** a déjà 600 cartes pour voir une collection remplie.
 
 Les **Jetons** (sans valeur réelle) se gagnent en recyclant des cartes, en terminant les quêtes du jour et en complétant des sets. Ils servent à acheter des boosters d'un set précis (onglet Boosters, « Boosters de set »). L'historique est dans le menu de l'avatar, « Mes Jetons ».
 

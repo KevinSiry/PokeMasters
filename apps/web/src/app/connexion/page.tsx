@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { gameConfig } from "@pokeflex/config";
 import { signIn } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { configuredProviders, devLoginEnabled } from "@/lib/env";
@@ -8,7 +9,7 @@ import { getCurrentPlayerSafe } from "@/lib/player";
 export const metadata: Metadata = { title: "Connexion" };
 
 const DEMO_ACCOUNTS = [
-  { handle: "demo-dresseur", label: "Dresseur Démo · 6 boosters, collection vide" },
+  { handle: "demo-dresseur", label: `Dresseur Démo · ${gameConfig.boosters.maxStock} boosters, collection vide` },
   { handle: "demo-collection", label: "Collectionneuse Démo · 600 cartes" },
   { handle: "demo-marchand", label: "Marchand Démo · 300 cartes, 0 booster" },
 ];
