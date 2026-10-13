@@ -180,7 +180,7 @@ model Card {
   name           String
   /// Langue des données affichées (badge « EN » quand la version française n'existe pas).
   lang           Lang
-  /// URL de base sur le CDN TCGdex (on ajoute /low.webp ou /high.webp) ; null → visuel de remplacement.
+  /// URL de base sur le CDN TCGdex (on ajoute /low.webp ou /high.webp), ou images.pokemontcg.io en repli ; null → visuel de remplacement.
   image          String?
   imageLang      Lang?
   category       CardCategory

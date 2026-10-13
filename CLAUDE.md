@@ -4,5 +4,5 @@
 - Plan validé : `docs/plan-v1.md`. On avance phase par phase, une PR par phase ; à la fin de chaque phase, lint + typecheck + tests + build verts et récap.
 - Toute valeur d'équilibrage va dans `config/game.ts` ; toute décision dans `DECISIONS.md`.
 - La logique métier va dans `packages/game` (pure, sans I/O, testée avec Vitest). Le serveur est autoritaire : le client n'envoie que des intentions.
-- Ne jamais re-héberger les images de cartes : URLs du CDN `assets.tcgdex.net`.
+- Ne jamais re-héberger les images de cartes : URLs du CDN `assets.tcgdex.net` (repli : `images.pokemontcg.io`).
 - Vérifs avant PR : `npm run lint && npm run typecheck && npm test && npm run build && npm run test:e2e`.

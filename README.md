@@ -94,6 +94,7 @@ Ensuite, le serveur temps réel (`npm run dev`) vérifie chaque jour s'il y a de
 | `npm run sync:catalog -- --prices` | Rotation des prix du jour |
 | `npm run sync:catalog -- --retier` | Recalcule les tiers après une modification de `config/rarities.ts` |
 | `npm run sync:catalog -- --names` | Redonne un nom français aux cartes importées en anglais (fait aussi à chaque synchro) |
+| `npm run sync:catalog -- --images` | Image anglaise de repli (Pokémon TCG API) pour les cartes que TCGdex n'a pas scannées (fait aussi à chaque synchro) |
 
 Sans import, `npm run db:seed` charge un petit échantillon (Set de Base et 151) pour découvrir le jeu.
 

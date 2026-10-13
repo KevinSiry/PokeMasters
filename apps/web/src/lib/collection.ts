@@ -54,7 +54,7 @@ export const getSetProgress = cache(
              count(DISTINCT cc."cardId") AS owned
       FROM "Set" s
       JOIN "Serie" se ON se.id = s."serieId"
-      JOIN "Card" c ON c."setId" = s.id
+      JOIN "Card" c ON c."setId" = s.id AND c.droppable
       LEFT JOIN "CardCopy" cc ON cc."cardId" = c.id AND cc."ownerId" = ${userId}
       GROUP BY s.id, se.name, se."firstReleaseDate"
       ORDER BY se."firstReleaseDate" DESC NULLS LAST, s."releaseDate" DESC NULLS LAST`;
@@ -146,7 +146,7 @@ export async function getDex(userId: string, from: number, to: number): Promise<
     WITH cards AS (
       SELECT c.id, c.name, c.image, c.lang, c."sortKey", s."releaseDate", unnest(c."dexIds") AS dex
       FROM "Card" c JOIN "Set" s ON s.id = c."setId"
-      WHERE c.category = 'pokemon' AND c."dexIds" && (SELECT array_agg(g)::int[] FROM generate_series(${from}::int, ${to}::int) g)
+      WHERE c.droppable AND c.category = 'pokemon' AND c."dexIds" && (SELECT array_agg(g)::int[] FROM generate_series(${from}::int, ${to}::int) g)
     ),
     owned AS (SELECT DISTINCT "cardId" FROM "CardCopy" WHERE "ownerId" = ${userId}),
     ranked AS (
@@ -177,7 +177,7 @@ export async function getIllustratorProgress(userId: string, limit = 60): Promis
     WITH owned AS (SELECT DISTINCT "cardId" FROM "CardCopy" WHERE "ownerId" = ${userId})
     SELECT c.illustrator AS name, count(*) AS total, count(o."cardId") AS owned
     FROM "Card" c LEFT JOIN owned o ON o."cardId" = c.id
-    WHERE c.illustrator IS NOT NULL
+    WHERE c.illustrator IS NOT NULL AND c.droppable
     GROUP BY c.illustrator
     ORDER BY count(o."cardId") DESC, count(*) DESC
     LIMIT ${limit}`;

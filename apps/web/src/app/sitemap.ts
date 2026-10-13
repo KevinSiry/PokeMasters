@@ -9,8 +9,9 @@ export const dynamic = "force-dynamic";
 /** Pages publiques, sets et fiches de carte (environ 21 000 URL, sous la limite de 50 000 par fichier). */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [sets, cards] = await Promise.all([
-    prisma.set.findMany({ select: { id: true, syncedAt: true } }),
-    prisma.card.findMany({ select: { id: true, syncedAt: true } }),
+    // Comme le catalogue : seulement les cartes tirables et les sets qui en ont.
+    prisma.set.findMany({ where: { cards: { some: { droppable: true } } }, select: { id: true, syncedAt: true } }),
+    prisma.card.findMany({ where: { droppable: true }, select: { id: true, syncedAt: true } }),
   ]);
   const pages: MetadataRoute.Sitemap = [
     { url: `${base}/`, changeFrequency: "weekly", priority: 1 },
