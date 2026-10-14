@@ -37,7 +37,9 @@ export const RARITY_TIERS: Record<string, Tier> = {
   "Rare PRIME": "epic",
   "Radieux Rare": "epic",
   "Radiant Rare": "epic",
+  // ACE SPEC (FR « HIGH-TECH ») : une par booster au mieux, comme au plan v1.
   "ACE SPEC Rare": "epic",
+  "HIGH-TECH rare": "epic",
   "Pikachu Rare": "epic",
 
   // ── Légendaire ──
@@ -55,8 +57,6 @@ export const RARITY_TIERS: Record<string, Tier> = {
   Magnifique: "legendary",
   "Magnifique rare": "legendary",
   "Amazing Rare": "legendary",
-  "Futuristic Rare": "legendary",
-  "HIGH-TECH rare": "legendary",
 
   // ── Mythique ──
   "Secret Rare": "mythic",
@@ -67,6 +67,8 @@ export const RARITY_TIERS: Record<string, Tier> = {
   "Shiny Ultra Rare": "mythic",
   "Méga Hyper Rare": "mythic",
   "Mega Hyper Rare": "mythic",
+  // 30ᵉ Anniversaire : ~1 booster sur 100, plus rare que les Illustration spéciale (~1 sur 20).
+  "Futuristic Rare": "mythic",
   "Rare Noir Blanc": "mythic",
   "Black White Rare": "mythic",
 };
