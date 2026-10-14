@@ -138,6 +138,7 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 
 - Les pages lisent la session dans le layout (minuteur dans l'en-tête), donc elles sont rendues dynamiquement côté serveur. Le HTML reste complet pour le référencement. Pas de cache de pages en phase 8 : l'en-tête est personnalisé et les requêtes du catalogue sont déjà rapides.
 - Mode sombre uniquement pour l'instant (« sombre par défaut ») ; un thème clair pourra venir en phase 8.
+- **Arrondi des cartes proportionnel** (demande de Kevin, 2026-10-13) : toute image de carte (vignettes, fiche, ouverture de booster) prend `--radius-card-image`, soit 4,5 % de sa largeur, pour épouser les coins de l'image à toutes les tailles. `--radius-card` (fixe) reste réservé aux panneaux.
 
 ## Mobile (demande de Kevin, 2026-10-13)
 

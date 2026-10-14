@@ -31,6 +31,9 @@
   --font-mono: var(--font-space-mono), ui-monospace, Consolas, monospace;
 
   --radius-card: 0.9rem;
+  /* Arrondi d'une carte (format 63/88) proportionnel à sa largeur, pour épouser les coins
+     de l'image quelle que soit la taille : 4,5 % de la largeur = 3,22 % de la hauteur. */
+  --radius-card-image: 4.5% / 3.22%;
 }
 
 @layer base {
@@ -91,7 +94,7 @@
   --my: 50%;
   position: relative;
   aspect-ratio: 63 / 88;
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-card-image);
   transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry));
   transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
   transform-style: preserve-3d;
@@ -344,7 +347,7 @@
 .pf-card-back {
   position: relative;
   aspect-ratio: 63 / 88;
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-card-image);
   background:
     radial-gradient(circle at 50% 50%, rgb(139 108 255 / 0.55), transparent 55%),
     repeating-conic-gradient(from 0deg at 50% 50%, #1D1238 0deg 10deg, #24174A 10deg 20deg),

@@ -25,7 +25,7 @@ export function CardTile({ card, subtitle, priority, missing, badge, href, class
       data-tier={hideTier ? undefined : card.tier}
       data-missing={missing || undefined}
     >
-      <div className="pf-tile-frame relative rounded-[var(--radius-card)]">
+      <div className="pf-tile-frame relative rounded-[var(--radius-card-image)]">
         <CardImage image={card.image} name={card.name} priority={priority} className={cn(missing && "pf-silhouette")} />
         {!hideTier && <span
           aria-hidden="true"

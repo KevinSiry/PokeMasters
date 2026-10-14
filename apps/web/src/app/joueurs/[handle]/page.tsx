@@ -156,7 +156,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ handle:
               <li key={c.id}>
                 <Link href={`/cartes/${c.id}`} className="group grid gap-2">
                   <div className="transition-transform duration-300 group-hover:-translate-y-1 group-hover:rotate-[-1deg]">
-                    <CardImage image={c.image} name={c.name} className="rounded-[var(--radius-card)] shadow-[0_14px_30px_-14px_rgb(0_0_0/0.8)]" />
+                    <CardImage image={c.image} name={c.name} className="rounded-[var(--radius-card-image)] shadow-[0_14px_30px_-14px_rgb(0_0_0/0.8)]" />
                   </div>
                   <span className="grid gap-0.5 text-xs">
                     <span className="truncate font-semibold">{c.name}</span>

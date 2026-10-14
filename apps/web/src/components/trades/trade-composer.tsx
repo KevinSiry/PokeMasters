@@ -84,7 +84,7 @@ function Picker({
                 >
                   <span
                     className={cn(
-                      "pf-tile-frame relative block rounded-[var(--radius-card)]",
+                      "pf-tile-frame relative block rounded-[var(--radius-card-image)]",
                       on && "ring-[3px] ring-lime ring-offset-2 ring-offset-bg",
                     )}
                   >

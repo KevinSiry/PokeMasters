@@ -16,7 +16,7 @@ export function ListingTile({ l, mine, wished, owned, priority }: { l: ListingVi
   const amount = l.type === "auction" ? (l.currentBid ?? l.price) : l.price;
   return (
     <Link href={`/marche/${l.id}`} className="pf-tile group grid gap-2 rounded-[var(--radius-card)] outline-none" data-tier={l.card.tier}>
-      <div className="pf-tile-frame relative rounded-[var(--radius-card)]">
+      <div className="pf-tile-frame relative rounded-[var(--radius-card-image)]">
         <CardImage image={l.card.image} name={l.card.name} priority={priority} />
         <span aria-hidden="true" className="pf-tier-pip absolute top-1.5 right-1.5 grid size-6 place-items-center rounded-full bg-bg/85 text-[11px] backdrop-blur">
           {TIER_ICON[l.card.tier]}

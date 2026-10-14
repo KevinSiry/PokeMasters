@@ -32,7 +32,7 @@ function ItemRow({ items, pending }: { items: TradeItemView[]; pending: boolean 
       {items.map((i) => (
         <li key={i.id} className="w-[4.5rem] sm:w-20">
           <Link href={`/cartes/${i.cardId}`} className="pf-tile group grid gap-1" data-tier={i.tier}>
-            <div className={cn("pf-tile-frame relative rounded-[var(--radius-card)]", pending && !i.available && "opacity-40 grayscale")}>
+            <div className={cn("pf-tile-frame relative rounded-[var(--radius-card-image)]", pending && !i.available && "opacity-40 grayscale")}>
               <CardImage image={i.image} name={i.name} />
               {i.finish !== "normal" && (
                 <span className="absolute right-1 bottom-1 rounded bg-bg/85 px-1 py-0.5 font-mono text-[9px] font-bold backdrop-blur">

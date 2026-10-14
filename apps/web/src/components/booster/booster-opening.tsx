@@ -607,7 +607,7 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
                           onPointerLeave={onCardPointerLeave}
                           aria-label={flipped ? `${current.name}, ${TIER_LABELS_FR[current.tier]}. Carte suivante` : "Retourner la carte"}
                           data-tier={current.tier}
-                          className={cn("relative block w-full rounded-[var(--radius-card)] [perspective:1200px]", suspense && "pf-leak")}
+                          className={cn("relative block w-full rounded-[var(--radius-card-image)] [perspective:1200px]", suspense && "pf-leak")}
                           animate={
                             suspense && !reduced
                               ? { x: [0, -4, 4, -5, 5, -2, 2, 0], rotate: [0, -1, 1, -1.5, 1.5, 0], transition: { duration: 0.45, repeat: Infinity } }
@@ -767,7 +767,7 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
                 animate={{ opacity: 1, y: 0, rotate: 0 }}
                 transition={{ delay: reduced ? 0 : i * 0.07, type: "spring", stiffness: 220, damping: 20 }}
               >
-                <Link href={`/cartes/${c.id}`} className="rounded-[var(--radius-card)]" aria-label={`${c.name}, ${TIER_LABELS_FR[c.tier]}`}>
+                <Link href={`/cartes/${c.id}`} className="rounded-[var(--radius-card-image)]" aria-label={`${c.name}, ${TIER_LABELS_FR[c.tier]}`}>
                   <TiltCard image={c.image} name={c.name} tier={c.tier} quality="high" />
                 </Link>
                 <PullBadges card={c} compact />
