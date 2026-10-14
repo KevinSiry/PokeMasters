@@ -14,6 +14,7 @@ import {
   declineTrade,
   getCardTraders,
   getTradeComposer,
+  getTradePickerPage,
   getTrades,
   getTradeSuggestions,
   proposeTrade,
@@ -116,7 +117,7 @@ describe.skipIf(skip)("échanges (Postgres)", () => {
     await setFavorite(b, cardIds[1]!, true);
     expect(await code(acceptTrade(b, tradeId))).toBe("favorite");
     // Les favoris n'apparaissent pas parmi les cartes échangeables.
-    expect((await getTradeComposer(a, b)).theirs).toEqual([]);
+    expect((await getTradeComposer(a, b)).theirs.groups).toEqual([]);
     await setFavorite(b, cardIds[1]!, false);
     await acceptTrade(b, tradeId);
   });
@@ -210,14 +211,49 @@ describe.skipIf(skip)("échanges (Postgres)", () => {
     expect(mine?.cards.map((c) => c.id)).toEqual([cardIds[1]]);
     expect((await getCardTraders(cardIds[1]!, a, 100)).find((p) => p.id === b)?.copies).toBe(3);
 
-    const composer = await getTradeComposer(a, b);
+    const composer = await getTradeComposer(a, b, { take: [cardIds[1]!], give: [`${cardIds[0]}:normal`, `${cardIds[0]}:holo`] });
     // La carte recherchée vient en premier, une ligne par finition.
-    expect(composer.theirs[0]!.wished).toBe(true);
-    expect(composer.theirs.filter((g) => g.cardId === cardIds[1]).map((g) => [g.finish, g.count, g.isNew]).sort()).toEqual([
+    expect(composer.theirs.groups[0]!.wished).toBe(true);
+    expect([composer.theirs.wished, composer.theirs.wishedCards]).toEqual([2, 1]);
+    expect(composer.theirs.groups.filter((g) => g.cardId === cardIds[1]).map((g) => [g.finish, g.count, g.isNew]).sort()).toEqual([
       ["holo", 1, true],
       ["normal", 2, true],
     ]);
-    expect(composer.mine.map((g) => g.cardId)).toEqual([cardIds[0]]);
+    expect(composer.mine.groups.map((g) => g.cardId)).toEqual([cardIds[0]]);
+    // Présélection : une carte sans finition prend la première disponible, une finition absente est ignorée.
+    expect(composer.selectedTheirs.map((g) => g.cardId)).toEqual([cardIds[1]]);
+    expect(composer.selectedMine.map((g) => `${g.cardId}:${g.finish}`)).toEqual([`${cardIds[0]}:normal`]);
+    expect(composer.theirWishlist).toBe(0);
+  });
+
+  it("pagine les cartes échangeables, avec recherche et filtre wishlist côté serveur", async () => {
+    const size = gameConfig.trades.pickerPageSize;
+    const many = (await prisma.card.findMany({ where: { droppable: true }, orderBy: { id: "asc" }, take: size + 5, select: { id: true, name: true } })).filter(
+      (c, i, all) => all.findIndex((o) => o.name === c.name) === i,
+    );
+    const [a, b] = [await newUser(), await newUser()];
+    await prisma.cardCopy.createMany({ data: many.map((c) => ({ ownerId: a, cardId: c.id, finish: "normal" as const, obtainedVia: "seed" as const })) });
+    await give(b, cardIds[0]!);
+    const wanted = many.at(-1)!;
+    await setWishlisted(b, wanted.id, true);
+
+    const first = await getTradePickerPage(a, b, "mine");
+    expect(first.total).toBe(many.length);
+    expect(first.groups).toHaveLength(Math.min(size, many.length));
+    // La carte que l'autre recherche passe devant, sur la première page.
+    expect(first.groups[0]!.cardId).toBe(wanted.id);
+    if (many.length > size) {
+      const last = await getTradePickerPage(a, b, "mine", { page: 99 });
+      expect([last.page, last.pageCount, last.groups.length]).toEqual([2, 2, many.length - size]);
+      expect(last.groups.some((g) => first.groups.some((f) => f.cardId === g.cardId))).toBe(false);
+    }
+
+    const wished = await getTradePickerPage(a, b, "mine", { onlyWished: true });
+    expect([wished.total, wished.wished, wished.groups.map((g) => g.cardId)]).toEqual([1, 1, [wanted.id]]);
+    const found = await getTradePickerPage(a, b, "mine", { q: wanted.name.toUpperCase() });
+    expect(found.groups.map((g) => g.cardId)).toContain(wanted.id);
+    expect((await getTradePickerPage(a, b, "mine", { q: "zzz-introuvable" })).total).toBe(0);
+    expect((await getTradeComposer(a, b)).theirWishlist).toBe(1);
   });
 
   it("limite le nombre de propositions en attente", async () => {

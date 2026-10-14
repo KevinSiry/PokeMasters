@@ -58,4 +58,35 @@ test.describe("échanges", () => {
       await other.close();
     }
   });
+
+  test("pagine les cartes et filtre sur la wishlist de l'autre joueur", async ({ page }) => {
+    const [fan, seller] = await Promise.all(["demo-collection", "demo-marchand"].map((handle) => prisma.user.findUniqueOrThrow({ where: { handle }, select: { id: true } })));
+    // Une carte que le joueur peut échanger, mise dans la wishlist de l'autre le temps du test.
+    const mineCopy = await prisma.cardCopy.findFirstOrThrow({
+      where: { ownerId: fan!.id, status: "owned", card: { favoritedBy: { none: { userId: fan!.id } }, copies: { none: { ownerId: seller!.id } } } },
+      orderBy: { cardId: "asc" },
+      select: { cardId: true, card: { select: { name: true } } },
+    });
+    await prisma.wishlistCard.create({ data: { userId: seller!.id, cardId: mineCopy.cardId } });
+    try {
+      await page.goto("/echanges/nouveau?avec=demo-marchand");
+      const theirs = page.getByRole("tabpanel", { name: "Cartes de Marchand Démo" });
+      await expect(theirs.getByText(/page 1 \/ \d+/)).toBeVisible();
+      await expect(theirs.locator("li button[aria-pressed]")).toHaveCount(60);
+      await theirs.getByRole("button", { name: "Page suivante" }).click();
+      await expect(theirs.getByText(/page 2 \/ \d+/)).toBeVisible();
+
+      await page.getByRole("tab", { name: /Tu proposes/ }).click();
+      const mine = page.getByRole("tabpanel", { name: "Tes cartes" });
+      await expect(mine.getByText(/Marchand Démo recherche 1 carte : tu en as 1 à lui proposer/)).toBeVisible();
+      await mine.getByRole("button", { name: /Sa wishlist/ }).click();
+      // Une vignette par finition de la carte recherchée.
+      const tiles = mine.locator("li button[aria-pressed]");
+      const finishes = (await prisma.cardCopy.groupBy({ by: ["finish"], where: { ownerId: fan!.id, cardId: mineCopy.cardId, status: "owned" } })).length;
+      await expect(tiles).toHaveCount(finishes);
+      for (const name of await tiles.allInnerTexts()) expect(name).toContain(mineCopy.card.name);
+    } finally {
+      await prisma.wishlistCard.deleteMany({ where: { userId: seller!.id, cardId: mineCopy.cardId } });
+    }
+  });
 });

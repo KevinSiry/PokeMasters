@@ -1,12 +1,14 @@
 "use client";
 
 import { FINISH_LABELS_FR } from "@pokeflex/config";
-import type { PlayerRef, TradeableGroup } from "@pokeflex/server";
-import { ArrowDownLeft, ArrowUpRight, Check, Heart, Loader2, Search, Send, Sparkles } from "lucide-react";
+import type { PlayerRef, TradeableGroup, TradePickerPage, TradeSide } from "@pokeflex/server";
+import { ArrowDownLeft, ArrowUpRight, Check, Heart, Loader2, Search, Send, Sparkles, X } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
-import { proposeTradeAction } from "@/app/actions/trades";
+import { type ReactNode, useEffect, useRef, useState, useTransition } from "react";
+import { proposeTradeAction, tradePickerPageAction } from "@/app/actions/trades";
 import { CardImage } from "@/components/card-image";
+import { Pagination } from "@/components/pagination";
 import { TIER_ICON } from "@/components/tier-badge";
 import { toast } from "@/components/toaster";
 import { Button } from "@/components/ui/button";
@@ -16,36 +18,67 @@ import { cn } from "@/lib/utils";
 const keyOf = (g: { cardId: string; finish: string }) => `${g.cardId}:${g.finish}`;
 
 function Picker({
-  groups,
+  otherId,
+  side,
+  initial,
   selected,
   onToggle,
   wishedLabel,
+  intro,
   empty,
   full,
 }: {
-  groups: TradeableGroup[];
-  selected: Set<string>;
-  onToggle: (key: string) => void;
+  otherId: string;
+  side: TradeSide;
+  initial: TradePickerPage;
+  selected: Map<string, TradeableGroup>;
+  onToggle: (group: TradeableGroup) => void;
   wishedLabel: string;
+  intro?: ReactNode;
   empty: string;
   full: boolean;
 }) {
   const [q, setQ] = useState("");
   const [onlyWished, setOnlyWished] = useState(false);
-  const hasWished = groups.some((g) => g.wished);
-  const shown = useMemo(() => {
-    const needle = q.trim().toLocaleLowerCase("fr").normalize("NFD").replace(/\p{M}/gu, "");
-    return groups.filter(
-      (g) =>
-        (!onlyWished || g.wished) &&
-        (!needle || `${g.name} ${g.setName}`.toLocaleLowerCase("fr").normalize("NFD").replace(/\p{M}/gu, "").includes(needle)),
-    );
-  }, [groups, q, onlyWished]);
+  const [page, setPage] = useState(1);
+  const [data, setData] = useState(initial);
+  const [loading, setLoading] = useState(false);
+  const top = useRef<HTMLDivElement>(null);
+  const request = useRef(0);
+  const first = useRef(true);
 
-  if (groups.length === 0) return <p className="rounded-2xl border border-dashed border-line p-6 text-center text-sm text-muted">{empty}</p>;
+  // Recherche et pagination côté serveur : une collection complète ne tient pas dans le navigateur.
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    const id = ++request.current;
+    setLoading(true);
+    const timer = setTimeout(async () => {
+      const res = await tradePickerPageAction({ other: otherId, side, q, onlyWished, page });
+      if (id !== request.current) return;
+      setLoading(false);
+      if (!res.ok) {
+        toast({ title: res.error, tone: "error" });
+        return;
+      }
+      setData(res.data);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [otherId, side, q, onlyWished, page]);
 
+  const goTo = (p: number) => {
+    setPage(p);
+    top.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  };
+
+  if (initial.total === 0) return <p className="rounded-2xl border border-dashed border-line p-6 text-center text-sm text-muted">{empty}</p>;
+
+  const chosen = [...selected.values()];
   return (
-    <div className="grid gap-3">
+    <div ref={top} className="grid scroll-mt-24 gap-3">
+      {intro}
       <div className="flex flex-wrap items-center gap-2">
         <label className="relative min-w-0 flex-1">
           <span className="sr-only">Filtrer les cartes</span>
@@ -53,23 +86,56 @@ function Picker({
           <input
             type="search"
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            onChange={(e) => {
+              setQ(e.target.value);
+              setPage(1);
+            }}
             placeholder="Filtrer par nom ou set"
             className="h-10 w-full rounded-full border border-line bg-surface pr-3 pl-9 text-sm outline-none focus:border-accent"
           />
         </label>
-        {hasWished && (
-          <button type="button" className="pf-chip" aria-pressed={onlyWished} onClick={() => setOnlyWished((v) => !v)}>
+        {(initial.wished > 0 || onlyWished) && (
+          <button
+            type="button"
+            className="pf-chip"
+            aria-pressed={onlyWished}
+            onClick={() => {
+              setOnlyWished((v) => !v);
+              setPage(1);
+            }}
+          >
             <Heart aria-hidden="true" className="size-3.5 text-coral" />
             {wishedLabel}
+            <span className="font-mono text-[11px] text-muted">{data.wished}</span>
           </button>
         )}
       </div>
-      {shown.length === 0 ? (
+      {chosen.length > 0 && (
+        <ul aria-label="Cartes choisies" className="flex flex-wrap gap-1.5">
+          {chosen.map((g) => (
+            <li key={keyOf(g)}>
+              <button type="button" onClick={() => onToggle(g)} className="pf-chip max-w-full text-xs" aria-label={`Retirer ${g.name}`}>
+                <Check aria-hidden="true" className="size-3.5 shrink-0 text-lime" />
+                <span className="truncate">
+                  {g.name}
+                  {g.finish !== "normal" && ` · ${FINISH_LABELS_FR[g.finish]}`}
+                </span>
+                <X aria-hidden="true" className="size-3.5 shrink-0 text-muted" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="flex items-center gap-2 text-xs text-muted" aria-live="polite">
+        {loading && <Loader2 aria-hidden="true" className="size-3.5 animate-spin" />}
+        {data.total} carte{data.total > 1 ? "s" : ""}
+        {data.pageCount > 1 && ` · page ${data.page} / ${data.pageCount}`}
+      </p>
+      {data.groups.length === 0 ? (
         <p className="p-4 text-center text-sm text-muted">Aucune carte ne correspond.</p>
       ) : (
-        <ul className="grid grid-cols-3 gap-x-3 gap-y-4 sm:grid-cols-4 md:grid-cols-6">
-          {shown.map((g) => {
+        <ul className={cn("grid grid-cols-3 gap-x-3 gap-y-4 transition-opacity sm:grid-cols-4 md:grid-cols-6", loading && "opacity-60")}>
+          {data.groups.map((g) => {
             const key = keyOf(g);
             const on = selected.has(key);
             return (
@@ -78,7 +144,7 @@ function Picker({
                   type="button"
                   aria-pressed={on}
                   disabled={!on && full}
-                  onClick={() => onToggle(key)}
+                  onClick={() => onToggle(g)}
                   className="pf-tile group grid w-full gap-1.5 text-left outline-none disabled:opacity-40"
                   data-tier={g.tier}
                 >
@@ -128,7 +194,29 @@ function Picker({
           })}
         </ul>
       )}
+      <Pagination info={data} onPage={goTo} label="Pages de cartes" />
     </div>
+  );
+}
+
+/** Ce que l'autre joueur recherche, et combien de ces cartes le joueur peut lui proposer. */
+function WishlistHint({ other, size, matches }: { other: PlayerRef; size: number; matches: number }) {
+  return (
+    <p className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-coral/30 bg-coral/5 px-3 py-2 text-sm">
+      <Heart aria-hidden="true" className="size-4 shrink-0 fill-current text-coral" />
+      <span className="min-w-0">
+        {size === 0
+          ? `${other.name} n'a encore rien mis dans sa wishlist.`
+          : matches === 0
+            ? `${other.name} recherche ${size} carte${size > 1 ? "s" : ""}, aucune parmi tes cartes échangeables.`
+            : `${other.name} recherche ${size} carte${size > 1 ? "s" : ""} : tu en as ${matches} à lui proposer (filtre « Sa wishlist »).`}
+      </span>
+      {size > 0 && other.handle && (
+        <Link href={`/joueurs/${other.handle}#wishlist`} className="text-accent hover:underline">
+          Voir sa wishlist
+        </Link>
+      )}
+    </p>
   );
 }
 
@@ -142,39 +230,45 @@ export function TradeComposer({
   theirs,
   initialGive = [],
   initialTake = [],
+  theirWishlist,
   counterOf,
   maxPerSide,
   messageMaxLength,
 }: {
   other: PlayerRef;
-  mine: TradeableGroup[];
-  theirs: TradeableGroup[];
-  initialGive?: string[];
-  initialTake?: string[];
+  mine: TradePickerPage;
+  theirs: TradePickerPage;
+  initialGive?: TradeableGroup[];
+  initialTake?: TradeableGroup[];
+  /** Taille de la wishlist de l'autre joueur, null s'il ne la montre pas. */
+  theirWishlist: number | null;
   counterOf?: string | null;
   maxPerSide: number;
   messageMaxLength: number;
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<"take" | "give">(initialTake.length > 0 && initialGive.length === 0 ? "give" : "take");
-  const [give, setGive] = useState(() => new Set(initialGive.filter((k) => mine.some((g) => keyOf(g) === k))));
-  const [take, setTake] = useState(() => new Set(initialTake.filter((k) => theirs.some((g) => keyOf(g) === k))));
+  // Les cartes choisies restent retenues d'une page ou d'une recherche à l'autre.
+  const [give, setGive] = useState(() => new Map(initialGive.map((g) => [keyOf(g), g])));
+  const [take, setTake] = useState(() => new Map(initialTake.map((g) => [keyOf(g), g])));
   const [message, setMessage] = useState("");
   const [pending, start] = useTransition();
 
-  const toggle = (set: Set<string>, update: (s: Set<string>) => void) => (key: string) => {
-    const next = new Set(set);
-    if (next.has(key)) next.delete(key);
-    else if (next.size < maxPerSide) next.add(key);
-    update(next);
-  };
+  const toggle = (update: (fn: (s: Map<string, TradeableGroup>) => Map<string, TradeableGroup>) => void) => (group: TradeableGroup) =>
+    update((current) => {
+      const next = new Map(current);
+      const key = keyOf(group);
+      if (next.has(key)) next.delete(key);
+      else if (next.size < maxPerSide) next.set(key, group);
+      return next;
+    });
 
-  const copyIds = (keys: Set<string>, groups: TradeableGroup[]) => groups.filter((g) => keys.has(keyOf(g))).map((g) => g.copyId);
+  const copyIds = (chosen: Map<string, TradeableGroup>) => [...chosen.values()].map((g) => g.copyId);
   const ready = give.size > 0 && take.size > 0;
 
   function submit() {
     start(async () => {
-      const res = await proposeTradeAction({ to: other.id, give: copyIds(give, mine), take: copyIds(take, theirs), message, counterOf: counterOf ?? null });
+      const res = await proposeTradeAction({ to: other.id, give: copyIds(give), take: copyIds(take), message, counterOf: counterOf ?? null });
       if (!res.ok) {
         toast({ title: res.error, tone: "error" });
         return;
@@ -213,26 +307,31 @@ export function TradeComposer({
         ))}
       </div>
 
-      <div role="tabpanel" aria-label={tab === "take" ? `Cartes de ${other.name}` : "Tes cartes"}>
-        {tab === "take" ? (
-          <Picker
-            groups={theirs}
-            selected={take}
-            onToggle={toggle(take, setTake)}
-            wishedLabel="Ma wishlist"
-            empty={`${other.name} n'a aucune carte échangeable pour l'instant (les favoris et les cartes en vente ne s'échangent pas).`}
-            full={take.size >= maxPerSide}
-          />
-        ) : (
-          <Picker
-            groups={mine}
-            selected={give}
-            onToggle={toggle(give, setGive)}
-            wishedLabel="Sa wishlist"
-            empty="Tu n'as aucune carte échangeable (les favoris et les cartes en vente ne s'échangent pas)."
-            full={give.size >= maxPerSide}
-          />
-        )}
+      {/* Les deux côtés restent montés : recherche, filtre et page survivent au changement d'onglet. */}
+      <div role="tabpanel" aria-label={`Cartes de ${other.name}`} hidden={tab !== "take"}>
+        <Picker
+          otherId={other.id}
+          side="theirs"
+          initial={theirs}
+          selected={take}
+          onToggle={toggle(setTake)}
+          wishedLabel="Ma wishlist"
+          empty={`${other.name} n'a aucune carte échangeable pour l'instant (les favoris et les cartes en vente ne s'échangent pas).`}
+          full={take.size >= maxPerSide}
+        />
+      </div>
+      <div role="tabpanel" aria-label="Tes cartes" hidden={tab !== "give"}>
+        <Picker
+          otherId={other.id}
+          side="mine"
+          initial={mine}
+          selected={give}
+          onToggle={toggle(setGive)}
+          wishedLabel="Sa wishlist"
+          intro={theirWishlist !== null && <WishlistHint other={other} size={theirWishlist} matches={mine.wishedCards} />}
+          empty="Tu n'as aucune carte échangeable (les favoris et les cartes en vente ne s'échangent pas)."
+          full={give.size >= maxPerSide}
+        />
       </div>
 
       <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 grid gap-3 rounded-2xl border border-accent/40 bg-surface/95 p-3 shadow-[0_18px_40px_-12px_rgb(0_0_0/0.8)] backdrop-blur md:bottom-4">

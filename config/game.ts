@@ -196,6 +196,8 @@ export const gameConfig = {
     messageMaxLength: 200,
     /** Historique (échanges conclus, refusés, annulés…) affiché sur la page Échanges. */
     historySize: 30,
+    /** Cartes par page dans le sélecteur d'une offre (multiple de 3, 4 et 6 : colonnes de la grille). */
+    pickerPageSize: 60,
   },
 
   /**
