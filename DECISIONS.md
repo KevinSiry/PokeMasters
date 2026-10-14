@@ -54,6 +54,8 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 - **E2E avec sessions en base** : le `globalSetup` Playwright crée des sessions Auth.js pour les comptes de démo, sans passer par un fournisseur OAuth.
 - **Tests d'intégration base désactivables** (`SKIP_DB_TESTS=1`) : la CI Windows n'a pas de Postgres ; la CI Linux les exécute.
 
+- **Collection paginée** (demande de Kevin, 2026-10-14) : « Mes cartes », « Favoris » et « Wishlist » s'affichent par pages de 60 cartes (`?page=N`, liens rendus côté serveur, le tri est conservé). Pour « Mes cartes », le serveur trie toutes les cartes possédées sur des lignes légères puis ne charge visuels et finitions que pour la page affichée ; l'ancienne coupure à 600 cartes disparaît. Sur téléphone, « Page 3 / 9 » remplace les numéros de page.
+
 ## Économie (phase 4)
 
 - **Registre des Jetons en ajout seul** (`LedgerEntry`) : chaque modification de solde passe par `applyLedger`, dans la transaction de l'action. Le débit est un `UPDATE … WHERE balance + delta >= 0` atomique, doublé des contraintes `CHECK` sur `User.balance` et `LedgerEntry.balanceAfter`. `npm run audit:ledger` vérifie SUM(delta) = solde pour chaque joueur ; la CI le lance après les tests e2e.
