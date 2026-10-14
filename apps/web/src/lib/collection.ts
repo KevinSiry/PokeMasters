@@ -14,6 +14,17 @@ export const getOwnedCounts = cache(async (userId: string, setId?: string): Prom
   return Object.fromEntries(rows.map((r) => [r.cardId, r._count._all]));
 });
 
+/** Exemplaires possédés parmi une liste de cartes (résultats de recherche, par exemple). */
+export async function getOwnedCountsFor(userId: string, cardIds: string[]): Promise<Record<string, number>> {
+  if (cardIds.length === 0) return {};
+  const rows = await prisma.cardCopy.groupBy({
+    by: ["cardId"],
+    where: { ownerId: userId, cardId: { in: cardIds } },
+    _count: { _all: true },
+  });
+  return Object.fromEntries(rows.map((r) => [r.cardId, r._count._all]));
+}
+
 /** Totaux de la collection. Le catalogue « à collectionner » ne compte que les cartes tirables. */
 export const getCollectionTotals = cache(async (userId: string) => {
   const [[row], catalog, setsCompleted] = await Promise.all([

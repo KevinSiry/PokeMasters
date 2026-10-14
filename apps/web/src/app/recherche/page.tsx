@@ -1,8 +1,12 @@
+import { getFavoriteCardIds, getWishlistCardIds } from "@pokeflex/server";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CardTile } from "@/components/catalog/card-tile";
 import { SearchBox } from "@/components/catalog/search-box";
+import { TileListToggle } from "@/components/lists/tile-list-toggle";
 import { searchCards } from "@/lib/catalog";
+import { getOwnedCountsFor } from "@/lib/collection";
+import { getCurrentPlayerSafe } from "@/lib/player";
 
 export const metadata: Metadata = { title: "Recherche", robots: { index: false } };
 
@@ -13,8 +17,25 @@ const SUGGESTIONS = ["Dracaufeu", "Pikachu", "Mewtwo", "Évoli", "Rayquaza", "Lu
 export default async function SearchPage({ searchParams }: { searchParams: SearchParams }) {
   const { q = "", illustrateur } = await searchParams;
   const query = q.trim();
-  const results = illustrateur ? await searchCards("", { illustrator: illustrateur, limit: 120 }) : await searchCards(query);
+  const [results, player] = await Promise.all([
+    illustrateur ? searchCards("", { illustrator: illustrateur, limit: 120 }) : searchCards(query),
+    getCurrentPlayerSafe(),
+  ]);
   const searched = Boolean(illustrateur) || query.length >= 2;
+  // Joueur connecté : possession, favoris et wishlist des résultats, pour la bascule de chaque vignette.
+  const [owned, favoriteIds, wishlistIds] =
+    player && results.length > 0
+      ? await Promise.all([
+          getOwnedCountsFor(
+            player.id,
+            results.map((c) => c.id),
+          ),
+          getFavoriteCardIds(player.id),
+          getWishlistCardIds(player.id),
+        ])
+      : [null, null, null];
+  const favorites = new Set(favoriteIds);
+  const wishlist = new Set(wishlistIds);
 
   return (
     <div className="grid grid-cols-1 gap-8 py-8 sm:py-12">
@@ -60,11 +81,29 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
             {results.length >= 60 && !illustrateur ? " (les plus pertinents)" : ""}
           </p>
           <ul className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
-            {results.map((c, i) => (
-              <li key={c.id}>
-                <CardTile card={c} subtitle={c.setName} priority={i < 12} />
-              </li>
-            ))}
+            {results.map((c, i) => {
+              const count = owned ? (owned[c.id] ?? 0) : null;
+              return (
+                <li key={c.id} className="relative">
+                  <CardTile
+                    card={c}
+                    subtitle={c.setName}
+                    priority={i < 12}
+                    missing={count === 0}
+                    badge={
+                      count && count > 1 ? (
+                        <span className="absolute bottom-1.5 right-1.5 rounded-full bg-lime px-1.5 font-mono text-[11px] font-bold text-bg">
+                          ×{count}
+                        </span>
+                      ) : null
+                    }
+                  />
+                  {count !== null && (
+                    <TileListToggle cardId={c.id} cardName={c.name} owned={count > 0} favorite={favorites.has(c.id)} wished={wishlist.has(c.id)} />
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}
