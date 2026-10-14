@@ -90,6 +90,42 @@ test.describe("favoris et wishlist", () => {
     await expect(page.getByText("Aucune carte favorite")).toBeVisible();
   });
 
+  test("bascule wishlist et favori depuis les résultats de recherche", async ({ page }) => {
+    const fan = await prisma.user.findUniqueOrThrow({ where: { handle: "demo-collection" }, select: { id: true } });
+    const ownedCard = await prisma.card.findFirstOrThrow({
+      where: { droppable: true, copies: { some: { ownerId: fan.id } } },
+      orderBy: { id: "asc" },
+      select: { name: true },
+    });
+    const missingCard = await prisma.card.findFirstOrThrow({
+      where: { droppable: true, copies: { none: { ownerId: fan.id } } },
+      orderBy: { id: "asc" },
+      select: { name: true },
+    });
+
+    // Carte manquante : le cœur l'ajoute à la wishlist sans quitter la recherche.
+    await page.goto(`/recherche?q=${encodeURIComponent(missingCard.name)}`);
+    const wishToggle = page.getByRole("button", { name: `Ajouter ${missingCard.name} à ta wishlist` }).first();
+    await wishToggle.click();
+    await expect(page.getByText("Ajoutée à ta wishlist")).toBeVisible();
+    await expect(page).toHaveURL(/\/recherche\?q=/);
+    const wishOn = page.getByRole("button", { name: `Retirer ${missingCard.name} de ta wishlist` }).first();
+    await expect(wishOn).toHaveAttribute("aria-pressed", "true");
+    await wishOn.click();
+    await expect(page.getByText("Retirée de ta wishlist")).toBeVisible();
+
+    // Carte possédée : l'étoile la met en favori.
+    await page.goto(`/recherche?q=${encodeURIComponent(ownedCard.name)}`);
+    await page.getByRole("button", { name: `Mettre ${ownedCard.name} en favori` }).first().click();
+    await expect(page.getByText("Ajoutée à tes favoris")).toBeVisible();
+    const favOn = page.getByRole("button", { name: `Retirer ${ownedCard.name} de tes favoris` }).first();
+    await expect(favOn).toHaveAttribute("aria-pressed", "true");
+    await favOn.click();
+    await expect(page.getByText("Retirée de tes favoris")).toBeVisible();
+    await page.goto("/collection?vue=favoris");
+    await expect(page.getByText("Aucune carte favorite")).toBeVisible();
+  });
+
   test("prévient en direct quand une carte de la wishlist est mise en vente", async ({ page, browser }) => {
     // Une carte que demo-marchand possède (libre) et que demo-collection n'a pas.
     const [seller, fan] = await Promise.all(["demo-marchand", "demo-collection"].map((handle) => prisma.user.findUniqueOrThrow({ where: { handle }, select: { id: true } })));
