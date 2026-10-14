@@ -5,7 +5,7 @@
  * ou aucun. Les finitions suivent l'exemplaire ; une carte reçue quitte la wishlist de celui qui la reçoit.
  */
 import { gameConfig, type Finish, type Tier } from "@pokeflex/config";
-import { type Prisma, prisma, type TradeStatus } from "@pokeflex/db";
+import { Prisma, prisma, type TradeStatus } from "@pokeflex/db";
 import { cleanTradeMessage, tradeActionError, tradeOfferError } from "@pokeflex/game";
 import { checkSetCompletions, type CompletedSet } from "./completion";
 import { lockUsers, type Tx, withTxRetry } from "./ledger";
@@ -380,14 +380,31 @@ export interface TradeableGroup extends TradeCardView {
   isNew: boolean;
 }
 
+interface GroupFilter {
+  /** Recherche sur le nom de la carte et du set (sans accents ni casse). */
+  q?: string;
+  /** Seulement les cartes que `wisherId` recherche. */
+  onlyWished?: boolean;
+  /** Seulement ces cartes (sélection initiale d'une contre-proposition ou d'un lien « Échanger »). */
+  cardIds?: string[];
+}
+
+/** Conditions SQL communes : exemplaires libres (ni en vente ni favoris) et filtres du sélecteur. */
+function groupWhere(ownerId: string, wisherId: string | null, f: GroupFilter) {
+  const q = f.q?.trim().slice(0, 80) ?? "";
+  return Prisma.sql`cc."ownerId" = ${ownerId} AND cc.status = 'owned'
+      AND NOT EXISTS (SELECT 1 FROM "FavoriteCard" f WHERE f."userId" = ${ownerId} AND f."cardId" = cc."cardId")
+      ${q ? Prisma.sql`AND pf_unaccent(lower(c.name || ' ' || s.name)) LIKE '%' || pf_unaccent(lower(${q})) || '%'` : Prisma.empty}
+      ${f.onlyWished ? Prisma.sql`AND EXISTS (SELECT 1 FROM "WishlistCard" w WHERE w."userId" = ${wisherId} AND w."cardId" = cc."cardId")` : Prisma.empty}
+      ${f.cardIds ? Prisma.sql`AND cc."cardId" = ANY(${f.cardIds}::text[])` : Prisma.empty}`;
+}
+
 /**
  * Exemplaires libres d'un joueur, regroupés par carte et finition : ni en vente ni favoris.
  * Les cartes que `wisherId` recherche viennent en premier, puis les plus rares.
  */
-async function tradeableGroups(ownerId: string, wisherId: string | null, newFor: string | null, take = 600): Promise<TradeableGroup[]> {
-  const rows = await prisma.$queryRaw<
-    { copyId: string; cardId: string; finish: Finish; count: number; name: string; image: string | null; tier: Tier; lang: "fr" | "en"; localId: string; setName: string; wished: boolean; isNew: boolean }[]
-  >`
+async function tradeableGroups(ownerId: string, wisherId: string | null, newFor: string | null, f: GroupFilter, take: number, skip = 0): Promise<TradeableGroup[]> {
+  return prisma.$queryRaw<TradeableGroup[]>`
     SELECT min(cc.id) AS "copyId", cc."cardId", cc.finish, count(*)::int AS count,
       c.name, c.image, c.tier, c.lang, c."localId", s.name AS "setName",
       EXISTS (SELECT 1 FROM "WishlistCard" w WHERE w."userId" = ${wisherId} AND w."cardId" = cc."cardId") AS wished,
@@ -395,28 +412,95 @@ async function tradeableGroups(ownerId: string, wisherId: string | null, newFor:
     FROM "CardCopy" cc
     JOIN "Card" c ON c.id = cc."cardId"
     JOIN "Set" s ON s.id = c."setId"
-    WHERE cc."ownerId" = ${ownerId} AND cc.status = 'owned'
-      AND NOT EXISTS (SELECT 1 FROM "FavoriteCard" f WHERE f."userId" = ${ownerId} AND f."cardId" = cc."cardId")
+    WHERE ${groupWhere(ownerId, wisherId, f)}
     GROUP BY cc."cardId", cc.finish, c.id, s.name
-    ORDER BY wished DESC, array_position(ARRAY['mythic','legendary','epic','rare','uncommon','common']::text[], c.tier::text), c.name, cc.finish
-    LIMIT ${take}`;
-  return rows;
+    ORDER BY wished DESC, array_position(ARRAY['mythic','legendary','epic','rare','uncommon','common']::text[], c.tier::text), c.name, cc.finish, cc."cardId"
+    LIMIT ${take} OFFSET ${skip}`;
+}
+
+/** Nombre de groupes (carte × finition) qui passent le filtre, et parmi eux ceux que `wisherId` recherche. */
+async function countGroups(ownerId: string, wisherId: string | null, f: GroupFilter): Promise<{ total: number; wished: number; wishedCards: number }> {
+  const [row] = await prisma.$queryRaw<{ total: number; wished: number; wishedCards: number }[]>`
+    SELECT count(*)::int AS total, count(*) FILTER (WHERE g.wished)::int AS wished,
+      count(DISTINCT g."cardId") FILTER (WHERE g.wished)::int AS "wishedCards"
+    FROM (
+      SELECT cc."cardId", EXISTS (SELECT 1 FROM "WishlistCard" w WHERE w."userId" = ${wisherId} AND w."cardId" = cc."cardId") AS wished
+      FROM "CardCopy" cc
+      JOIN "Card" c ON c.id = cc."cardId"
+      JOIN "Set" s ON s.id = c."setId"
+      WHERE ${groupWhere(ownerId, wisherId, f)}
+      GROUP BY cc."cardId", cc.finish
+    ) g`;
+  return row ?? { total: 0, wished: 0, wishedCards: 0 };
+}
+
+export type TradeSide = "mine" | "theirs";
+
+export interface TradePickerPage {
+  groups: TradeableGroup[];
+  /** Page renvoyée (1 pour la première, ramenée dans les bornes) et nombre de pages. */
+  page: number;
+  pageCount: number;
+  /** Groupes qui passent le filtre. */
+  total: number;
+  /** Parmi eux, ceux de la wishlist d'en face (« Ma wishlist » chez l'autre, « Sa wishlist » chez moi). */
+  wished: number;
+  /** Les mêmes, en cartes distinctes (une carte peut exister en plusieurs finitions). */
+  wishedCards: number;
 }
 
 /**
- * Tout ce qu'il faut pour composer une offre à `otherId` : ses exemplaires échangeables (ceux de
- * la wishlist du joueur d'abord) et ceux du joueur (ceux que l'autre recherche d'abord, si sa wishlist est visible).
+ * Une page du sélecteur de cartes : `theirs` = exemplaires de l'autre joueur (ma wishlist d'abord),
+ * `mine` = les miens (sa wishlist d'abord, si elle m'est visible). Les collections complètes se comptent
+ * en milliers de cartes : on n'envoie jamais plus d'une page au navigateur.
  */
-export async function getTradeComposer(userId: string, otherId: string) {
+export async function getTradePickerPage(
+  userId: string,
+  otherId: string,
+  side: TradeSide,
+  filter: { q?: string; onlyWished?: boolean; page?: number } = {},
+  seeTheirs?: boolean,
+): Promise<TradePickerPage> {
+  if (userId === otherId) throw new TradeError("self", "Tu ne peux pas échanger avec toi-même.");
+  if (seeTheirs === undefined) {
+    await assertCanTrade(prisma, userId, otherId);
+    seeTheirs = await canSeeWishlist(otherId, userId);
+  }
+  const [ownerId, wisherId, newFor] = side === "theirs" ? [otherId, userId, userId] : [userId, seeTheirs ? otherId : null, null];
+  const f: GroupFilter = { q: filter.q, onlyWished: Boolean(filter.onlyWished && wisherId) };
+  const counts = await countGroups(ownerId, wisherId, f);
+  const size = rules.pickerPageSize;
+  const pageCount = Math.max(1, Math.ceil(counts.total / size));
+  const asked = Math.trunc(Number(filter.page ?? 1));
+  const page = Number.isFinite(asked) ? Math.min(Math.max(asked, 1), pageCount) : 1;
+  const groups = counts.total === 0 ? [] : await tradeableGroups(ownerId, wisherId, newFor, f, size, (page - 1) * size);
+  return { groups, page, pageCount, ...counts };
+}
+
+/**
+ * Tout ce qu'il faut pour composer une offre à `otherId` : la première page de chaque côté, la
+ * taille de sa wishlist (si elle m'est visible) et les groupes déjà choisis (contre-proposition, lien « Échanger »).
+ */
+export async function getTradeComposer(userId: string, otherId: string, preselect: { give?: string[]; take?: string[] } = {}) {
   if (userId === otherId) throw new TradeError("self", "Tu ne peux pas échanger avec toi-même.");
   await assertCanTrade(prisma, userId, otherId);
   const seeTheirs = await canSeeWishlist(otherId, userId);
-  const [mine, theirs, pending] = await Promise.all([
-    tradeableGroups(userId, seeTheirs ? otherId : null, null),
-    tradeableGroups(otherId, userId, userId),
+  const cardIdsOf = (keys: string[] = []) => [...new Set(keys.map((k) => k.split(":")[0]!))];
+  const pick = async (ownerId: string, wisherId: string | null, newFor: string | null, keys: string[] = []) => {
+    if (keys.length === 0) return [];
+    const groups = await tradeableGroups(ownerId, wisherId, newFor, { cardIds: cardIdsOf(keys) }, 100);
+    // Une clé « carte » sans finition (lien depuis une fiche) prend la première finition disponible.
+    return keys.flatMap((k) => groups.find((g) => (k.includes(":") ? `${g.cardId}:${g.finish}` === k : g.cardId === k)) ?? []);
+  };
+  const [mine, theirs, selectedMine, selectedTheirs, theirWishlist, pending] = await Promise.all([
+    getTradePickerPage(userId, otherId, "mine", {}, seeTheirs),
+    getTradePickerPage(userId, otherId, "theirs", {}, seeTheirs),
+    pick(userId, seeTheirs ? otherId : null, null, preselect.give),
+    pick(otherId, userId, userId, preselect.take),
+    seeTheirs ? prisma.wishlistCard.count({ where: { userId: otherId } }) : Promise.resolve(null),
     prisma.trade.count({ where: { proposerId: userId, status: "pending", expiresAt: { gt: new Date() } } }),
   ]);
-  return { mine, theirs, pendingOutgoing: pending };
+  return { mine, theirs, selectedMine, selectedTheirs, theirWishlist, pendingOutgoing: pending };
 }
 
 export interface TradePartner {

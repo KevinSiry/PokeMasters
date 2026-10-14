@@ -27,6 +27,7 @@ const PAGES = [
   "/profil",
   "/jetons",
   "/joueurs/demo-marchand",
+  "/echanges/nouveau?avec=demo-marchand",
 ];
 
 test.describe("affichage mobile", () => {

@@ -113,6 +113,8 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 - **Les favoris ne s'échangent pas** : il faut d'abord retirer la carte de ses favoris. Les cartes favorites et en vente n'apparaissent pas parmi les cartes échangeables d'un joueur.
 - **La wishlist guide l'échange** : la page Échanges suggère les joueurs qui ont des cartes de ta wishlist, la fiche d'une carte liste ceux qui peuvent l'échanger, et le choix des cartes met en tête celles de ta wishlist (côté demandé) et celles que l'autre recherche (côté proposé, si sa wishlist t'est visible). Les cartes échangeables d'un joueur sont donc visibles des autres joueurs connectés.
 - **Notifications** : pastille et compteur « Échanges » dans le menu du joueur ; en direct, le serveur temps réel prévient l'autre joueur (nouvelle offre, contre-proposition, acceptation, refus, annulation) après avoir vérifié en base que l'action vient d'avoir lieu. Hors connexion, les offres attendent sur la page Échanges.
+- **Choix des cartes paginé côté serveur** (demande de Kevin, 2026-10-14) : une collection complète faisait des milliers de vignettes, et l'ancienne limite de 600 cachait le reste. Chaque côté charge 60 cartes par page (`trades.pickerPageSize`) ; la recherche et le filtre wishlist passent par le serveur et portent sur toute la collection. Les cartes choisies restent retenues d'une page à l'autre et s'affichent au-dessus de la grille pour les retirer.
+- **Ce que l'autre recherche** : côté « Tu proposes », un encart dit combien de cartes l'autre joueur a dans sa wishlist et combien tu peux lui en proposer, avec le filtre « Sa wishlist » et un lien vers sa wishlist complète sur son profil (si elle t'est visible).
 
 ## Finitions (phase 8)
 

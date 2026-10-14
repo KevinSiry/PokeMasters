@@ -1,6 +1,6 @@
 "use server";
 
-import { acceptTrade, cancelTrade, declineTrade, proposeTrade, TradeError } from "@pokeflex/server";
+import { acceptTrade, cancelTrade, declineTrade, getTradePickerPage, proposeTrade, TradeError, type TradePickerPage } from "@pokeflex/server";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { checkActionRate } from "@/lib/rate-limit";
@@ -55,4 +55,25 @@ export async function declineTradeAction(tradeId: string) {
 
 export async function cancelTradeAction(tradeId: string) {
   return run((uid) => cancelTrade(uid, String(tradeId)), "annulation");
+}
+
+/** Lecture seule : une page du sélecteur de cartes d'une offre (recherche, filtre wishlist, pagination). */
+export async function tradePickerPageAction(input: { other: string; side: "mine" | "theirs"; q?: string; onlyWished?: boolean; page?: number }): Promise<Result<TradePickerPage>> {
+  const session = await auth();
+  const uid = session?.user?.id;
+  if (!uid) return { ok: false, error: "Connecte-toi pour échanger des cartes." };
+  const limited = checkActionRate(uid, "search");
+  if (limited) return { ok: false, error: limited };
+  try {
+    const page = await getTradePickerPage(uid, String(input.other).slice(0, 40), input.side === "mine" ? "mine" : "theirs", {
+      q: typeof input.q === "string" ? input.q.slice(0, 80) : "",
+      onlyWished: input.onlyWished === true,
+      page: Number(input.page) || 1,
+    });
+    return { ok: true, data: page };
+  } catch (err) {
+    if (err instanceof TradeError) return { ok: false, error: err.message };
+    console.error("[echanges] sélecteur", err);
+    return { ok: false, error: "Chargement impossible, réessaie dans un instant." };
+  }
 }

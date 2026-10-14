@@ -27,21 +27,17 @@ export default async function NewTradePage({ searchParams }: { searchParams: Sea
   if (!other) notFound();
   if (other.id === player.id) redirect("/echanges");
 
+  const initialTake = counter ? counter.receive.map((i) => `${i.cardId}:${i.finish}`) : sp.carte ? [String(sp.carte).slice(0, 40)] : [];
+  const initialGive = counter ? counter.give.map((i) => `${i.cardId}:${i.finish}`) : [];
+
   let composer: Awaited<ReturnType<typeof getTradeComposer>> | null = null;
   let refusal: string | null = null;
   try {
-    composer = await getTradeComposer(player.id, other.id);
+    composer = await getTradeComposer(player.id, other.id, { give: initialGive, take: initialTake });
   } catch (err) {
     if (!(err instanceof TradeError)) throw err;
     refusal = err.message;
   }
-
-  const initialTake = counter
-    ? counter.receive.map((i) => `${i.cardId}:${i.finish}`)
-    : sp.carte && composer
-      ? composer.theirs.filter((g) => g.cardId === sp.carte).slice(0, 1).map((g) => `${g.cardId}:${g.finish}`)
-      : [];
-  const initialGive = counter ? counter.give.map((i) => `${i.cardId}:${i.finish}`) : [];
 
   return (
     <div className="grid grid-cols-1 gap-6 py-6 sm:py-10">
@@ -83,8 +79,9 @@ export default async function NewTradePage({ searchParams }: { searchParams: Sea
             other={other}
             mine={composer.mine}
             theirs={composer.theirs}
-            initialGive={initialGive}
-            initialTake={initialTake}
+            initialGive={composer.selectedMine}
+            initialTake={composer.selectedTheirs}
+            theirWishlist={composer.theirWishlist}
             counterOf={counter?.id ?? null}
             maxPerSide={gameConfig.trades.maxCardsPerSide}
             messageMaxLength={gameConfig.trades.messageMaxLength}
