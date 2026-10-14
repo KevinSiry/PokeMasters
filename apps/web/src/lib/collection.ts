@@ -2,6 +2,7 @@ import type { Finish, Tier } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
 import { cache } from "react";
 import { cardTileSelect, type CardTile } from "@/lib/catalog";
+import { paginate, type PageInfo } from "@/lib/pagination";
 
 /** Exemplaires possédés par carte (tous statuts confondus : listés et misés restent à toi). */
 export const getOwnedCounts = cache(async (userId: string, setId?: string): Promise<Record<string, number>> => {
@@ -71,51 +72,57 @@ export interface OwnedCard extends CardTile {
 
 export type CollectionSort = "recent" | "tier" | "name" | "duplicates";
 
-/** Cartes possédées, une ligne par carte avec son nombre d'exemplaires. */
-export async function getOwnedCards(userId: string, sort: CollectionSort = "recent", limit = 600): Promise<OwnedCard[]> {
-  const groups = await prisma.cardCopy.groupBy({
-    by: ["cardId"],
-    where: { ownerId: userId },
-    _count: { _all: true },
-    _max: { obtainedAt: true },
-  });
-  if (groups.length === 0) return [];
-  const finishes = await prisma.cardCopy.groupBy({ by: ["cardId", "finish"], where: { ownerId: userId } });
-  const finishMap = new Map<string, Finish[]>();
-  for (const f of finishes) finishMap.set(f.cardId, [...(finishMap.get(f.cardId) ?? []), f.finish]);
-  const cards = await prisma.card.findMany({
-    where: { id: { in: groups.map((g) => g.cardId) } },
-    select: { ...cardTileSelect, set: { select: { name: true } } },
-  });
-  const byId = new Map(cards.map((c) => [c.id, c]));
-  const tierOrder: Tier[] = ["mythic", "legendary", "epic", "rare", "uncommon", "common"];
-  const list = groups
-    .map((g) => {
-      const c = byId.get(g.cardId);
-      if (!c) return null;
-      const { set, ...tile } = c;
-      return {
-        ...tile,
-        setName: set.name,
-        copies: g._count._all,
-        finishes: finishMap.get(g.cardId) ?? [],
-        lastObtainedAt: g._max.obtainedAt ?? new Date(0),
-      } satisfies OwnedCard;
-    })
-    .filter((x): x is OwnedCard => x !== null);
-  list.sort((a, b) => {
+/** Cartes possédées d'une page de la collection, une ligne par carte avec son nombre d'exemplaires. */
+export interface OwnedCardsPage extends PageInfo {
+  cards: OwnedCard[];
+}
+
+const TIER_ORDER: Tier[] = ["mythic", "legendary", "epic", "rare", "uncommon", "common"];
+
+/**
+ * Cartes possédées, triées puis paginées côté serveur : on ne trie que des lignes légères
+ * (id, nom, rareté, exemplaires) et on ne charge visuels et finitions que pour la page affichée.
+ */
+export async function getOwnedCards(userId: string, sort: CollectionSort = "recent", rawPage?: string | number): Promise<OwnedCardsPage> {
+  const rows = await prisma.$queryRaw<{ id: string; name: string; tier: Tier; copies: number; last: Date }[]>`
+    SELECT cc."cardId" AS id, c.name, c.tier::text AS tier, count(*)::int AS copies, max(cc."obtainedAt") AS last
+    FROM "CardCopy" cc JOIN "Card" c ON c.id = cc."cardId"
+    WHERE cc."ownerId" = ${userId}
+    GROUP BY cc."cardId", c.name, c.tier`;
+  rows.sort((a, b) => {
+    // Départage final par id : l'ordre reste stable d'une page à l'autre (exemplaires obtenus au même instant).
+    const byId = a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
     switch (sort) {
       case "tier":
-        return tierOrder.indexOf(a.tier) - tierOrder.indexOf(b.tier) || a.name.localeCompare(b.name, "fr");
+        return TIER_ORDER.indexOf(a.tier) - TIER_ORDER.indexOf(b.tier) || a.name.localeCompare(b.name, "fr") || byId;
       case "name":
-        return a.name.localeCompare(b.name, "fr");
+        return a.name.localeCompare(b.name, "fr") || byId;
       case "duplicates":
-        return b.copies - a.copies || a.name.localeCompare(b.name, "fr");
+        return b.copies - a.copies || a.name.localeCompare(b.name, "fr") || byId;
       default:
-        return b.lastObtainedAt.getTime() - a.lastObtainedAt.getTime();
+        return b.last.getTime() - a.last.getTime() || byId;
     }
   });
-  return list.slice(0, limit);
+  const info = paginate(rows.length, rawPage);
+  const pageRows = rows.slice(info.start, info.end);
+  if (pageRows.length === 0) return { ...info, cards: [] };
+  const ids = pageRows.map((r) => r.id);
+  const [cards, finishes] = await Promise.all([
+    prisma.card.findMany({ where: { id: { in: ids } }, select: { ...cardTileSelect, set: { select: { name: true } } } }),
+    prisma.cardCopy.groupBy({ by: ["cardId", "finish"], where: { ownerId: userId, cardId: { in: ids } } }),
+  ]);
+  const finishMap = new Map<string, Finish[]>();
+  for (const f of finishes) finishMap.set(f.cardId, [...(finishMap.get(f.cardId) ?? []), f.finish]);
+  const byId = new Map(cards.map((c) => [c.id, c]));
+  const list = pageRows
+    .map((r) => {
+      const c = byId.get(r.id);
+      if (!c) return null;
+      const { set, ...tile } = c;
+      return { ...tile, setName: set.name, copies: r.copies, finishes: finishMap.get(r.id) ?? [], lastObtainedAt: r.last } satisfies OwnedCard;
+    })
+    .filter((x): x is OwnedCard => x !== null);
+  return { ...info, cards: list };
 }
 
 export interface DexEntry {

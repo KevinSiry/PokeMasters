@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { CardTile } from "@/components/catalog/card-tile";
 import { RecycleDuplicates } from "@/components/economy/recycle-duplicates";
 import { Jetons } from "@/components/jetons";
+import { Pagination } from "@/components/pagination";
 import { SetLogo } from "@/components/catalog/set-logo";
 import { ProgressBar, ProgressRing } from "@/components/progress";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ import {
   type SetProgress,
 } from "@/lib/collection";
 import { plural } from "@/lib/format";
+import { paginate, type PageInfo } from "@/lib/pagination";
 import { getCurrentPlayer } from "@/lib/player";
 import { cn } from "@/lib/utils";
 
@@ -43,7 +45,7 @@ const SORTS: { id: CollectionSort; label: string }[] = [
   { id: "duplicates", label: "Doublons" },
 ];
 
-type SearchParams = Promise<{ vue?: string; tri?: string; gen?: string }>;
+type SearchParams = Promise<{ vue?: string; tri?: string; gen?: string; page?: string }>;
 
 export default async function CollectionPage({ searchParams }: { searchParams: SearchParams }) {
   const player = await getCurrentPlayer();
@@ -100,9 +102,9 @@ export default async function CollectionPage({ searchParams }: { searchParams: S
             ))}
           </nav>
           {view === "sets" && <SetsView userId={player.id} />}
-          {view === "cartes" && <CardsView userId={player.id} sort={(SORTS.find((s) => s.id === sp.tri)?.id ?? "recent") as CollectionSort} />}
-          {view === "favoris" && <FavoritesView userId={player.id} />}
-          {view === "wishlist" && <WishlistView userId={player.id} />}
+          {view === "cartes" && <CardsView userId={player.id} sort={(SORTS.find((s) => s.id === sp.tri)?.id ?? "recent") as CollectionSort} page={sp.page} />}
+          {view === "favoris" && <FavoritesView userId={player.id} page={sp.page} />}
+          {view === "wishlist" && <WishlistView userId={player.id} page={sp.page} />}
           {view === "pokedex" && <DexView userId={player.id} gen={Number(sp.gen ?? 1)} />}
           {view === "illustrateurs" && <IllustratorsView userId={player.id} />}
         </>
@@ -172,8 +174,9 @@ const favoriteBadge = (
   </span>
 );
 
-async function CardsView({ userId, sort }: { userId: string; sort: CollectionSort }) {
-  const [cards, favorites] = await Promise.all([getOwnedCards(userId, sort), getFavoriteCardIds(userId)]);
+async function CardsView({ userId, sort, page }: { userId: string; sort: CollectionSort; page?: string }) {
+  const [owned, favorites] = await Promise.all([getOwnedCards(userId, sort, page), getFavoriteCardIds(userId)]);
+  const { cards } = owned;
   return (
     <div className="grid grid-cols-1 gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -186,6 +189,7 @@ async function CardsView({ userId, sort }: { userId: string; sort: CollectionSor
         </div>
         <RecycleDuplicates />
       </div>
+      <PageCount info={owned} />
       <ul className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
         {cards.map((c, i) => (
           <li key={c.id}>
@@ -205,7 +209,18 @@ async function CardsView({ userId, sort }: { userId: string; sort: CollectionSor
           </li>
         ))}
       </ul>
+      <Pagination info={owned} href={(p) => `/collection?vue=cartes&tri=${sort}&page=${p}`} label="Pages de ta collection" />
     </div>
+  );
+}
+
+/** « Cartes 61 à 120 sur 523 » au-dessus d'une grille paginée. */
+function PageCount({ info }: { info: PageInfo }) {
+  if (info.pageCount <= 1) return null;
+  return (
+    <p className="text-sm text-muted">
+      Cartes {(info.start + 1).toLocaleString("fr-FR")} à {info.end.toLocaleString("fr-FR")} sur {info.total.toLocaleString("fr-FR")}
+    </p>
   );
 }
 
@@ -219,8 +234,10 @@ function ListEmpty({ icon, title, children }: { icon: React.ReactNode; title: st
   );
 }
 
-async function FavoritesView({ userId }: { userId: string }) {
-  const cards = await getFavorites(userId);
+async function FavoritesView({ userId, page }: { userId: string; page?: string }) {
+  const all = await getFavorites(userId);
+  const info = paginate(all.length, page);
+  const cards = all.slice(info.start, info.end);
   if (cards.length === 0) {
     return (
       <ListEmpty icon={<Star aria-hidden="true" className="size-7 text-[#FFC93C]" />} title="Aucune carte favorite">
@@ -231,7 +248,7 @@ async function FavoritesView({ userId }: { userId: string }) {
   return (
     <div className="grid grid-cols-1 gap-4">
       <p className="text-sm text-muted">
-        {plural(cards.length, "carte favorite", "cartes favorites")} sur {gameConfig.lists.favoritesMax} · jamais recyclées avec les doublons
+        {plural(all.length, "carte favorite", "cartes favorites")} sur {gameConfig.lists.favoritesMax} · jamais recyclées avec les doublons
       </p>
       <ul className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
         {cards.map((c, i) => (
@@ -253,12 +270,15 @@ async function FavoritesView({ userId }: { userId: string }) {
           </li>
         ))}
       </ul>
+      <Pagination info={info} href={(p) => `/collection?vue=favoris&page=${p}`} label="Pages de tes favoris" />
     </div>
   );
 }
 
-async function WishlistView({ userId }: { userId: string }) {
-  const cards = await getWishlist(userId);
+async function WishlistView({ userId, page }: { userId: string; page?: string }) {
+  const all = await getWishlist(userId);
+  const info = paginate(all.length, page);
+  const cards = all.slice(info.start, info.end);
   if (cards.length === 0) {
     return (
       <ListEmpty icon={<Heart aria-hidden="true" className="size-7 text-coral" />} title="Ta wishlist est vide">
@@ -266,12 +286,12 @@ async function WishlistView({ userId }: { userId: string }) {
       </ListEmpty>
     );
   }
-  const onSale = cards.filter((c) => c.onSale > 0).length;
+  const onSale = all.filter((c) => c.onSale > 0).length;
   return (
     <div className="grid grid-cols-1 gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted">
-          {plural(cards.length, "carte recherchée", "cartes recherchées")} sur {gameConfig.lists.wishlistMax}
+          {plural(all.length, "carte recherchée", "cartes recherchées")} sur {gameConfig.lists.wishlistMax}
           {onSale > 0 && <> · {plural(onSale, "en vente", "en vente")} au marché</>}
         </p>
         {onSale > 0 && (
@@ -300,6 +320,7 @@ async function WishlistView({ userId }: { userId: string }) {
           </li>
         ))}
       </ul>
+      <Pagination info={info} href={(p) => `/collection?vue=wishlist&page=${p}`} label="Pages de ta wishlist" />
     </div>
   );
 }

@@ -44,5 +44,17 @@ test.describe("boosters et collection", () => {
       await page.getByRole("link", { name: "Pokédex" }).click();
       await expect(page.getByText(/Pokémon sur 151 de Kanto/)).toBeVisible();
     });
+
+    test("pagine la grille de cartes sans perdre le tri", async ({ page }) => {
+      await page.goto("/collection?vue=cartes&tri=name");
+      await expect(page.getByText(/^Cartes 1 à 60 sur \d/)).toBeVisible();
+      await expect(page.locator("main ul.grid > li")).toHaveCount(60);
+      const first = await page.locator("main ul.grid > li").first().textContent();
+      await page.getByRole("link", { name: "Page suivante" }).click();
+      await expect(page).toHaveURL(/tri=name&page=2/);
+      await expect(page.getByText(/^Cartes 61 à /)).toBeVisible();
+      expect(await page.locator("main ul.grid > li").first().textContent()).not.toBe(first);
+      await expect(page.getByRole("link", { name: "Page précédente" })).toBeVisible();
+    });
   });
 });
