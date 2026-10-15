@@ -72,7 +72,7 @@ export function BoosterPackArt({
     <span
       className={cn(
         "font-display text-center leading-[1.05] font-black text-balance text-white [text-shadow:0_0.5cqw_0_#0F2A66,0_0_2cqw_rgb(0_0_0/0.6)]",
-        label.length > 18 ? "text-[8cqw]" : "text-[10cqw]",
+        label.length > 18 ? "text-[6.4cqw]" : "text-[8cqw]",
       )}
     >
       {label}
@@ -85,6 +85,9 @@ export function BoosterPackArt({
       style={palette ? packPalette(palette) : undefined}
     >
       {cover ? <PackCover image={cover} quality={coverQuality} onMissing={EMBLEM} /> : EMBLEM}
+      {/* Couleurs du set en haut et en bas du sachet, film holographique par-dessus l'illustration. */}
+      <div className="pf-pack-tint" aria-hidden="true" />
+      <div className="pf-pack-holo" aria-hidden="true" />
 
       {/* Sertissage du sachet en haut et en bas. */}
       <div className="pf-pack-crimp top-0" aria-hidden="true" />
@@ -94,23 +97,29 @@ export function BoosterPackArt({
       <div className="pf-pack-notch left-0" aria-hidden="true" />
       <div className="pf-pack-notch right-0 rotate-180" aria-hidden="true" />
 
-      <div className="absolute inset-x-[9%] top-[12.5%] grid justify-items-center text-center">
-        <PokemonWordmark className="drop-shadow-[0_0.8cqw_0.6cqw_rgb(0_0_0/0.45)]" />
-        <span className="mt-[0.5cqw] rounded-full bg-[#0F2A66]/80 px-[2.4cqw] py-[0.4cqw] font-mono text-[2.9cqw] leading-tight font-bold tracking-[0.08em] whitespace-nowrap text-white uppercase">
+      {/* Marque en haut à gauche, comme le logo du jeu sur les boosters récents. */}
+      <div className="absolute top-[12.6%] left-[6%] grid w-[46%] justify-items-center">
+        <PokemonWordmark className="drop-shadow-[0_0.6cqw_0.5cqw_rgb(0_0_0/0.5)]" />
+        <span className="mt-[0.3cqw] font-mono text-[2.3cqw] leading-none font-bold tracking-[0.06em] whitespace-nowrap text-white uppercase [text-shadow:0_0.3cqw_0.6cqw_rgb(0_0_0/0.8)]">
           Jeu de cartes à collectionner
         </span>
       </div>
+      <span className="absolute top-[13.4%] right-[6%] rounded-[1cqw] border border-white/50 bg-black/35 px-[1.6cqw] py-[0.6cqw] font-mono text-[2.4cqw] leading-none font-bold tracking-[0.14em] text-white uppercase backdrop-blur-[2px]">
+        Booster
+      </span>
 
-      <div className="absolute inset-x-[8%] top-[62%] grid h-[17%] place-items-center">
+      <div className="absolute inset-x-[7%] top-[64%] grid h-[17%] place-items-center">
         <PackLogo logo={logo} fallback={name} />
       </div>
 
-      <div className="absolute inset-x-0 bottom-[8.5%] flex items-end justify-between px-[7%]">
-        <span className="grid justify-items-start leading-none">
-          <span className="font-display text-[11cqw] font-black text-white [text-shadow:0_0.6cqw_0_#0F2A66]">{count}</span>
-          <span className="font-mono text-[3.2cqw] font-bold tracking-[0.12em] text-white/90 uppercase">cartes</span>
+      <div className="absolute inset-x-[6%] bottom-[8.2%] flex items-center justify-between">
+        <span className="flex items-baseline gap-[1cqw] rounded-[1.4cqw] bg-white px-[2.2cqw] py-[0.8cqw] leading-none text-[#0F2A66] shadow-[0_0.6cqw_1.6cqw_rgb(0_0_0/0.45)]">
+          <span className="font-display text-[5.4cqw] font-black">{count}</span>
+          <span className="font-mono text-[2.6cqw] font-bold tracking-[0.1em] uppercase">cartes</span>
         </span>
-        <span className="font-mono text-[3.2cqw] font-bold tracking-[0.18em] text-white/75 uppercase">PokeFlex</span>
+        <span className="font-mono text-[2.4cqw] font-bold tracking-[0.2em] text-white/80 uppercase [text-shadow:0_0.3cqw_0.6cqw_rgb(0_0_0/0.8)]">
+          PokeFlex
+        </span>
       </div>
       {children}
     </div>

@@ -2,15 +2,17 @@ import { useId } from "react";
 import { PokemonWordmark } from "@/components/booster/pokemon-wordmark";
 import { cn } from "@/lib/utils";
 
-/** Volutes bleues qui tournent autour de la Poké Ball (centre 315, 545). */
-const SWIRLS = [
-  "M315 545 C 470 420, 520 220, 380 90",
-  "M315 545 C 140 470, 60 300, 150 110",
-  "M315 545 C 160 640, 70 760, 40 860",
-  "M315 545 C 480 640, 560 760, 610 870",
-  "M315 545 C 520 520, 600 400, 620 300",
-  "M315 545 C 110 560, 30 520, 10 420",
-];
+/** Bras du tourbillon bleu : spirales logarithmiques qui partent de la Poké Ball (centre 315, 545). */
+const SWIRLS = Array.from({ length: 9 }, (_, k) => {
+  const start = (k / 9) * Math.PI * 2;
+  const pts: string[] = [];
+  for (let i = 0; i <= 40; i++) {
+    const t = (i / 40) * Math.PI * 1.9;
+    const r = 70 * Math.exp(0.36 * t);
+    pts.push(`${(315 + r * Math.cos(start + t)).toFixed(1)} ${(545 + r * Math.sin(start + t)).toFixed(1)}`);
+  }
+  return { d: `M${pts.join(" L")}`, width: 18 + (k % 3) * 14, opacity: k % 2 ? 0.5 : 0.8 };
+});
 
 /**
  * Dos de carte classique du jeu de cartes Pokémon : fond bleu tourbillonnant dans un cadre bleu foncé,
@@ -52,6 +54,18 @@ export function CardBack({ className }: { className?: string }) {
             <stop offset="0.55" stopColor="#7DB4FF" stopOpacity="0.35" />
             <stop offset="1" stopColor="#7DB4FF" stopOpacity="0" />
           </radialGradient>
+          <filter id={`${id}-soft`} x="-10%" y="-10%" width="120%" height="120%">
+            <feGaussianBlur stdDeviation="9" />
+          </filter>
+          <radialGradient id={`${id}-shade`} cx="0.35" cy="0.3" r="0.8">
+            <stop offset="0.55" stopColor="#000" stopOpacity="0" />
+            <stop offset="1" stopColor="#000" stopOpacity="0.35" />
+          </radialGradient>
+          <linearGradient id={`${id}-gloss`} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0.2" stopColor="#fff" stopOpacity="0" />
+            <stop offset="0.42" stopColor="#fff" stopOpacity="0.14" />
+            <stop offset="0.5" stopColor="#fff" stopOpacity="0" />
+          </linearGradient>
           <clipPath id={`${id}-inner`}>
             <rect x="34" y="34" width="562" height="812" rx="18" />
           </clipPath>
@@ -61,9 +75,9 @@ export function CardBack({ className }: { className?: string }) {
         <g clipPath={url("inner")}>
           <rect width="630" height="880" fill={url("field")} />
           <rect width="630" height="880" filter={url("clouds")} opacity="0.55" />
-          <g fill="none" stroke="#BFE0FF" strokeLinecap="round" opacity="0.28">
-            {SWIRLS.map((d, i) => (
-              <path key={d} d={d} strokeWidth={i % 2 ? 26 : 40} />
+          <g fill="none" stroke="#CFE6FF" strokeLinecap="round" opacity="0.42" filter={url("soft")}>
+            {SWIRLS.map((a) => (
+              <path key={a.d} d={a.d} strokeWidth={a.width} strokeOpacity={a.opacity} />
             ))}
           </g>
           <circle cx="315" cy="545" r="250" fill={url("halo")} />
@@ -78,9 +92,12 @@ export function CardBack({ className }: { className?: string }) {
             <circle cx="315" cy="545" r="58" fill="#101418" />
             <circle cx="315" cy="545" r="40" fill={url("white")} stroke="#5D6675" strokeWidth="4" />
             <circle cx="315" cy="545" r="22" fill="#fff" />
+            <circle cx="315" cy="545" r="164" fill={url("shade")} />
           </g>
         </g>
         <rect x="34" y="34" width="562" height="812" rx="18" fill="none" stroke="#0A1F52" strokeWidth="5" />
+        <rect x="8" y="8" width="614" height="864" rx="30" fill="none" stroke="#6F98E8" strokeOpacity="0.5" strokeWidth="2" />
+        <rect width="630" height="880" fill={url("gloss")} />
       </svg>
       <PokemonWordmark className="absolute top-[12%] left-[11%] w-[78%] -rotate-[9deg]" />
     </div>
