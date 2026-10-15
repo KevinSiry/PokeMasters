@@ -8,7 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { openBoosterAction, openSetBoosterAction } from "@/app/boosters/actions";
 import { CoinBurst } from "@/components/economy/coin-burst";
 import { Jetons } from "@/components/jetons";
-import { CardBack } from "@/components/booster/card-back";
+import { CARD_BACK_SRC, CardBack } from "@/components/booster/card-back";
 import { FloatingPack, TearPack } from "@/components/booster/tear-pack";
 import { TIER_ICON } from "@/components/tier-badge";
 import { TiltCard } from "@/components/tilt-card";
@@ -62,14 +62,18 @@ function vibrate(pattern?: number[]) {
   if (pattern && typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate(pattern);
 }
 
+/** Images du tirage gardées en mémoire, déjà décodées : retourner une carte ne bloque pas sur son décodage. */
+const warmed: HTMLImageElement[] = [];
+
 function preload(cards: PulledCard[]) {
-  for (const c of cards) {
-    const src = cardImageUrl(c.image, "high");
-    if (src) {
-      const img = new Image();
-      img.decoding = "async";
-      img.src = src;
-    }
+  const srcs = [CARD_BACK_SRC, ...cards.map((c) => cardImageUrl(c.image, "high"))];
+  warmed.length = 0;
+  for (const src of srcs) {
+    if (!src) continue;
+    const img = new Image();
+    img.src = src;
+    img.decode().catch(() => {});
+    warmed.push(img);
   }
 }
 
