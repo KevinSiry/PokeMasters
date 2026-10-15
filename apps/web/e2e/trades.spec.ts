@@ -114,7 +114,11 @@ test.describe("échanges", () => {
       const mine = page.getByRole("tabpanel", { name: "Tes cartes" });
       await mine.getByRole("searchbox").fill(single.card.name);
       await expect(mine.locator("li button[aria-pressed]").filter({ hasText: single.card.name }).first()).toBeVisible();
+      // Le filtre se grise quand il ne garderait rien : on l'active avant de chercher la carte en un exemplaire.
+      await mine.getByRole("searchbox").fill("");
       await mine.getByRole("button", { name: /Mes doublons/ }).click();
+      await expect(mine.getByRole("button", { name: /Mes doublons/ })).toHaveAttribute("aria-pressed", "true");
+      await mine.getByRole("searchbox").fill(single.card.name);
       await expect(mine.getByText("Aucune carte ne correspond.")).toBeVisible();
     } finally {
       await prisma.cardCopy.delete({ where: { id: extra.id } });
