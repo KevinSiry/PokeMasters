@@ -1,6 +1,5 @@
 import { PackCover } from "@/components/booster/pack-cover";
 import { PackLogo } from "@/components/booster/pack-logo";
-import { PokemonWordmark } from "@/components/booster/pokemon-wordmark";
 import type { CardImageQuality } from "@/lib/card-image";
 import { cn } from "@/lib/utils";
 
@@ -54,7 +53,7 @@ interface BoosterPackArtProps {
 
 /**
  * Visuel d'une pochette de booster, à la manière d'un vrai booster du jeu de cartes : sachet métallisé serti
- * en haut et en bas, languette prédécoupée, inscription « Pokémon », illustration d'une carte vedette,
+ * en haut et en bas, languette prédécoupée, illustration d'une carte vedette,
  * logo du set et nombre de cartes. Le haut et le corps peuvent être rendus séparément pour l'animation de déchirure.
  */
 export function BoosterPackArt({
@@ -97,14 +96,7 @@ export function BoosterPackArt({
       <div className="pf-pack-notch left-0" aria-hidden="true" />
       <div className="pf-pack-notch right-0 rotate-180" aria-hidden="true" />
 
-      {/* Marque en haut à gauche, comme le logo du jeu sur les boosters récents. */}
-      <div className="absolute top-[12.6%] left-[6%] grid w-[46%] justify-items-center">
-        <PokemonWordmark className="drop-shadow-[0_0.6cqw_0.5cqw_rgb(0_0_0/0.5)]" />
-        <span className="mt-[0.3cqw] font-mono text-[2.3cqw] leading-none font-bold tracking-[0.06em] whitespace-nowrap text-white uppercase [text-shadow:0_0.3cqw_0.6cqw_rgb(0_0_0/0.8)]">
-          Jeu de cartes à collectionner
-        </span>
-      </div>
-      <span className="absolute top-[13.4%] right-[6%] rounded-[1cqw] border border-white/50 bg-black/35 px-[1.6cqw] py-[0.6cqw] font-mono text-[2.4cqw] leading-none font-bold tracking-[0.14em] text-white uppercase backdrop-blur-[2px]">
+      <span className="absolute top-[13.4%] left-[6%] rounded-[1cqw] border border-white/50 bg-black/35 px-[1.6cqw] py-[0.6cqw] font-mono text-[2.4cqw] leading-none font-bold tracking-[0.14em] text-white uppercase backdrop-blur-[2px]">
         Booster
       </span>
 
@@ -116,9 +108,6 @@ export function BoosterPackArt({
         <span className="flex items-baseline gap-[1cqw] rounded-[1.4cqw] bg-white px-[2.2cqw] py-[0.8cqw] leading-none text-[#0F2A66] shadow-[0_0.6cqw_1.6cqw_rgb(0_0_0/0.45)]">
           <span className="font-display text-[5.4cqw] font-black">{count}</span>
           <span className="font-mono text-[2.6cqw] font-bold tracking-[0.1em] uppercase">cartes</span>
-        </span>
-        <span className="font-mono text-[2.4cqw] font-bold tracking-[0.2em] text-white/80 uppercase [text-shadow:0_0.3cqw_0.6cqw_rgb(0_0_0/0.8)]">
-          PokeFlex
         </span>
       </div>
       {children}

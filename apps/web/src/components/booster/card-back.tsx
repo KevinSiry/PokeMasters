@@ -1,22 +1,21 @@
 import { useId } from "react";
-import { PokemonWordmark } from "@/components/booster/pokemon-wordmark";
 import { cn } from "@/lib/utils";
 
-/** Bras du tourbillon bleu : spirales logarithmiques qui partent de la Poké Ball (centre 315, 545). */
+/** Bras du tourbillon bleu : spirales logarithmiques qui partent de la Poké Ball (centre 315, 440). */
 const SWIRLS = Array.from({ length: 9 }, (_, k) => {
   const start = (k / 9) * Math.PI * 2;
   const pts: string[] = [];
   for (let i = 0; i <= 40; i++) {
     const t = (i / 40) * Math.PI * 1.9;
     const r = 70 * Math.exp(0.36 * t);
-    pts.push(`${(315 + r * Math.cos(start + t)).toFixed(1)} ${(545 + r * Math.sin(start + t)).toFixed(1)}`);
+    pts.push(`${(315 + r * Math.cos(start + t)).toFixed(1)} ${(440 + r * Math.sin(start + t)).toFixed(1)}`);
   }
   return { d: `M${pts.join(" L")}`, width: 18 + (k % 3) * 14, opacity: k % 2 ? 0.5 : 0.8 };
 });
 
 /**
  * Dos de carte classique du jeu de cartes Pokémon : fond bleu tourbillonnant dans un cadre bleu foncé,
- * grande Poké Ball inclinée et inscription « Pokémon » jaune. Entièrement dessiné (aucune image officielle).
+ * grande Poké Ball inclinée au centre, sans inscription. Entièrement dessiné (aucune image officielle).
  */
 export function CardBack({ className }: { className?: string }) {
   const id = useId().replace(/:/g, "");
@@ -25,7 +24,7 @@ export function CardBack({ className }: { className?: string }) {
     <div className={cn("pf-card-back", className)} aria-hidden="true">
       <svg viewBox="0 0 630 880" preserveAspectRatio="none" className="absolute inset-0 size-full">
         <defs>
-          <radialGradient id={`${id}-field`} cx="0.5" cy="0.62" r="0.75">
+          <radialGradient id={`${id}-field`} cx="0.5" cy="0.5" r="0.75">
             <stop offset="0" stopColor="#9CC8FF" />
             <stop offset="0.22" stopColor="#4D8FE8" />
             <stop offset="0.55" stopColor="#1F55B8" />
@@ -80,10 +79,10 @@ export function CardBack({ className }: { className?: string }) {
               <path key={a.d} d={a.d} strokeWidth={a.width} strokeOpacity={a.opacity} />
             ))}
           </g>
-          <circle cx="315" cy="545" r="250" fill={url("halo")} />
+          <circle cx="315" cy="440" r="250" fill={url("halo")} />
 
           {/* Poké Ball inclinée. */}
-          <g transform="rotate(-22 315 545)">
+          <g transform="translate(0 -105) rotate(-22 315 545)">
             <circle cx="315" cy="545" r="178" fill="#101418" />
             <path d="M151 545 a164 164 0 0 1 328 0 z" fill={url("red")} />
             <path d="M151 545 a164 164 0 0 0 328 0 z" fill={url("white")} />
@@ -99,7 +98,6 @@ export function CardBack({ className }: { className?: string }) {
         <rect x="8" y="8" width="614" height="864" rx="30" fill="none" stroke="#6F98E8" strokeOpacity="0.5" strokeWidth="2" />
         <rect width="630" height="880" fill={url("gloss")} />
       </svg>
-      <PokemonWordmark className="absolute top-[12%] left-[11%] w-[78%] -rotate-[9deg]" />
     </div>
   );
 }
