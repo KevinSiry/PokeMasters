@@ -378,6 +378,8 @@ export interface TradeableGroup extends TradeCardView {
   wished: boolean;
   /** Carte que l'autre joueur n'a pas encore (calculé pour les cartes demandées). */
   isNew: boolean;
+  /** Doublon : son propriétaire en a au moins deux exemplaires, toutes finitions confondues. */
+  duplicate: boolean;
 }
 
 interface GroupFilter {
@@ -385,9 +387,18 @@ interface GroupFilter {
   q?: string;
   /** Seulement les cartes que `wisherId` recherche. */
   onlyWished?: boolean;
+  /** Seulement les doublons du propriétaire (au moins deux exemplaires de la carte). */
+  onlyDuplicates?: boolean;
   /** Seulement ces cartes (sélection initiale d'une contre-proposition ou d'un lien « Échanger »). */
   cardIds?: string[];
 }
+
+/**
+ * Doublon : le propriétaire garde au moins un autre exemplaire de la carte (toutes finitions, en vente
+ * compris), comme pour « Recycler les doublons ».
+ */
+const isDuplicate = (ownerId: string) =>
+  Prisma.sql`(SELECT count(*) FROM "CardCopy" d WHERE d."ownerId" = ${ownerId} AND d."cardId" = cc."cardId") >= 2`;
 
 /** Conditions SQL communes : exemplaires libres (ni en vente ni favoris) et filtres du sélecteur. */
 function groupWhere(ownerId: string, wisherId: string | null, f: GroupFilter) {
@@ -396,6 +407,7 @@ function groupWhere(ownerId: string, wisherId: string | null, f: GroupFilter) {
       AND NOT EXISTS (SELECT 1 FROM "FavoriteCard" f WHERE f."userId" = ${ownerId} AND f."cardId" = cc."cardId")
       ${q ? Prisma.sql`AND pf_unaccent(lower(c.name || ' ' || s.name)) LIKE '%' || pf_unaccent(lower(${q})) || '%'` : Prisma.empty}
       ${f.onlyWished ? Prisma.sql`AND EXISTS (SELECT 1 FROM "WishlistCard" w WHERE w."userId" = ${wisherId} AND w."cardId" = cc."cardId")` : Prisma.empty}
+      ${f.onlyDuplicates ? Prisma.sql`AND ${isDuplicate(ownerId)}` : Prisma.empty}
       ${f.cardIds ? Prisma.sql`AND cc."cardId" = ANY(${f.cardIds}::text[])` : Prisma.empty}`;
 }
 
@@ -408,7 +420,8 @@ async function tradeableGroups(ownerId: string, wisherId: string | null, newFor:
     SELECT min(cc.id) AS "copyId", cc."cardId", cc.finish, count(*)::int AS count,
       c.name, c.image, c.tier, c.lang, c."localId", s.name AS "setName",
       EXISTS (SELECT 1 FROM "WishlistCard" w WHERE w."userId" = ${wisherId} AND w."cardId" = cc."cardId") AS wished,
-      (${newFor}::text IS NOT NULL AND NOT EXISTS (SELECT 1 FROM "CardCopy" o WHERE o."ownerId" = ${newFor} AND o."cardId" = cc."cardId")) AS "isNew"
+      (${newFor}::text IS NOT NULL AND NOT EXISTS (SELECT 1 FROM "CardCopy" o WHERE o."ownerId" = ${newFor} AND o."cardId" = cc."cardId")) AS "isNew",
+      ${isDuplicate(ownerId)} AS duplicate
     FROM "CardCopy" cc
     JOIN "Card" c ON c.id = cc."cardId"
     JOIN "Set" s ON s.id = c."setId"
@@ -418,20 +431,24 @@ async function tradeableGroups(ownerId: string, wisherId: string | null, newFor:
     LIMIT ${take} OFFSET ${skip}`;
 }
 
-/** Nombre de groupes (carte × finition) qui passent le filtre, et parmi eux ceux que `wisherId` recherche. */
-async function countGroups(ownerId: string, wisherId: string | null, f: GroupFilter): Promise<{ total: number; wished: number; wishedCards: number }> {
-  const [row] = await prisma.$queryRaw<{ total: number; wished: number; wishedCards: number }[]>`
+type GroupCounts = { total: number; wished: number; wishedCards: number; duplicates: number };
+
+/** Nombre de groupes (carte × finition) qui passent le filtre, et parmi eux ceux que `wisherId` recherche et les doublons. */
+async function countGroups(ownerId: string, wisherId: string | null, f: GroupFilter): Promise<GroupCounts> {
+  const [row] = await prisma.$queryRaw<GroupCounts[]>`
     SELECT count(*)::int AS total, count(*) FILTER (WHERE g.wished)::int AS wished,
-      count(DISTINCT g."cardId") FILTER (WHERE g.wished)::int AS "wishedCards"
+      count(DISTINCT g."cardId") FILTER (WHERE g.wished)::int AS "wishedCards",
+      count(*) FILTER (WHERE g.duplicate)::int AS duplicates
     FROM (
-      SELECT cc."cardId", EXISTS (SELECT 1 FROM "WishlistCard" w WHERE w."userId" = ${wisherId} AND w."cardId" = cc."cardId") AS wished
+      SELECT cc."cardId", EXISTS (SELECT 1 FROM "WishlistCard" w WHERE w."userId" = ${wisherId} AND w."cardId" = cc."cardId") AS wished,
+        ${isDuplicate(ownerId)} AS duplicate
       FROM "CardCopy" cc
       JOIN "Card" c ON c.id = cc."cardId"
       JOIN "Set" s ON s.id = c."setId"
       WHERE ${groupWhere(ownerId, wisherId, f)}
       GROUP BY cc."cardId", cc.finish
     ) g`;
-  return row ?? { total: 0, wished: 0, wishedCards: 0 };
+  return row ?? { total: 0, wished: 0, wishedCards: 0, duplicates: 0 };
 }
 
 export type TradeSide = "mine" | "theirs";
@@ -447,6 +464,10 @@ export interface TradePickerPage {
   wished: number;
   /** Les mêmes, en cartes distinctes (une carte peut exister en plusieurs finitions). */
   wishedCards: number;
+  /** Parmi eux, les doublons de leur propriétaire. */
+  duplicates: number;
+  /** La wishlist d'en face est connue : le filtre wishlist a un sens. */
+  wishlistVisible: boolean;
 }
 
 /**
@@ -458,7 +479,7 @@ export async function getTradePickerPage(
   userId: string,
   otherId: string,
   side: TradeSide,
-  filter: { q?: string; onlyWished?: boolean; page?: number } = {},
+  filter: { q?: string; onlyWished?: boolean; onlyDuplicates?: boolean; page?: number } = {},
   seeTheirs?: boolean,
 ): Promise<TradePickerPage> {
   if (userId === otherId) throw new TradeError("self", "Tu ne peux pas échanger avec toi-même.");
@@ -467,14 +488,14 @@ export async function getTradePickerPage(
     seeTheirs = await canSeeWishlist(otherId, userId);
   }
   const [ownerId, wisherId, newFor] = side === "theirs" ? [otherId, userId, userId] : [userId, seeTheirs ? otherId : null, null];
-  const f: GroupFilter = { q: filter.q, onlyWished: Boolean(filter.onlyWished && wisherId) };
+  const f: GroupFilter = { q: filter.q, onlyWished: Boolean(filter.onlyWished && wisherId), onlyDuplicates: Boolean(filter.onlyDuplicates) };
   const counts = await countGroups(ownerId, wisherId, f);
   const size = rules.pickerPageSize;
   const pageCount = Math.max(1, Math.ceil(counts.total / size));
   const asked = Math.trunc(Number(filter.page ?? 1));
   const page = Number.isFinite(asked) ? Math.min(Math.max(asked, 1), pageCount) : 1;
   const groups = counts.total === 0 ? [] : await tradeableGroups(ownerId, wisherId, newFor, f, size, (page - 1) * size);
-  return { groups, page, pageCount, ...counts };
+  return { groups, page, pageCount, ...counts, wishlistVisible: wisherId !== null };
 }
 
 /**

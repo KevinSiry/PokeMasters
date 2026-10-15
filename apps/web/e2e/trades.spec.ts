@@ -89,4 +89,39 @@ test.describe("échanges", () => {
       await prisma.wishlistCard.deleteMany({ where: { userId: seller!.id, cardId: mineCopy.cardId } });
     }
   });
+
+  test("filtre ses doublons et les miens", async ({ page }) => {
+    const [fan, seller] = await Promise.all(["demo-collection", "demo-marchand"].map((handle) => prisma.user.findUniqueOrThrow({ where: { handle }, select: { id: true } })));
+    const free = (ownerId: string) => ({ ownerId, status: "owned" as const, card: { favoritedBy: { none: { userId: ownerId } } } });
+    // Une carte de l'autre joueur doublée le temps du test, et une des miennes en un seul exemplaire.
+    const theirCopy = await prisma.cardCopy.findFirstOrThrow({ where: free(seller!.id), orderBy: { cardId: "asc" }, select: { cardId: true, finish: true, card: { select: { name: true } } } });
+    const extra = await prisma.cardCopy.create({ data: { ownerId: seller!.id, cardId: theirCopy.cardId, finish: theirCopy.finish, obtainedVia: "seed" } });
+    const owned = await prisma.cardCopy.findMany({ where: { ownerId: fan!.id }, select: { cardId: true, status: true, card: { select: { name: true, favoritedBy: { where: { userId: fan!.id }, select: { userId: true } } } } } });
+    // Nom qui ne désigne, parmi mes cartes, qu'un seul exemplaire échangeable : la recherche ne trouve qu'elle.
+    const single = owned.find(
+      (c) => c.status === "owned" && c.card.favoritedBy.length === 0 && owned.filter((o) => o.card.name.toLowerCase().includes(c.card.name.toLowerCase())).length === 1,
+    )!;
+    expect(single).toBeDefined();
+    try {
+      await page.goto("/echanges/nouveau?avec=demo-marchand");
+      const theirs = page.getByRole("tabpanel", { name: "Cartes de Marchand Démo" });
+      await theirs.getByRole("button", { name: /Ses doublons/ }).click();
+      await expect(theirs.getByRole("button", { name: /Ses doublons/ })).toHaveAttribute("aria-pressed", "true");
+      await theirs.getByRole("searchbox").fill(theirCopy.card.name);
+      await expect(theirs.locator("li button[aria-pressed]").filter({ hasText: theirCopy.card.name }).first()).toBeVisible();
+
+      await page.getByRole("tab", { name: /Tu proposes/ }).click();
+      const mine = page.getByRole("tabpanel", { name: "Tes cartes" });
+      await mine.getByRole("searchbox").fill(single.card.name);
+      await expect(mine.locator("li button[aria-pressed]").filter({ hasText: single.card.name }).first()).toBeVisible();
+      // Le filtre se grise quand il ne garderait rien : on l'active avant de chercher la carte en un exemplaire.
+      await mine.getByRole("searchbox").fill("");
+      await mine.getByRole("button", { name: /Mes doublons/ }).click();
+      await expect(mine.getByRole("button", { name: /Mes doublons/ })).toHaveAttribute("aria-pressed", "true");
+      await mine.getByRole("searchbox").fill(single.card.name);
+      await expect(mine.getByText("Aucune carte ne correspond.")).toBeVisible();
+    } finally {
+      await prisma.cardCopy.delete({ where: { id: extra.id } });
+    }
+  });
 });

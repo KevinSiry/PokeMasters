@@ -2,7 +2,7 @@
 
 import { FINISH_LABELS_FR } from "@pokeflex/config";
 import type { PlayerRef, TradeableGroup, TradePickerPage, TradeSide } from "@pokeflex/server";
-import { ArrowDownLeft, ArrowUpRight, Check, Heart, Loader2, Search, Send, Sparkles, X } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Check, Heart, Layers, Loader2, Search, Send, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState, useTransition } from "react";
@@ -24,6 +24,7 @@ function Picker({
   selected,
   onToggle,
   wishedLabel,
+  duplicatesLabel,
   intro,
   empty,
   full,
@@ -34,12 +35,14 @@ function Picker({
   selected: Map<string, TradeableGroup>;
   onToggle: (group: TradeableGroup) => void;
   wishedLabel: string;
+  duplicatesLabel: string;
   intro?: ReactNode;
   empty: string;
   full: boolean;
 }) {
   const [q, setQ] = useState("");
   const [onlyWished, setOnlyWished] = useState(false);
+  const [onlyDuplicates, setOnlyDuplicates] = useState(false);
   const [page, setPage] = useState(1);
   const [data, setData] = useState(initial);
   const [loading, setLoading] = useState(false);
@@ -56,7 +59,7 @@ function Picker({
     const id = ++request.current;
     setLoading(true);
     const timer = setTimeout(async () => {
-      const res = await tradePickerPageAction({ other: otherId, side, q, onlyWished, page });
+      const res = await tradePickerPageAction({ other: otherId, side, q, onlyWished, onlyDuplicates, page });
       if (id !== request.current) return;
       setLoading(false);
       if (!res.ok) {
@@ -66,7 +69,7 @@ function Picker({
       setData(res.data);
     }, 250);
     return () => clearTimeout(timer);
-  }, [otherId, side, q, onlyWished, page]);
+  }, [otherId, side, q, onlyWished, onlyDuplicates, page]);
 
   const goTo = (p: number) => {
     setPage(p);
@@ -80,7 +83,7 @@ function Picker({
     <div ref={top} className="grid scroll-mt-24 gap-3">
       {intro}
       <div className="flex flex-wrap items-center gap-2">
-        <label className="relative min-w-0 flex-1">
+        <label className="relative w-full min-w-0 sm:w-auto sm:flex-1">
           <span className="sr-only">Filtrer les cartes</span>
           <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" />
           <input
@@ -94,21 +97,30 @@ function Picker({
             className="h-10 w-full rounded-full border border-line bg-surface pr-3 pl-9 text-sm outline-none focus:border-accent"
           />
         </label>
-        {(initial.wished > 0 || onlyWished) && (
-          <button
-            type="button"
-            className="pf-chip"
-            aria-pressed={onlyWished}
-            onClick={() => {
-              setOnlyWished((v) => !v);
+        <div role="group" aria-label="Filtres" className="flex flex-wrap gap-2">
+          {initial.wishlistVisible && (
+            <FilterChip
+              icon={<Heart aria-hidden="true" className="size-3.5 text-coral" />}
+              label={wishedLabel}
+              count={data.wished}
+              on={onlyWished}
+              onToggle={() => {
+                setOnlyWished((v) => !v);
+                setPage(1);
+              }}
+            />
+          )}
+          <FilterChip
+            icon={<Layers aria-hidden="true" className="size-3.5 text-accent" />}
+            label={duplicatesLabel}
+            count={data.duplicates}
+            on={onlyDuplicates}
+            onToggle={() => {
+              setOnlyDuplicates((v) => !v);
               setPage(1);
             }}
-          >
-            <Heart aria-hidden="true" className="size-3.5 text-coral" />
-            {wishedLabel}
-            <span className="font-mono text-[11px] text-muted">{data.wished}</span>
-          </button>
-        )}
+          />
+        </div>
       </div>
       {chosen.length > 0 && (
         <ul aria-label="Cartes choisies" className="flex flex-wrap gap-1.5">
@@ -196,6 +208,17 @@ function Picker({
       )}
       <Pagination info={data} onPage={goTo} label="Pages de cartes" />
     </div>
+  );
+}
+
+/** Filtre à bascule du sélecteur ; grisé quand il ne garderait aucune carte. */
+function FilterChip({ icon, label, count, on, onToggle }: { icon: ReactNode; label: string; count: number; on: boolean; onToggle: () => void }) {
+  return (
+    <button type="button" className="pf-chip disabled:opacity-50" aria-pressed={on} disabled={!on && count === 0} onClick={onToggle}>
+      {icon}
+      {label}
+      <span className="font-mono text-[11px] text-muted">{count}</span>
+    </button>
   );
 }
 
@@ -316,6 +339,7 @@ export function TradeComposer({
           selected={take}
           onToggle={toggle(setTake)}
           wishedLabel="Ma wishlist"
+          duplicatesLabel="Ses doublons"
           empty={`${other.name} n'a aucune carte échangeable pour l'instant (les favoris et les cartes en vente ne s'échangent pas).`}
           full={take.size >= maxPerSide}
         />
@@ -328,6 +352,7 @@ export function TradeComposer({
           selected={give}
           onToggle={toggle(setGive)}
           wishedLabel="Sa wishlist"
+          duplicatesLabel="Mes doublons"
           intro={theirWishlist !== null && <WishlistHint other={other} size={theirWishlist} matches={mine.wishedCards} />}
           empty="Tu n'as aucune carte échangeable (les favoris et les cartes en vente ne s'échangent pas)."
           full={give.size >= maxPerSide}

@@ -57,8 +57,8 @@ export async function cancelTradeAction(tradeId: string) {
   return run((uid) => cancelTrade(uid, String(tradeId)), "annulation");
 }
 
-/** Lecture seule : une page du sélecteur de cartes d'une offre (recherche, filtre wishlist, pagination). */
-export async function tradePickerPageAction(input: { other: string; side: "mine" | "theirs"; q?: string; onlyWished?: boolean; page?: number }): Promise<Result<TradePickerPage>> {
+/** Lecture seule : une page du sélecteur de cartes d'une offre (recherche, filtres wishlist et doublons, pagination). */
+export async function tradePickerPageAction(input: { other: string; side: "mine" | "theirs"; q?: string; onlyWished?: boolean; onlyDuplicates?: boolean; page?: number }): Promise<Result<TradePickerPage>> {
   const session = await auth();
   const uid = session?.user?.id;
   if (!uid) return { ok: false, error: "Connecte-toi pour échanger des cartes." };
@@ -68,6 +68,7 @@ export async function tradePickerPageAction(input: { other: string; side: "mine"
     const page = await getTradePickerPage(uid, String(input.other).slice(0, 40), input.side === "mine" ? "mine" : "theirs", {
       q: typeof input.q === "string" ? input.q.slice(0, 80) : "",
       onlyWished: input.onlyWished === true,
+      onlyDuplicates: input.onlyDuplicates === true,
       page: Number(input.page) || 1,
     });
     return { ok: true, data: page };

@@ -256,6 +256,34 @@ describe.skipIf(skip)("échanges (Postgres)", () => {
     expect((await getTradeComposer(a, b)).theirWishlist).toBe(1);
   });
 
+  it("filtre les doublons de chaque côté (deux exemplaires ou plus, toutes finitions)", async () => {
+    const [a, b] = [await newUser(), await newUser()];
+    // a : cardIds[0] en double (normal + holo), cardIds[1] seul, cardIds[2] en double mais favori.
+    await give(a, cardIds[0]!);
+    await give(a, cardIds[0]!, "holo");
+    await give(a, cardIds[1]!);
+    await give(a, cardIds[2]!);
+    await give(a, cardIds[2]!);
+    await setFavorite(a, cardIds[2]!, true);
+    // b : cardIds[3] en double dans la même finition, cardIds[1] seul.
+    await give(b, cardIds[3]!);
+    await give(b, cardIds[3]!);
+    await give(b, cardIds[1]!);
+    await setWishlisted(a, cardIds[3]!, true);
+
+    const mine = await getTradePickerPage(a, b, "mine");
+    expect([mine.total, mine.duplicates]).toEqual([3, 2]);
+    expect(mine.groups.find((g) => g.cardId === cardIds[1])!.duplicate).toBe(false);
+    const mineDups = await getTradePickerPage(a, b, "mine", { onlyDuplicates: true });
+    expect(mineDups.groups.map((g) => `${g.cardId}:${g.finish}`).sort()).toEqual([`${cardIds[0]}:holo`, `${cardIds[0]}:normal`].sort());
+
+    const theirDups = await getTradePickerPage(a, b, "theirs", { onlyDuplicates: true });
+    expect([theirDups.total, theirDups.groups[0]!.cardId, theirDups.groups[0]!.count]).toEqual([1, cardIds[3], 2]);
+    // Les filtres se combinent : ses doublons qui sont dans ma wishlist.
+    const both = await getTradePickerPage(a, b, "theirs", { onlyDuplicates: true, onlyWished: true });
+    expect([both.total, both.wished, both.wishlistVisible]).toEqual([1, 1, true]);
+  });
+
   it("limite le nombre de propositions en attente", async () => {
     const [a, b] = [await newUser(), await newUser()];
     const ca = await give(a, cardIds[0]!);
