@@ -295,38 +295,32 @@
 .pf-pack {
   position: relative;
   aspect-ratio: 5 / 8.2;
-  border-radius: 14px;
+  border-radius: 6px;
+  /* Sachet métallisé : reflets de l'aluminium par-dessus les couleurs du set. */
   background:
-    radial-gradient(120% 70% at 50% 38%, rgb(255 255 255 / 0.12), transparent 60%),
-    linear-gradient(160deg, var(--pack-1, #3A1D8C) 0%, var(--pack-2, #6A45F0) 32%, var(--pack-3, #C42A5A) 68%, var(--pack-4, #FF8A5C) 100%);
+    linear-gradient(100deg, transparent 8%, rgb(255 255 255 / 0.22) 18%, transparent 30%, transparent 62%, rgb(255 255 255 / 0.16) 74%, transparent 86%),
+    radial-gradient(120% 60% at 50% 45%, rgb(255 255 255 / 0.18), transparent 65%),
+    linear-gradient(170deg, var(--pack-1, #1B2F7A) 0%, var(--pack-2, #2F6BE0) 30%, var(--pack-3, #C42A5A) 70%, var(--pack-4, #FFB547) 100%);
   box-shadow:
-    inset 0 0 0 2px rgb(255 255 255 / 0.14),
-    inset 0 -40px 60px -30px rgb(0 0 0 / 0.5),
+    inset 3px 0 4px -2px rgb(255 255 255 / 0.35),
+    inset -3px 0 4px -2px rgb(0 0 0 / 0.45),
     0 30px 60px -24px rgb(0 0 0 / 0.9),
     0 0 80px -20px color-mix(in srgb, var(--color-accent) 60%, transparent);
   overflow: hidden;
-  /* Bords sertis en haut et en bas, comme une vraie pochette. */
+  /* Bords sertis en dents de scie en haut et en bas, comme une vraie pochette. */
   -webkit-mask:
-    radial-gradient(6px at 50% 0, transparent 98%, #000) 50% 0 / 12px 51% repeat-x,
-    radial-gradient(6px at 50% 100%, transparent 98%, #000) 50% 100% / 12px 51% repeat-x;
+    conic-gradient(from -45deg at 50% 4px, transparent 90deg, #000 0) 50% 0 / 6px 51% repeat-x,
+    conic-gradient(from 135deg at 50% calc(100% - 4px), transparent 90deg, #000 0) 50% 100% / 6px 51% repeat-x;
   mask:
-    radial-gradient(6px at 50% 0, transparent 98%, #000) 50% 0 / 12px 51% repeat-x,
-    radial-gradient(6px at 50% 100%, transparent 98%, #000) 50% 100% / 12px 51% repeat-x;
-}
-.pf-pack::before {
-  /* Motif prismatique en losanges. */
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(45deg, rgb(255 255 255 / 0.05) 0 2px, transparent 2px 14px),
-    repeating-linear-gradient(-45deg, rgb(255 255 255 / 0.05) 0 2px, transparent 2px 14px);
-  pointer-events: none;
+    conic-gradient(from -45deg at 50% 4px, transparent 90deg, #000 0) 50% 0 / 6px 51% repeat-x,
+    conic-gradient(from 135deg at 50% calc(100% - 4px), transparent 90deg, #000 0) 50% 100% / 6px 51% repeat-x;
 }
 .pf-pack::after {
   /* Reflet métallisé qui balaie la pochette. */
   content: "";
   position: absolute;
   inset: -40%;
+  z-index: 1;
   background: linear-gradient(105deg, transparent 40%, rgb(255 255 255 / 0.45) 50%, transparent 60%);
   transform: translateX(-60%);
   animation: pf-sheen 3.6s ease-in-out infinite;
@@ -343,16 +337,68 @@
   0%, 35% { transform: translateX(-60%); }
   70%, 100% { transform: translateX(60%); }
 }
+/* Bandes serties : stries verticales de la soudure à chaud, plus claires que le sachet. */
+.pf-pack-crimp {
+  position: absolute;
+  inset-inline: 0;
+  height: 6.5%;
+  z-index: 1;
+  background:
+    repeating-linear-gradient(90deg, rgb(255 255 255 / 0.4) 0 1px, rgb(0 0 0 / 0.22) 1px 2px, transparent 2px 3px),
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--pack-2, #2F6BE0) 30%, #F1F4FA),
+      color-mix(in srgb, var(--pack-2, #2F6BE0) 40%, #98A3BA) 48%,
+      color-mix(in srgb, var(--pack-2, #2F6BE0) 30%, #DCE3F0) 72%,
+      color-mix(in srgb, var(--pack-2, #2F6BE0) 45%, #5F6A86));
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.15);
+}
+/* Encoche qui amorce la déchirure, sur les bords de la languette. */
+.pf-pack-notch {
+  position: absolute;
+  top: calc(11% - 5px);
+  width: 7px;
+  height: 10px;
+  z-index: 1;
+  background: rgb(10 10 20 / 0.85);
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+/* Illustration de la carte vedette : nette au centre, fondue dans le sachet en haut et en bas. */
+.pf-pack-cover {
+  filter: contrast(1.06) saturate(1.12);
+  -webkit-mask: linear-gradient(180deg, transparent, #000 12%, #000 60%, transparent 76%);
+  mask: linear-gradient(180deg, transparent, #000 12%, #000 60%, transparent 76%);
+}
+/* La même image, floutée, habille tout le sachet aux couleurs de l'illustration. */
+.pf-pack-backdrop {
+  filter: blur(3cqw) saturate(1.5) brightness(0.62);
+  transform: scale(1.3);
+}
+/* Couleurs du set en haut et en bas, pour lire la marque, le logo et le nombre de cartes. */
+.pf-pack-tint {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pack-1, #1B2F7A) 80%, transparent) 4%, transparent 26%),
+    linear-gradient(0deg, color-mix(in srgb, var(--pack-1, #1B2F7A) 92%, transparent) 6%, color-mix(in srgb, var(--pack-2, #2F6BE0) 45%, transparent) 26%, transparent 46%);
+  pointer-events: none;
+}
+/* Film holographique : arc-en-ciel discret qui irise l'illustration. */
+.pf-pack-holo {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(115deg, #ff5c8a 0%, #ffd86b 8%, #7cf0a0 16%, #6ad3ff 24%, #b57cf7 32%, #ff5c8a 40%);
+  mix-blend-mode: overlay;
+  opacity: 0.22;
+  pointer-events: none;
+}
 
 .pf-card-back {
   position: relative;
   aspect-ratio: 63 / 88;
   border-radius: var(--radius-card-image);
-  background:
-    radial-gradient(circle at 50% 50%, rgb(139 108 255 / 0.55), transparent 55%),
-    repeating-conic-gradient(from 0deg at 50% 50%, #1D1238 0deg 10deg, #24174A 10deg 20deg),
-    #1A1033;
-  box-shadow: inset 0 0 0 5px #2B1E57, inset 0 0 0 7px color-mix(in srgb, var(--color-coral) 70%, transparent), 0 20px 40px -18px rgb(0 0 0 / 0.9);
+  background: #12306F;
+  box-shadow: 0 20px 40px -18px rgb(0 0 0 / 0.9);
   overflow: hidden;
 }
 .pf-card-back::after {
@@ -382,7 +428,11 @@
 
 /* Reflet de la pochette qui suit l'inclinaison (déplacé en transform par <FloatingPack>). */
 .pf-pack-glare {
-  background: radial-gradient(closest-side, rgb(255 255 255 / 0.38), rgb(255 255 255 / 0.08) 55%, transparent);
+  background:
+    radial-gradient(closest-side, rgb(255 255 255 / 0.4), rgb(255 255 255 / 0.08) 55%, transparent),
+    conic-gradient(from 0deg, rgb(255 92 138 / 0.3), rgb(255 216 107 / 0.3), rgb(124 240 160 / 0.3), rgb(106 211 255 / 0.3), rgb(181 124 247 / 0.3), rgb(255 92 138 / 0.3));
+  -webkit-mask: radial-gradient(closest-side, #000 30%, transparent);
+  mask: radial-gradient(closest-side, #000 30%, transparent);
   mix-blend-mode: overlay;
 }
 
