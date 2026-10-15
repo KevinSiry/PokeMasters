@@ -218,6 +218,8 @@ export interface BoosterSet {
   droppable: number;
   owned: number;
   completed: boolean;
+  /** Image (URL de base) de la carte vedette illustrée sur la pochette, comme le Pokémon d'un vrai booster. */
+  cover: string | null;
 }
 
 /** Sets proposés en booster payant (assez de cartes tirables), avec l'avancement du joueur. */
@@ -226,7 +228,10 @@ export async function getBoosterSets(userId: string): Promise<BoosterSet[]> {
     SELECT s.id, s.name, s.logo, s."serieId", se.name AS "serieName", s."releaseDate",
            count(c.id) AS droppable,
            count(o."cardId") AS owned,
-           EXISTS (SELECT 1 FROM "SetCompletion" sc WHERE sc."userId" = ${userId} AND sc."setId" = s.id) AS completed
+           EXISTS (SELECT 1 FROM "SetCompletion" sc WHERE sc."userId" = ${userId} AND sc."setId" = s.id) AS completed,
+           (SELECT v.image FROM "Card" v
+             WHERE v."setId" = s.id AND v.droppable AND v.category = 'pokemon' AND v.image IS NOT NULL
+             ORDER BY v.tier DESC, v."sortKey" LIMIT 1) AS cover
     FROM "Set" s
     JOIN "Serie" se ON se.id = s."serieId"
     JOIN "Card" c ON c."setId" = s.id AND c.droppable
@@ -235,4 +240,29 @@ export async function getBoosterSets(userId: string): Promise<BoosterSet[]> {
     HAVING count(c.id) >= ${gameConfig.setBoosters.minDroppableCards}
     ORDER BY se."firstReleaseDate" DESC NULLS LAST, s."releaseDate" DESC NULLS LAST`;
   return rows.map((r) => ({ ...r, droppable: Number(r.droppable), owned: Number(r.owned) }));
+}
+
+/** Pokémon vedette de la pochette « Toutes époques » (n° du Pokédex national) : Pikachu, la mascotte. */
+const FREE_PACK_DEX_ID = 25;
+const coverCache = new Map<string, { at: number; cover: string | null }>();
+
+/**
+ * Carte vedette d'une pochette : la carte Pokémon tirable la plus rare du set (la plus rare des Pikachu
+ * pour le booster gratuit), comme le Pokémon mis en avant sur un vrai booster. Mise en cache 10 min.
+ */
+export async function getPackCover(setId?: string): Promise<string | null> {
+  const key = setId ?? "";
+  const hit = coverCache.get(key);
+  if (hit && Date.now() - hit.at < POOL_TTL_MS) return hit.cover;
+  const where = { droppable: true, category: "pokemon" as const, image: { not: null } };
+  const orderBy = [{ tier: "desc" as const }, { sortKey: "asc" as const }];
+  const card =
+    (await prisma.card.findFirst({
+      where: setId ? { ...where, setId } : { ...where, dexIds: { has: FREE_PACK_DEX_ID } },
+      orderBy,
+      select: { image: true },
+    })) ?? (setId ? null : await prisma.card.findFirst({ where, orderBy, select: { image: true } }));
+  const cover = card?.image ?? null;
+  coverCache.set(key, { at: Date.now(), cover });
+  return cover;
 }

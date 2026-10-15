@@ -33,6 +33,8 @@ interface BoosterOpeningProps {
   balance: number;
   /** Booster d'un set précis, payé en Jetons. Sans `set` : booster gratuit « Toutes époques ». */
   set?: { id: string; name: string; logo: string | null; price: number };
+  /** Carte vedette illustrée sur la pochette (URL de base de son image). */
+  cover?: string | null;
 }
 
 const TIER_COLORS: Record<Tier, string[]> = {
@@ -188,7 +190,7 @@ function PullBadges({ card, className, compact }: { card: PulledCard; className?
   );
 }
 
-export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, balance: initialBalance, set }: BoosterOpeningProps) {
+export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, balance: initialBalance, set, cover }: BoosterOpeningProps) {
   const reduced = useReducedMotion() ?? false;
   const [phase, setPhase] = useState<Phase>("idle");
   const [result, setResult] = useState<BoosterResult | null>(null);
@@ -218,7 +220,7 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
   }, [available, nextAt, initialBalance, phase]);
 
   const canOpen = set ? balance >= set.price : countdown.shown > 0;
-  const packProps = set ? { label: set.name, logo: set.logo, palette: set.id } : {};
+  const packProps = set ? { label: set.name, logo: set.logo, palette: set.id, cover } : { cover };
 
   const cards = useMemo(() => result?.cards ?? [], [result]);
   const current = cards[index];

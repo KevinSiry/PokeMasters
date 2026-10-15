@@ -7,13 +7,18 @@ import { ProgressRing } from "@/components/progress";
 import { Button } from "@/components/ui/button";
 import { QuestsPanel } from "@/components/economy/quests-panel";
 import { getCollectionTotals, getRecentPulls } from "@/lib/collection";
-import { getDailyQuests } from "@pokeflex/server";
+import { getDailyQuests, getPackCover } from "@pokeflex/server";
 import type { CurrentPlayer } from "@/lib/player";
 import { HomeBoosterStatus } from "./home-booster-status";
 
 /** Accueil d'un joueur connecté : son booster, sa progression, ses dernières cartes. */
 export async function PlayerHome({ player }: { player: CurrentPlayer }) {
-  const [totals, recent, daily] = await Promise.all([getCollectionTotals(player.id), getRecentPulls(player.id), getDailyQuests(player.id)]);
+  const [totals, recent, daily, cover] = await Promise.all([
+    getCollectionTotals(player.id),
+    getRecentPulls(player.id),
+    getDailyQuests(player.id),
+    getPackCover(),
+  ]);
   const has = player.boosters.available > 0;
 
   return (
@@ -28,7 +33,7 @@ export async function PlayerHome({ player }: { player: CurrentPlayer }) {
           className="group relative grid grid-cols-[auto_1fr] items-center gap-5 overflow-hidden rounded-[calc(var(--radius-card)*1.4)] border border-line bg-[radial-gradient(120%_120%_at_0%_0%,color-mix(in_srgb,var(--color-accent)_28%,transparent),transparent_60%),var(--color-surface)] p-5 transition-colors hover:border-accent sm:p-7"
         >
           <div className="w-24 transition-transform duration-300 group-hover:-rotate-3 group-hover:scale-105 sm:w-32">
-            <BoosterPackArt empty={!has} />
+            <BoosterPackArt empty={!has} cover={cover} coverQuality="low" />
           </div>
           <div className="grid gap-3">
             <p className="font-mono text-xs tracking-[0.16em] text-muted uppercase">Booster gratuit</p>

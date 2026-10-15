@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 import { BoosterPackArt } from "@/components/booster/booster-pack";
 import { cn } from "@/lib/utils";
 
-type PackProps = { label?: string; logo?: string | null; palette?: string };
+type PackProps = { label?: string; logo?: string | null; palette?: string; cover?: string | null };
 
 /** Hauteur de la ligne de déchirure, en % de la pochette (pointillés dessinés par BoosterPackArt). */
 const TEAR_Y = 11;

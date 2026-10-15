@@ -1,5 +1,6 @@
 import { gameConfig } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
+import { getPackCover } from "@pokeflex/server";
 import { ChevronLeft } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -27,6 +28,7 @@ export default async function SetBoosterPage({ params }: { params: Params }) {
   if (!player) redirect(`/connexion?suite=/boosters/sets/${encodeURIComponent(setId)}`);
   const set = await getEligibleSet(setId);
   if (!set) notFound();
+  const cover = await getPackCover(set.id);
   return (
     <>
       <h1 className="sr-only">Booster {set.name}</h1>
@@ -43,6 +45,7 @@ export default async function SetBoosterPage({ params }: { params: Params }) {
         refillIntervalMs={gameConfig.boosters.refillIntervalMs}
         balance={player.balance}
         set={{ id: set.id, name: set.name, logo: set.logo, price: gameConfig.boosters.setBoosterPrice }}
+        cover={cover}
       />
     </>
   );

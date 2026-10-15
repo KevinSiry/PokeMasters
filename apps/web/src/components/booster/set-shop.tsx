@@ -12,6 +12,7 @@ interface ShopSet {
   id: string;
   name: string;
   logo: string | null;
+  cover: string | null;
   serieId: string;
   serieName: string;
   releaseDate: string | null;
@@ -94,7 +95,7 @@ export function SetShop({ sets, balance, price }: { sets: ShopSet[]; balance: nu
                   className="group grid gap-2.5 rounded-[var(--radius-card)] border border-line bg-surface p-3 transition-[border-color,transform] hover:-translate-y-0.5 hover:border-accent"
                 >
                   <div className="relative mx-auto w-[78%] transition-transform group-hover:-rotate-2">
-                    <BoosterPackArt label={s.name} logo={s.logo} palette={s.id} empty={!affordable} className="shadow-none" />
+                    <BoosterPackArt label={s.name} logo={s.logo} cover={s.cover} coverQuality="low" palette={s.id} empty={!affordable} className="shadow-none" />
                     {s.completed && (
                       <span className="absolute -top-2 -right-2 grid size-7 place-items-center rounded-full bg-lime text-bg" title="Set complété">
                         <CheckCircle2 aria-label="Set complété" className="size-4" />
