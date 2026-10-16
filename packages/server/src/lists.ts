@@ -47,6 +47,7 @@ async function assertCard(cardId: string) {
 }
 
 async function assertRoom(kind: CardListKind, userId: string) {
+  if ((kind === "favorites" ? rules.favoritesMax : rules.wishlistMax) === null) return;
   const count = kind === "favorites" ? await prisma.favoriteCard.count({ where: { userId } }) : await prisma.wishlistCard.count({ where: { userId } });
   const err = listFullError(kind, count, rules);
   if (err) throw new ListError("full", err);
@@ -105,8 +106,13 @@ export async function getFavoriteCardIds(userId: string, db: Tx | typeof prisma 
   return new Set(rows.map((r) => r.cardId));
 }
 
-export async function getWishlistCardIds(userId: string): Promise<string[]> {
-  const rows = await prisma.wishlistCard.findMany({ where: { userId }, select: { cardId: true } });
+/**
+ * Cartes de la wishlist parmi `among` (les cartes affichées) : la wishlist n'a pas de limite,
+ * on ne la lit jamais en entier pour marquer une page.
+ */
+export async function getWishlistCardIds(userId: string, among: readonly string[]): Promise<string[]> {
+  if (among.length === 0) return [];
+  const rows = await prisma.wishlistCard.findMany({ where: { userId, cardId: { in: [...new Set(among)] } }, select: { cardId: true } });
   return rows.map((r) => r.cardId);
 }
 
@@ -141,11 +147,28 @@ export interface WishlistEntry extends ListCard {
   lowestPrice: number | null;
 }
 
-/** Wishlist du joueur, les plus récemment ajoutées d'abord, avec ce qui est en vente au marché. */
-export async function getWishlist(userId: string): Promise<WishlistEntry[]> {
+/** Annonces actives des autres joueurs sur une carte (filtre Prisma réutilisé). */
+const onSaleBy = (userId: string) => ({ listings: { some: { status: "active" as const, sellerId: { not: userId } } } });
+
+/** Taille de la wishlist et nombre de ses cartes en vente au marché, comptés en base sans charger la liste. */
+export async function getWishlistSummary(userId: string): Promise<{ total: number; onSale: number }> {
+  const [total, onSale] = await Promise.all([
+    prisma.wishlistCard.count({ where: { userId } }),
+    prisma.wishlistCard.count({ where: { userId, card: onSaleBy(userId) } }),
+  ]);
+  return { total, onSale };
+}
+
+/**
+ * Wishlist du joueur, les plus récemment ajoutées d'abord, avec ce qui est en vente au marché.
+ * `skip`/`take` lisent une seule page (index `userId, createdAt`) ; les annonces ne sont cherchées que pour elle.
+ */
+export async function getWishlist(userId: string, range: { skip?: number; take?: number } = {}): Promise<WishlistEntry[]> {
   const rows = await prisma.wishlistCard.findMany({
     where: { userId },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ createdAt: "desc" }, { cardId: "asc" }],
+    skip: range.skip,
+    take: range.take,
     select: { createdAt: true, card: { select: listCardSelect } },
   });
   const ids = rows.map((r) => r.card.id);

@@ -319,8 +319,10 @@ export type MarketSort = "recent" | "ending" | "price_asc" | "price_desc";
 
 export interface MarketQuery {
   q?: string;
-  /** Limite aux annonces de ces cartes (filtre « Ma wishlist »). */
+  /** Limite aux annonces de ces cartes. */
   cardIds?: readonly string[];
+  /** Limite aux cartes de la wishlist de ce joueur (filtre « Ma wishlist »), par sous-requête en base. */
+  wishlistOf?: string;
   tier?: Tier;
   type?: ListingType;
   sort?: MarketSort;
@@ -347,7 +349,14 @@ export async function getMarketListings(query: MarketQuery = {}) {
   const where: Prisma.ListingWhereInput = {
     status: "active",
     ...(query.type ? { type: query.type } : {}),
-    ...(query.tier ? { card: { tier: query.tier } } : {}),
+    ...(query.tier || query.wishlistOf
+      ? {
+          card: {
+            ...(query.tier ? { tier: query.tier } : {}),
+            ...(query.wishlistOf ? { wishedBy: { some: { userId: query.wishlistOf } } } : {}),
+          },
+        }
+      : {}),
     ...(cardIds ? { cardId: { in: cardIds } } : {}),
   };
   // Prix « effectif » d'une enchère = offre courante ou prix de départ ; on trie sur le prix affiché côté SQL.
