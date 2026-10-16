@@ -38,16 +38,19 @@ export default async function MarketPage({ searchParams }: { searchParams: Searc
   const sort = SORTS.find((s) => s.id === sp.tri)?.id ?? (type === "auction" ? "ending" : "recent");
   const page = Math.max(1, Number(sp.page) || 1);
   const player = await getCurrentPlayerSafe();
-  const wishIds = player ? await getWishlistCardIds(player.id) : [];
   const onlyWishlist = Boolean(player && sp.wishlist === "1");
   const [result, sales24h] = await Promise.all([
-    getMarketListings({ q: sp.q, type, tier, sort, page, cardIds: onlyWishlist ? wishIds : undefined }),
+    getMarketListings({ q: sp.q, type, tier, sort, page, wishlistOf: onlyWishlist ? player?.id : undefined }),
     prisma.sale.count({ where: { createdAt: { gte: new Date(Date.now() - 24 * 3_600_000) } } }),
   ]);
+  const pageCardIds = result.listings.map((l) => l.card.id);
+  const [held, owned, wishIds] = player
+    ? await Promise.all([getHeldBids(player.id), getOwnedCopyCounts(player.id, pageCardIds), getWishlistCardIds(player.id, pageCardIds)])
+    : [null, null, []];
   const wished = new Set(wishIds);
-  const [held, owned] = player
-    ? await Promise.all([getHeldBids(player.id), getOwnedCopyCounts(player.id, result.listings.map((l) => l.card.id))])
-    : [null, null];
+  // Filtre « Ma wishlist » sans résultat : dit si la wishlist est vide ou si rien n'est en vente.
+  const wishlistEmpty =
+    onlyWishlist && player && result.listings.length === 0 ? (await prisma.wishlistCard.count({ where: { userId: player.id }, take: 1 })) === 0 : false;
 
   const qs = (patch: Record<string, string | undefined>) => {
     const p = new URLSearchParams();
@@ -158,7 +161,7 @@ export default async function MarketPage({ searchParams }: { searchParams: Searc
           <p className="font-display text-lg font-bold">Aucune annonce {sp.q || tier || type || onlyWishlist ? "ne correspond" : "pour l'instant"}</p>
           <p className="max-w-[44ch] text-sm text-muted">
             {onlyWishlist
-              ? wishIds.length === 0
+              ? wishlistEmpty
                 ? "Ta wishlist est vide : ajoute les cartes que tu cherches depuis leur fiche."
                 : "Aucune carte de ta wishlist n'est en vente. Une alerte s'affichera dès qu'un joueur en propose une."
               : "Mets une carte en vente depuis sa fiche : ouvre une carte de ta collection, puis « Gérer » et « Vendre »."}

@@ -1,5 +1,5 @@
 import { FINISH_LABELS_FR, gameConfig } from "@pokeflex/config";
-import { getFavoriteCardIds, getFavorites, getWishlist } from "@pokeflex/server";
+import { getFavoriteCardIds, getFavorites, getWishlist, getWishlistSummary } from "@pokeflex/server";
 import { CheckCircle2, ChevronDown, Heart, Sparkles, Star, Store } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -276,9 +276,10 @@ async function FavoritesView({ userId, page }: { userId: string; page?: string }
 }
 
 async function WishlistView({ userId, page }: { userId: string; page?: string }) {
-  const all = await getWishlist(userId);
-  const info = paginate(all.length, page);
-  const cards = all.slice(info.start, info.end);
+  // La wishlist n'a pas de limite : comptée en base, puis seule la page affichée est chargée.
+  const { total, onSale } = await getWishlistSummary(userId);
+  const info = paginate(total, page);
+  const cards = total > 0 ? await getWishlist(userId, { skip: info.start, take: info.end - info.start }) : [];
   if (cards.length === 0) {
     return (
       <ListEmpty icon={<Heart aria-hidden="true" className="size-7 text-coral" />} title="Ta wishlist est vide">
@@ -286,12 +287,12 @@ async function WishlistView({ userId, page }: { userId: string; page?: string })
       </ListEmpty>
     );
   }
-  const onSale = all.filter((c) => c.onSale > 0).length;
   return (
     <div className="grid grid-cols-1 gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted">
-          {plural(all.length, "carte recherchée", "cartes recherchées")} sur {gameConfig.lists.wishlistMax}
+          {plural(total, "carte recherchée", "cartes recherchées")}
+          {gameConfig.lists.wishlistMax !== null && <> sur {gameConfig.lists.wishlistMax}</>}
           {onSale > 0 && <> · {plural(onSale, "en vente", "en vente")} au marché</>}
         </p>
         {onSale > 0 && (

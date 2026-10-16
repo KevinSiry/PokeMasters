@@ -38,7 +38,10 @@ export default async function SetPage({ params }: { params: Params }) {
         getOwnedCounts(player.id, set.id),
         prisma.setCompletion.findUnique({ where: { userId_setId: { userId: player.id, setId: set.id } } }),
         getFavoriteCardIds(player.id),
-        getWishlistCardIds(player.id),
+        getWishlistCardIds(
+          player.id,
+          cards.map((c) => c.id),
+        ),
       ])
     : [null, null, null, null];
   // Seules les cartes tirables (avec image) comptent pour compléter un set.

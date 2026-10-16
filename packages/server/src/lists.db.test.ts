@@ -11,6 +11,8 @@ import {
   getOwnedCopyCounts,
   getProfileWishlist,
   getWishlist,
+  getWishlistCardIds,
+  getWishlistSummary,
   ListError,
   setFavorite,
   setWishlisted,
@@ -112,6 +114,17 @@ describe.skipIf(skip)("favoris et wishlist (Postgres)", () => {
     expect(market.listings.map((l) => l.id)).toContain(listingId);
     expect(market.listings.every((l) => l.card.id === cardIds[2] || l.card.id === cardIds[3])).toBe(true);
     expect((await getMarketListings({ cardIds: [] })).total).toBe(0);
+    const mine = await getMarketListings({ wishlistOf: buyer, perPage: 100 });
+    expect(mine.listings.map((l) => l.id)).toContain(listingId);
+    expect(mine.listings.every((l) => l.card.id === cardIds[2] || l.card.id === cardIds[3])).toBe(true);
+    expect((await getMarketListings({ wishlistOf: seller })).total).toBe(0);
+
+    expect(await getWishlistSummary(buyer)).toEqual({ total: 2, onSale: 1 });
+    expect((await getWishlistCardIds(buyer, [cardIds[0]!, cardIds[2]!])).sort()).toEqual([cardIds[2]]);
+    expect(await getWishlistCardIds(buyer, [])).toEqual([]);
+    const [first] = await getWishlist(buyer, { take: 1 });
+    const [second] = await getWishlist(buyer, { skip: 1, take: 1 });
+    expect([first!.id, second!.id].sort()).toEqual([cardIds[2], cardIds[3]].sort());
 
     expect(await countWishers(cardIds[2]!)).toBeGreaterThanOrEqual(1);
     const profile = await getProfileWishlist(buyer, null);

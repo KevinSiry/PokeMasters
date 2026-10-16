@@ -96,7 +96,8 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 
 ## Favoris et wishlist
 
-- **Favori = une carte de sa collection** (au moins un exemplaire possédé au moment de l'ajout) ; **wishlist = une carte qu'on n'a pas encore**. Les deux listes portent sur la carte, pas sur un exemplaire ni une finition. 500 favoris et 200 cartes en wishlist au plus (`lists` dans `config/game.ts`).
+- **Favori = une carte de sa collection** (au moins un exemplaire possédé au moment de l'ajout) ; **wishlist = une carte qu'on n'a pas encore**. Les deux listes portent sur la carte, pas sur un exemplaire ni une finition. 500 favoris au plus ; la wishlist n'a plus de limite (`lists.wishlistMax: null` dans `config/game.ts`).
+- **Wishlist sans limite** (demande de Kevin, 2026-10-16) : elle n'est jamais lue en entier. L'onglet Wishlist compte en base (total, cartes en vente) puis charge seulement la page de 60 ; le filtre « Ma wishlist » du marché passe par une sous-requête (`wishlistOf`) au lieu d'une liste d'identifiants ; marché, recherche et catalogue ne demandent l'état wishlist que des cartes affichées. Remettre un nombre dans `lists.wishlistMax` rétablit un plafond.
 - **Les favoris protègent du recyclage en masse** : « Recycler les doublons » garde tous les exemplaires d'une carte favorite. Le recyclage d'un exemplaire précis depuis la fiche reste possible (geste explicite). Une favorite vendue ou recyclée reste dans la liste, affichée « plus dans ta collection ».
 - **Une carte obtenue quitte la wishlist d'elle-même** (décision de Kevin, 2026-10-13) : booster, booster de set, achat ou enchère gagnée la retirent dans la même transaction. Une carte déjà possédée ne peut pas y être ajoutée.
 - **Wishlist publique** (choix de Kevin, 2026-10-13) : visible sur le profil public (12 dernières cartes) et compteur « N joueurs recherchent cette carte » sur la fiche. Réglage `lists.wishlistVisibility` (`public`, `friends` ou `private`).

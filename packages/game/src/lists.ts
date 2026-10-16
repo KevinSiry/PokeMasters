@@ -6,13 +6,14 @@ export type CardListKind = "favorites" | "wishlist";
 
 export interface ListRules {
   favoritesMax: number;
-  wishlistMax: number;
+  /** null = sans limite. */
+  wishlistMax: number | null;
 }
 
 /** Message d'erreur si la liste est pleine, null si on peut encore ajouter une carte. */
 export function listFullError(kind: CardListKind, count: number, rules: ListRules): string | null {
   const max = kind === "favorites" ? rules.favoritesMax : rules.wishlistMax;
-  if (count < max) return null;
+  if (max === null || count < max) return null;
   return kind === "favorites" ? `Tu as déjà ${max} cartes favorites.` : `Ta wishlist contient déjà ${max} cartes.`;
 }
 

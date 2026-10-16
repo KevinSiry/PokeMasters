@@ -174,7 +174,8 @@ export const gameConfig = {
   /** Favoris (cartes possédées mises en avant) et wishlist (cartes recherchées). */
   lists: {
     favoritesMax: 500,
-    wishlistMax: 200,
+    /** null = wishlist sans limite (la collection et le marché la lisent page par page). */
+    wishlistMax: null as number | null,
     /** Cartes de la wishlist montrées sur le profil public (la liste complète est dans la collection). */
     profileWishlistSize: 12,
     /** Qui voit la wishlist d'un joueur : "public" (profil + compteur sur la fiche carte), "friends" ou "private". */

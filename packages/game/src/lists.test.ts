@@ -11,7 +11,10 @@ describe("listFullError", () => {
   });
   it("refuse au-delà du maximum, avec un message propre à chaque liste", () => {
     expect(listFullError("favorites", rules.favoritesMax, rules)).toContain("favorites");
-    expect(listFullError("wishlist", rules.wishlistMax, rules)).toContain("wishlist");
+    expect(listFullError("wishlist", 200, { ...rules, wishlistMax: 200 })).toContain("wishlist");
+  });
+  it("laisse une liste sans maximum grandir sans fin", () => {
+    expect(listFullError("wishlist", 100_000, { ...rules, wishlistMax: null })).toBeNull();
   });
 });
 

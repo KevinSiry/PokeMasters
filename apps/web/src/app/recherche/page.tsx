@@ -31,7 +31,10 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
             results.map((c) => c.id),
           ),
           getFavoriteCardIds(player.id),
-          getWishlistCardIds(player.id),
+          getWishlistCardIds(
+            player.id,
+            results.map((c) => c.id),
+          ),
         ])
       : [null, null, null];
   const favorites = new Set(favoriteIds);
