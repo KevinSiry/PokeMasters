@@ -52,6 +52,8 @@ export interface PulledCard {
   localId: string;
   setName: string;
   isNew: boolean;
+  /** Carte déjà dans les favoris du joueur (un doublon d'une favorite) : l'étoile s'affiche cochée à la révélation. */
+  favorite: boolean;
 }
 
 export interface BoosterResult {
@@ -119,6 +121,9 @@ export async function openBooster(userId: string, what: BoosterKind, rng: Rng = 
         await tx.cardCopy.findMany({ where: { ownerId: userId, cardId: { in: ids } }, select: { cardId: true }, distinct: ["cardId"] })
       ).map((c) => c.cardId),
     );
+    const favorites = new Set(
+      (await tx.favoriteCard.findMany({ where: { userId, cardId: { in: ids } }, select: { cardId: true } })).map((f) => f.cardId),
+    );
     const finishes = ids.map((id) =>
       drawFinish(byId.get(id)?.variants as Partial<Record<Finish, boolean>> | null, gameConfig.finishes.weights, rng),
     );
@@ -173,6 +178,7 @@ export async function openBooster(userId: string, what: BoosterKind, rng: Rng = 
         localId: c.localId,
         setName: c.set.name,
         isNew,
+        favorite: favorites.has(id),
       };
     });
 

@@ -47,4 +47,12 @@ describe.skipIf(skip)("openFreeBooster (Postgres)", () => {
     expect(user.boosterStock).toBe(0);
     expect(await prisma.boosterOpening.count({ where: { userId } })).toBe(2);
   });
+
+  it("signale les cartes tirées qui sont déjà dans les favoris", async () => {
+    const [first] = (await prisma.cardCopy.findMany({ where: { ownerId: userId }, select: { cardId: true }, take: 1 })).map((c) => c.cardId);
+    await prisma.favoriteCard.create({ data: { userId, cardId: first! } });
+    await prisma.user.update({ where: { id: userId }, data: { boosterStock: 1, boosterAnchorAt: new Date() } });
+    const res = await openFreeBooster(userId, seededRng(7));
+    for (const c of res.cards) expect(c.favorite).toBe(c.id === first);
+  });
 });
