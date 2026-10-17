@@ -26,10 +26,6 @@
           {
             "context": "Lint, types, tests, build (Linux)",
             "integration_id": 15368
-          },
-          {
-            "context": "Installation et tests unitaires (Windows)",
-            "integration_id": 15368
           }
         ]
       }

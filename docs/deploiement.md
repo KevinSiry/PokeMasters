@@ -92,7 +92,7 @@ git tag 0.2.0 origin/main
 git push origin 0.2.0        # « v0.2.0 » marche aussi, l'image sera taguée 0.2.0
 ```
 Le workflow **Release** (`.github/workflows/release.yml`) enchaîne :
-1. la CI complète (lint, types, tests, build, e2e, Windows, Docker Compose) ;
+1. la CI complète (lint, types, tests, build, e2e, Docker Compose) ;
 2. la construction de l'image `linux/amd64`, poussée avec les tags `0.2.0` et `latest` ;
 3. la copie de `deploy/docker-compose.yml` et `deploy/backup.sh` dans `~/pokeflex/`, puis `deploy/remote-deploy.sh` par SSH : sauvegarde de la base dans `~/pokeflex/backups/`, `IMAGE_TAG=0.2.0` dans `.env`, `docker compose pull && docker compose up -d` (le service `init` applique les migrations avant de relancer le site et le temps réel), vérification que les conteneurs tournent sur l'image `0.2.0` ;
 4. l'attente que `https://<domaine>/connexion` et `/socket.io` répondent ;

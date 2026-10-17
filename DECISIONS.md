@@ -52,7 +52,7 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 - **Pokédex de cartes par génération** : un Pokémon compte comme « vu » dès qu'une de ses cartes est possédée ; les cartes non possédées s'affichent en silhouette.
 - **Collections de démo simulées par le seed** (RNG à graine fixe : 120 boosters pour demo-collection, 60 pour demo-marchand) afin de voir la collection, le Pokédex et plus tard le marché remplis.
 - **E2E avec sessions en base** : le `globalSetup` Playwright crée des sessions Auth.js pour les comptes de démo, sans passer par un fournisseur OAuth.
-- **Tests d'intégration base désactivables** (`SKIP_DB_TESTS=1`) : la CI Windows n'a pas de Postgres ; la CI Linux les exécute.
+- **Tests d'intégration base désactivables** (`SKIP_DB_TESTS=1`) : pratique sous Windows sans Postgres ; la CI Linux les exécute.
 
 - **Collection paginée** (demande de Kevin, 2026-10-14) : « Mes cartes », « Favoris » et « Wishlist » s'affichent par pages de 60 cartes (`?page=N`, liens rendus côté serveur, le tri est conservé). Pour « Mes cartes », le serveur trie toutes les cartes possédées sur des lignes légères puis ne charge visuels et finitions que pour la page affichée ; l'ancienne coupure à 600 cartes disparaît. Sur téléphone, « Page 3 / 9 » remplace les numéros de page.
 
@@ -164,7 +164,7 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 
 ## GitHub
 
-- **Règles du dépôt reprises de Kroniq et Chabowt** (demande de Kevin, 2026-10-12) : sur `main`, suppression et force-push interdits, et les deux jobs de CI (Linux et Windows) doivent être verts pour fusionner. Le ruleset est versionné dans `.github/rulesets/protect-main.json` (à importer dans *Settings → Rules → Rulesets → New ruleset → Import a ruleset*). Réglages de fusion identiques aux deux projets : auto-merge activé, branche supprimée après fusion.
+- **Règles du dépôt reprises de Kroniq et Chabowt** (demande de Kevin, 2026-10-12) : sur `main`, suppression et force-push interdits, et le job de CI Linux doit être vert pour fusionner (le job Windows a été retiré le 2026-10-17 pour économiser les minutes GitHub Actions, comptées double sous Windows). Le ruleset est versionné dans `.github/rulesets/protect-main.json` (à importer dans *Settings → Rules → Rulesets → New ruleset → Import a ruleset*). Réglages de fusion identiques aux deux projets : auto-merge activé, branche supprimée après fusion.
 
 ## Déploiement
 
