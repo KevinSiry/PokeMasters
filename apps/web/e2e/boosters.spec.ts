@@ -22,10 +22,20 @@ test.describe("boosters et collection", () => {
       if (isMobile) await page.getByRole("button", { name: "Déchirer le booster" }).click();
       for (let i = 0; i < 5; i++) {
         await page.getByRole("button", { name: "Retourner la carte" }).click();
+        if (i === 0) {
+          // Favori dès la révélation : l'étoile se coche sans faire passer à la carte suivante.
+          const star = page.getByRole("button", { name: /^(Mettre .+ en favori|Retirer .+ de tes favoris)$/ });
+          const wasOn = (await star.getAttribute("aria-pressed")) === "true";
+          await star.click();
+          await expect(star).toHaveAttribute("aria-pressed", String(!wasOn));
+          await expect(page.getByRole("button", { name: /Carte suivante/ })).toBeVisible();
+          if (wasOn) await star.click();
+        }
         await page.getByRole("button", { name: /Carte suivante/ }).click();
       }
       await expect(page.getByRole("heading", { name: "Ton booster" })).toBeVisible();
       await expect(page.getByText(/Meilleure carte/)).toBeVisible();
+      await expect(page.getByRole("button", { name: /^Retirer .+ de tes favoris$/ }).first()).toBeVisible();
     });
 
     test("la collection montre les cartes obtenues", async ({ page }) => {

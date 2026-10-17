@@ -1,7 +1,7 @@
 "use client";
 
 import { FINISH_LABELS_FR, TIER_LABELS_FR, tierRank, type Tier } from "@pokeflex/config";
-import { CheckCircle2, Layers, Recycle, Sparkles, Target, Zap } from "lucide-react";
+import { CheckCircle2, Layers, Recycle, Sparkles, Star, Target, Zap } from "lucide-react";
 import { AnimatePresence, motion, useIsPresent, useReducedMotion, type PanInfo, type TargetAndTransition } from "motion/react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
@@ -9,6 +9,7 @@ import { openBoosterAction, openSetBoosterAction } from "@/app/boosters/actions"
 import { CoinBurst } from "@/components/economy/coin-burst";
 import { Jetons } from "@/components/jetons";
 import { CARD_BACK_SRC, CardBack } from "@/components/booster/card-back";
+import { useFavoriteMap } from "@/components/lists/use-favorite-map";
 import { FloatingPack, TearPack } from "@/components/booster/tear-pack";
 import { TIER_ICON } from "@/components/tier-badge";
 import { TiltCard } from "@/components/tilt-card";
@@ -194,6 +195,39 @@ function PullBadges({ card, className, compact }: { card: PulledCard; className?
   );
 }
 
+/**
+ * Étoile « favori » d'une carte tirée. `overlay` : pastille posée sur une vignette du récapitulatif
+ * (zone tactile de 40 px, comme les vignettes du catalogue) ; sinon bouton rond à côté du nom.
+ */
+function FavoriteStar({ card, on, pending, onToggle, overlay }: { card: PulledCard; on: boolean; pending: boolean; onToggle: () => void; overlay?: boolean }) {
+  const label = on ? `Retirer ${card.name} de tes favoris` : `Mettre ${card.name} en favori`;
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      disabled={pending}
+      aria-pressed={on}
+      aria-label={label}
+      title={label}
+      className={cn(
+        "group/fav grid place-items-center rounded-full outline-none disabled:opacity-70",
+        overlay ? "absolute top-0 left-0 z-10 size-10" : "size-11 shrink-0",
+      )}
+    >
+      <span
+        aria-hidden="true"
+        className={cn(
+          "grid place-items-center rounded-full border transition-[transform,color,border-color,background-color] group-hover/fav:scale-110 group-focus-visible/fav:outline-2 group-focus-visible/fav:outline-lime group-active/fav:scale-95",
+          overlay ? "size-7 bg-bg/85" : "size-9 bg-elev",
+          on ? "border-[#FFC93C]/60 text-[#FFC93C]" : "border-line text-muted group-hover/fav:text-fg",
+        )}
+      >
+        <Star className={cn(overlay ? "size-3.5" : "size-4", on && "fill-current")} />
+      </span>
+    </button>
+  );
+}
+
 export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, balance: initialBalance, set, cover }: BoosterOpeningProps) {
   const reduced = useReducedMotion() ?? false;
   const [phase, setPhase] = useState<Phase>("idle");
@@ -214,6 +248,8 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
   /** Un glissé sur la carte se termine par un clic : il ne doit pas faire avancer une seconde fois. */
   const dragged = useRef(false);
   const countdown = useBoosterCountdown(stock.available, stock.nextAt, maxStock, refillIntervalMs);
+  const favorites = useFavoriteMap();
+  const resetFavorites = favorites.reset;
 
   // Le serveur peut renvoyer un nouvel état (navigation, autre onglet) : on s'aligne au repos.
   useEffect(() => {
@@ -253,6 +289,7 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
         return;
       }
       preload(res.result.cards);
+      resetFavorites(res.result.cards);
       setResult(res.result);
       setStock(res.result.boosters);
       // Le prix est débité tout de suite ; les bonus de set complété s'afficheront au récapitulatif.
@@ -264,7 +301,7 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
         busy.current = false;
       }
     });
-  }, [canOpen, set, reduced]);
+  }, [canOpen, set, reduced, resetFavorites]);
 
   const tear = useCallback(() => {
     if (torn) return;
@@ -679,7 +716,15 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
                       transition={{ duration: 0.25 }}
                     >
                       <PullBadges card={current} />
-                      <p className="font-display text-xl font-bold">{current.name}</p>
+                      <div className="flex max-w-[90vw] items-center justify-center gap-1">
+                        <p className="font-display text-xl font-bold">{current.name}</p>
+                        <FavoriteStar
+                          card={current}
+                          on={!!favorites.favs[current.id]}
+                          pending={!!favorites.pending[current.id]}
+                          onToggle={() => void favorites.toggle(current.id)}
+                        />
+                      </div>
                       <p className="text-sm text-muted">
                         {current.setName} · n° {current.localId}
                       </p>
@@ -768,7 +813,7 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
             {cards.map((c, i) => (
               <motion.li
                 key={c.copyId}
-                className="grid gap-2"
+                className="relative grid gap-2"
                 initial={reduced ? { opacity: 0 } : { opacity: 0, y: 30, rotate: -4 }}
                 animate={{ opacity: 1, y: 0, rotate: 0 }}
                 transition={{ delay: reduced ? 0 : i * 0.07, type: "spring", stiffness: 220, damping: 20 }}
@@ -776,6 +821,13 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
                 <Link href={`/cartes/${c.id}`} className="rounded-[var(--radius-card-image)]" aria-label={`${c.name}, ${TIER_LABELS_FR[c.tier]}`}>
                   <TiltCard image={c.image} name={c.name} tier={c.tier} quality="high" />
                 </Link>
+                <FavoriteStar
+                  card={c}
+                  on={!!favorites.favs[c.id]}
+                  pending={!!favorites.pending[c.id]}
+                  onToggle={() => void favorites.toggle(c.id)}
+                  overlay
+                />
                 <PullBadges card={c} compact />
               </motion.li>
             ))}
