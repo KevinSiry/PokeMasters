@@ -1,9 +1,10 @@
 import { FINISH_LABELS_FR, TIER_LABELS_FR } from "@pokeflex/config";
 import { closeAuction, getCardMarket, getListing, getOwnedCopyCounts } from "@pokeflex/server";
-import { Check, ChevronLeft } from "lucide-react";
+import { Check } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BackLink } from "@/components/back-link";
 import { Jetons } from "@/components/jetons";
 import { ListingActions } from "@/components/market/listing-actions";
 import { TierBadge } from "@/components/tier-badge";
@@ -34,12 +35,7 @@ export default async function ListingPage({ params }: { params: Params }) {
 
   return (
     <div className="grid grid-cols-1 gap-6 py-6 sm:py-10">
-      <nav aria-label="Fil d'Ariane">
-        <Link href="/marche" className="inline-flex items-center gap-1 text-sm text-muted hover:text-fg">
-          <ChevronLeft aria-hidden="true" className="size-4" />
-          Marché
-        </Link>
-      </nav>
+      <BackLink href="/marche" />
       <div className="grid gap-8 md:grid-cols-[minmax(0,22rem)_1fr] md:items-start">
         <div className="mx-auto w-[min(78vw,22rem)]">
           <TiltCard image={l.card.image} name={l.card.name} tier={l.card.tier} priority />

@@ -2,12 +2,14 @@
 
 import { TIER_LABELS_FR, TIERS, type Tier } from "@pokeflex/config";
 import { Search, X } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useDeferredValue, useMemo, useState } from "react";
 import { CardTile } from "@/components/catalog/card-tile";
 import { EnergyIcon, TYPE_LABELS } from "@/components/energy-icon";
 import { TileListToggle } from "@/components/lists/tile-list-toggle";
 import { TIER_ICON } from "@/components/tier-badge";
 import type { CardTile as CardTileData } from "@/lib/catalog";
+import { useUrlFilters } from "@/lib/use-url-filters";
 import { cn } from "@/lib/utils";
 
 const CATEGORIES = [
@@ -25,6 +27,10 @@ interface CardGridProps {
   subtitle?: (c: CardTileData) => string;
 }
 
+type Ownership = "all" | "owned" | "missing";
+/** Valeurs de `?possession=` (filtres gardés dans l'URL pour le retour arrière). */
+const OWNERSHIP_PARAM: Record<Ownership, string | null> = { all: null, owned: "possedees", missing: "manquantes" };
+
 const norm = (s: string) =>
   s
     .normalize("NFD")
@@ -33,12 +39,24 @@ const norm = (s: string) =>
 
 /** Grille filtrable (texte, tier, catégorie, type, possession) d'un ensemble de cartes. */
 export function CardGrid({ cards, owned = null, lists = null, subtitle }: CardGridProps) {
-  const [query, setQuery] = useState("");
-  const [tiers, setTiers] = useState<Set<Tier>>(new Set());
-  const [category, setCategory] = useState<string | null>(null);
-  const [type, setType] = useState<string | null>(null);
-  const [ownership, setOwnership] = useState<"all" | "owned" | "missing">("all");
+  const params = useSearchParams();
+  const [query, setQuery] = useState(() => params.get("filtre") ?? "");
+  const [tiers, setTiers] = useState<Set<Tier>>(
+    () => new Set((params.get("tiers")?.split(",") ?? []).filter((t): t is Tier => (TIERS as readonly string[]).includes(t))),
+  );
+  const [category, setCategory] = useState<string | null>(() => params.get("categorie"));
+  const [type, setType] = useState<string | null>(() => params.get("type"));
+  const [ownership, setOwnership] = useState<Ownership>(
+    () => (Object.keys(OWNERSHIP_PARAM) as Ownership[]).find((o) => o !== "all" && OWNERSHIP_PARAM[o] === params.get("possession")) ?? "all",
+  );
   const q = useDeferredValue(norm(query.trim()));
+  useUrlFilters({
+    filtre: query.trim() || null,
+    tiers: [...tiers].join(",") || null,
+    categorie: category,
+    type,
+    possession: OWNERSHIP_PARAM[ownership],
+  });
 
   const favorites = useMemo(() => new Set(lists?.favorites), [lists]);
   const wishlist = useMemo(() => new Set(lists?.wishlist), [lists]);

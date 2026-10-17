@@ -154,6 +154,11 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 - **En-tête connecté sur téléphone** : monogramme seul (sans « PokeFlex »), boutons de 40 px ; sous 360 px, le minuteur disparaît et l'onglet Boosters de la barre du bas affiche le nombre de boosters prêts.
 - **Effets de survol réservés à la souris** (`@media (hover: hover)`), sinon ils restent figés après un tap ; au doigt, retour de pression et puces de filtre de 40 px.
 
+## Navigation
+
+- **Retour « dans le même état »** (demande de Kevin, 2026-10-17) : revenir sur une page retrouve sa position de défilement, ses filtres et sa page. Le défilement est mémorisé par entrée d'historique (`ScrollRestorer`, `lib/history.ts`) et rétabli une fois la page réaffichée, même quand elle doit être redemandée au serveur (après un favori, un rafraîchissement temps réel, un rechargement), là où le navigateur seul remontait trop tôt. Les filtres côté client (grille d'un set, vitrine des boosters de set) vivent dans l'URL (`?filtre=`, `?tiers=`, `?categorie=`, `?type=`, `?possession=`, `?statut=`), réécrite sans nouvelle entrée d'historique (`useUrlFilters`).
+- **Bouton « Retour »** sur les pages de détail (carte, set, joueur, annonce, guilde, booster de set, nouvel échange) : il fait comme le bouton précédent du navigateur si la page d'avant est sur le site, sinon il mène à la page parente (arrivée par un lien partagé).
+
 ## Ouverture de booster
 
 - **Ouverture au doigt, comme un vrai booster** (demande de Kevin, 2026-10-13) : la pochette s'incline sous le doigt, on la déchire en glissant le long du haut (ou d'un tap, ou du bouton « Déchirer le booster »), la languette s'envole, les cartes montent hors du sachet puis on les retourne une à une et on les fait glisser hors de la pile. La carte la plus rare reste en dernier (ordre du tirage).
