@@ -2,10 +2,12 @@
 
 import { CheckCircle2, Search } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useDeferredValue, useMemo, useState } from "react";
 import { BoosterPackArt } from "@/components/booster/booster-pack";
 import { Jetons } from "@/components/jetons";
 import { ProgressBar } from "@/components/progress";
+import { useUrlFilters } from "@/lib/use-url-filters";
 import { cn } from "@/lib/utils";
 
 interface ShopSet {
@@ -22,6 +24,11 @@ interface ShopSet {
 }
 
 type Filter = "all" | "progress" | "todo";
+/** Valeurs de `?statut=` (filtres gardés dans l'URL pour le retour arrière). */
+const FILTER_PARAM: [Filter, string][] = [
+  ["progress", "commences"],
+  ["todo", "a-completer"],
+];
 
 function norm(s: string) {
   return s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
@@ -29,8 +36,10 @@ function norm(s: string) {
 
 /** Vitrine des boosters de set : recherche, filtres et progression du joueur sur chaque set. */
 export function SetShop({ sets, balance, price }: { sets: ShopSet[]; balance: number; price: number }) {
-  const [q, setQ] = useState("");
-  const [filter, setFilter] = useState<Filter>("all");
+  const params = useSearchParams();
+  const [q, setQ] = useState(() => params.get("filtre") ?? "");
+  const [filter, setFilter] = useState<Filter>(() => FILTER_PARAM.find((f) => f[1] === params.get("statut"))?.[0] ?? "all");
+  useUrlFilters({ filtre: q.trim() || null, statut: FILTER_PARAM.find((f) => f[0] === filter)?.[1] ?? null });
   const query = useDeferredValue(q);
   const affordable = balance >= price;
 

@@ -1,9 +1,11 @@
 import "./globals.css";
 import { gameConfig } from "@pokeflex/config";
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import { BottomNav } from "@/components/main-nav";
 import { SiteFooter } from "@/components/site-footer";
 import { RealtimeListener } from "@/components/realtime-listener";
+import { ScrollRestorer } from "@/components/scroll-restorer";
 import { SiteHeader } from "@/components/site-header";
 import { Toaster } from "@/components/toaster";
 import { getCurrentPlayerSafe } from "@/lib/player";
@@ -45,6 +47,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           boosters={player && { ...player.boosters, refillIntervalMs: gameConfig.boosters.refillIntervalMs }}
         />
         <Toaster />
+        <Suspense fallback={null}>
+          <ScrollRestorer />
+        </Suspense>
         {player && <RealtimeListener me={player.id} />}
       </body>
     </html>

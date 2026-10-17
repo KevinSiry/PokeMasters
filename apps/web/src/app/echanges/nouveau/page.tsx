@@ -1,9 +1,9 @@
 import { gameConfig } from "@pokeflex/config";
 import { getPlayerByHandle, getTrade, getTradeComposer, TradeError } from "@pokeflex/server";
-import { ChevronLeft } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { BackLink } from "@/components/back-link";
 import { PlayerAvatar } from "@/components/player-avatar";
 import { TradeComposer } from "@/components/trades/trade-composer";
 import { getCurrentPlayerSafe } from "@/lib/player";
@@ -41,10 +41,7 @@ export default async function NewTradePage({ searchParams }: { searchParams: Sea
 
   return (
     <div className="grid grid-cols-1 gap-6 py-6 sm:py-10">
-      <Link href="/echanges" className="inline-flex w-fit items-center gap-1 text-sm text-muted hover:text-fg">
-        <ChevronLeft aria-hidden="true" className="size-4" />
-        Mes échanges
-      </Link>
+      <BackLink href="/echanges" />
       <header className="flex items-center gap-4">
         <PlayerAvatar name={other.name} image={other.image} size="lg" />
         <div className="grid min-w-0 gap-1">

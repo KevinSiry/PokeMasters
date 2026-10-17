@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
+import { BackLink } from "@/components/back-link";
 import { CardImage } from "@/components/card-image";
 import { CardTile } from "@/components/catalog/card-tile";
 import { PlayerAvatar } from "@/components/player-avatar";
@@ -56,7 +57,8 @@ export default async function PlayerPage({ params }: { params: Promise<{ handle:
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-8 py-8 sm:py-12">
+    <div className="grid grid-cols-1 gap-6 py-6 sm:py-10">
+      <BackLink href="/classements" />
       <header className="relative grid gap-5 overflow-hidden rounded-[calc(var(--radius-card)*1.4)] border border-line bg-[radial-gradient(120%_140%_at_0%_0%,color-mix(in_srgb,var(--color-accent)_24%,transparent),transparent_60%),radial-gradient(90%_120%_at_100%_100%,color-mix(in_srgb,var(--color-coral)_16%,transparent),transparent_60%),var(--color-surface)] p-5 sm:p-7">
         <div className="flex flex-wrap items-center gap-4 sm:gap-6">
           <PlayerAvatar name={player.name} image={player.image} size="xl" className="ring-4 ring-bg/60 max-sm:size-16 max-sm:text-xl" />

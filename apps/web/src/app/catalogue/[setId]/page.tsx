@@ -2,10 +2,11 @@ import { gameConfig } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
 import { setCompletionBonus } from "@pokeflex/game";
 import { getFavoriteCardIds, getWishlistCardIds } from "@pokeflex/server";
-import { CheckCircle2, ChevronLeft, Sparkles } from "lucide-react";
+import { CheckCircle2, Sparkles } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BackLink } from "@/components/back-link";
 import { CardGrid } from "@/components/catalog/card-grid";
 import { SetLogo } from "@/components/catalog/set-logo";
 import { Jetons } from "@/components/jetons";
@@ -57,12 +58,7 @@ export default async function SetPage({ params }: { params: Params }) {
 
   return (
     <div className="grid grid-cols-1 gap-8 py-6 sm:py-10">
-      <nav aria-label="Fil d'Ariane">
-        <Link href={`/catalogue#serie-${set.serie.id}`} className="inline-flex items-center gap-1 text-sm text-muted hover:text-fg">
-          <ChevronLeft aria-hidden="true" className="size-4" />
-          {set.serie.name}
-        </Link>
-      </nav>
+      <BackLink href={`/catalogue#serie-${set.serie.id}`} />
 
       <header className="grid items-center gap-4 rounded-[calc(var(--radius-card)*1.4)] border border-line bg-surface p-5 sm:grid-cols-[minmax(0,15rem)_1fr] sm:gap-6 sm:p-8">
         <div className="flex h-16 items-center justify-center sm:h-32">

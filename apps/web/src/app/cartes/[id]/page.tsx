@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Heart, Palette, Repeat2 } from "lucide-react
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BackLink } from "@/components/back-link";
 import { CardTile } from "@/components/catalog/card-tile";
 import { MyCopies } from "@/components/economy/my-copies";
 import { PlayerAvatar } from "@/components/player-avatar";
@@ -63,17 +64,20 @@ export default async function CardPage({ params }: { params: Params }) {
 
   return (
     <div className="grid grid-cols-1 gap-10 py-6 sm:py-10">
-      <nav aria-label="Fil d'Ariane" className="flex flex-wrap items-center gap-1 text-sm text-muted">
-        <Link href="/catalogue" className="hover:text-fg">
-          Catalogue
-        </Link>
-        <ChevronRight aria-hidden="true" className="size-3.5" />
-        <Link href={`/catalogue/${card.set.id}`} className="hover:text-fg">
-          {card.set.name}
-        </Link>
-        <ChevronRight aria-hidden="true" className="size-3.5" />
-        <span className="text-fg">{card.name}</span>
-      </nav>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <BackLink href={`/catalogue/${card.set.id}`} />
+        <nav aria-label="Fil d'Ariane" className="flex flex-wrap items-center gap-1 text-sm text-muted">
+          <Link href="/catalogue" className="hover:text-fg">
+            Catalogue
+          </Link>
+          <ChevronRight aria-hidden="true" className="size-3.5" />
+          <Link href={`/catalogue/${card.set.id}`} className="hover:text-fg">
+            {card.set.name}
+          </Link>
+          <ChevronRight aria-hidden="true" className="size-3.5" />
+          <span className="text-fg">{card.name}</span>
+        </nav>
+      </div>
 
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,26rem)_1fr] lg:gap-14">
         <div className="grid gap-4 lg:sticky lg:top-24">

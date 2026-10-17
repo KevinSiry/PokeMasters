@@ -1,10 +1,10 @@
 import { gameConfig } from "@pokeflex/config";
 import { getGuild, getGuildMessages, getMyGuildId } from "@pokeflex/server";
-import { ArrowLeft, Layers, Users } from "lucide-react";
+import { Layers, Users } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
+import { BackLink } from "@/components/back-link";
 import { GuildActions } from "@/components/social/guild-actions";
 import { GuildChat } from "@/components/social/guild-chat";
 import { GuildMembers } from "@/components/social/guild-members";
@@ -33,10 +33,7 @@ export default async function GuildPage({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="grid grid-cols-1 gap-6 py-6 sm:py-10">
-      <Link href="/guildes" className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-fg">
-        <ArrowLeft aria-hidden="true" className="size-4" />
-        Guildes
-      </Link>
+      <BackLink href="/guildes" />
       <header className="grid gap-4 rounded-[calc(var(--radius-card)*1.4)] border border-line bg-[radial-gradient(110%_130%_at_0%_0%,color-mix(in_srgb,var(--color-accent)_24%,transparent),transparent_60%),var(--color-surface)] p-5 sm:grid-cols-[auto_1fr_auto] sm:items-center sm:p-7">
         <span className="grid size-16 place-items-center rounded-2xl border border-accent/50 bg-bg font-mono text-lg font-bold text-accent">{guild.tag}</span>
         <div className="grid gap-1.5">

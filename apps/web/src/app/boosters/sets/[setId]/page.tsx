@@ -1,10 +1,9 @@
 import { gameConfig } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
 import { getPackCover } from "@pokeflex/server";
-import { ChevronLeft } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { BackLink } from "@/components/back-link";
 import { BoosterOpening } from "@/components/booster/booster-opening";
 import { getCurrentPlayer } from "@/lib/player";
 
@@ -32,12 +31,7 @@ export default async function SetBoosterPage({ params }: { params: Params }) {
   return (
     <>
       <h1 className="sr-only">Booster {set.name}</h1>
-      <nav aria-label="Fil d'Ariane" className="pt-5">
-        <Link href="/boosters/sets" className="inline-flex items-center gap-1 text-sm text-muted hover:text-fg">
-          <ChevronLeft aria-hidden="true" className="size-4" />
-          Tous les sets
-        </Link>
-      </nav>
+      <BackLink href="/boosters/sets" className="mt-5" />
       <BoosterOpening
         available={player.boosters.available}
         nextAt={player.boosters.nextAt}
