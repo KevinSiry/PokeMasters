@@ -2,8 +2,9 @@ import "./globals.css";
 import { gameConfig } from "@pokeflex/config";
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
-import { BottomNav } from "@/components/main-nav";
+import { BottomNav, SideNav } from "@/components/main-nav";
 import { SiteFooter } from "@/components/site-footer";
+import { NavigationProgress } from "@/components/navigation-progress";
 import { RealtimeListener } from "@/components/realtime-listener";
 import { ScrollRestorer } from "@/components/scroll-restorer";
 import { SiteHeader } from "@/components/site-header";
@@ -28,6 +29,7 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const player = await getCurrentPlayerSafe();
+  const boosters = player && { ...player.boosters, refillIntervalMs: gameConfig.boosters.refillIntervalMs };
   return (
     <html lang="fr" className={`${inter.variable} ${unbounded.variable} ${spaceMono.variable}`}>
       <body>
@@ -37,18 +39,24 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         >
           Aller au contenu
         </a>
-        <SiteHeader player={player} />
-        <main id="contenu" className="mx-auto max-w-6xl px-4">
-          {children}
-        </main>
-        <SiteFooter />
-        <BottomNav
+        <SideNav
           loggedIn={Boolean(player)}
-          boosters={player && { ...player.boosters, refillIntervalMs: gameConfig.boosters.refillIntervalMs }}
+          boosters={boosters}
+          counts={player && { trades: player.pendingTrades, friends: player.friendRequests }}
         />
+        {/* Sur ordinateur, tout le contenu se décale de la largeur de la barre latérale. */}
+        <div className="lg:pl-[var(--pf-sidebar-w)]">
+          <SiteHeader player={player} />
+          <main id="contenu" className="pf-container">
+            {children}
+          </main>
+          <SiteFooter />
+        </div>
+        <BottomNav loggedIn={Boolean(player)} boosters={boosters} />
         <Toaster />
         <Suspense fallback={null}>
           <ScrollRestorer />
+          <NavigationProgress />
         </Suspense>
         {player && <RealtimeListener me={player.id} />}
       </body>

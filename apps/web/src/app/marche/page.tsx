@@ -129,7 +129,7 @@ export default async function MarketPage({ searchParams }: { searchParams: Searc
       </form>
 
       <div className="grid gap-3">
-        <div className="pf-scroll-x -mx-4 flex gap-2 px-4" role="group" aria-label="Type d'annonce">
+        <div className="pf-scroll-x pf-bleed flex gap-2" role="group" aria-label="Type d'annonce">
           {TYPES.map((t) => (
             <Link key={t.id} href={qs({ type: t.id || undefined, page: undefined, tri: undefined })} className="pf-chip" aria-current={(type ?? "") === t.id ? "page" : undefined}>
               {t.label}
@@ -158,7 +158,7 @@ export default async function MarketPage({ searchParams }: { searchParams: Searc
             </Link>
           ))}
         </div>
-        <div className="pf-scroll-x -mx-4 flex items-center gap-2 px-4 text-sm" role="group" aria-label="Trier">
+        <div className="pf-scroll-x pf-bleed flex items-center gap-2 text-sm" role="group" aria-label="Trier">
           <span className="shrink-0 text-muted">Trier :</span>
           {SORTS.map((s) => (
             <Link key={s.id} href={qs({ tri: s.id, page: undefined })} className={cn("shrink-0 rounded-full px-3 py-1", s.id === sort ? "bg-elev text-fg" : "text-muted hover:text-fg")} aria-current={s.id === sort ? "page" : undefined}>

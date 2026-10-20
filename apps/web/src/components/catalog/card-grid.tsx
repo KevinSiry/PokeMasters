@@ -105,7 +105,7 @@ export function CardGrid({ cards, owned = null, lists = null, subtitle }: CardGr
             className="h-11 w-full rounded-full border border-line bg-surface pr-4 pl-10 text-sm focus:border-accent focus:outline-none"
           />
         </div>
-        <div className="pf-scroll-x -mx-4 flex gap-2 px-4" role="group" aria-label="Filtres">
+        <div className="pf-scroll-x pf-bleed flex gap-2" role="group" aria-label="Filtres">
           {owned && (
             <>
               {(["all", "owned", "missing"] as const).map((o) => (

@@ -94,7 +94,7 @@ export default async function CollectionPage({ searchParams }: { searchParams: S
         </div>
       ) : (
         <>
-          <nav aria-label="Vues de la collection" className="pf-scroll-x -mx-4 flex gap-2 px-4">
+          <nav aria-label="Vues de la collection" className="pf-scroll-x pf-bleed flex gap-2">
             {VIEWS.map((v) => (
               <Link key={v.id} href={`/collection?vue=${v.id}`} className="pf-chip" aria-current={v.id === view ? "page" : undefined}>
                 {v.label}
@@ -332,7 +332,7 @@ async function DexView({ userId, gen }: { userId: string; gen: number }) {
   const caught = entries.filter((e) => e.owned > 0).length;
   return (
     <div className="grid grid-cols-1 gap-5">
-      <div className="pf-scroll-x -mx-4 flex gap-2 px-4" role="group" aria-label="Génération">
+      <div className="pf-scroll-x pf-bleed flex gap-2" role="group" aria-label="Génération">
         {GENERATIONS.map((x) => (
           <Link key={x.id} href={`/collection?vue=pokedex&gen=${x.id}`} className="pf-chip" aria-current={x.id === g.id ? "page" : undefined}>
             {x.label}

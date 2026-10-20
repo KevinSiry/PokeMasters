@@ -55,7 +55,7 @@ export default async function TradesPage() {
 
       {suggestions.length > 0 && (
         <Section id="suggestions" title="Ils ont des cartes de ta wishlist">
-          <ul className="pf-scroll-x -mx-4 flex snap-x gap-3 px-4 pb-2">
+          <ul className="pf-scroll-x pf-bleed flex snap-x gap-3 pb-2">
             {suggestions.map((s) => (
               <li key={s.player.id} className="w-56 shrink-0 snap-start">
                 <Link

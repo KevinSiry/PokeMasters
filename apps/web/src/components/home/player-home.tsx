@@ -93,7 +93,7 @@ export async function PlayerHome({ player }: { player: CurrentPlayer }) {
             </Button>
           </div>
         ) : (
-          <ul className="pf-scroll-x -mx-4 flex snap-x gap-3 px-4 pb-2">
+          <ul className="pf-scroll-x pf-bleed flex snap-x gap-3 pb-2">
             {recent.map((c) => (
               <li key={c.copyId} className="w-28 shrink-0 snap-start sm:w-36">
                 <CardTile card={c} subtitle={c.setName} />
