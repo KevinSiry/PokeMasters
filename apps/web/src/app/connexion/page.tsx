@@ -4,6 +4,7 @@ import { gameConfig } from "@pokeflex/config";
 import { signIn } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { configuredProviders, devLoginEnabled } from "@/lib/env";
+import { safeInternalPath } from "@/lib/params";
 import { getCurrentPlayerSafe } from "@/lib/player";
 
 export const metadata: Metadata = { title: "Connexion" };
@@ -30,13 +31,9 @@ function DiscordIcon() {
   );
 }
 
-/** Page de retour après connexion : uniquement un chemin interne. */
-function safeNext(raw: string | undefined): string {
-  return raw && raw.startsWith("/") && !raw.startsWith("//") ? raw : "/";
-}
-
-export default async function ConnexionPage({ searchParams }: { searchParams: Promise<{ suite?: string }> }) {
-  const next = safeNext((await searchParams).suite);
+export default async function ConnexionPage({ searchParams }: { searchParams: Promise<{ suite?: string | string[] }> }) {
+  // Page de retour après connexion : uniquement un chemin interne.
+  const next = safeInternalPath((await searchParams).suite);
   if (await getCurrentPlayerSafe()) redirect(next);
   const anyProvider = configuredProviders.twitch || configuredProviders.discord;
 

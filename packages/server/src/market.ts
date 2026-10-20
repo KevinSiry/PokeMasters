@@ -4,7 +4,7 @@
  * puis l'annonce : deux achats simultanés donnent une seule vente.
  */
 import { gameConfig, type Finish, type Tier } from "@pokeflex/config";
-import { type ListingStatus, type ListingType, type Prisma, prisma } from "@pokeflex/db";
+import { type ListingStatus, type ListingType, Prisma, prisma } from "@pokeflex/db";
 import { assertValidPrice, extendForSniping, InsufficientFundsError, listingFee, MarketRuleError, minNextBid } from "@pokeflex/game";
 import { checkSetCompletions, type CompletedSet } from "./completion";
 import { applyLedger, lockUser, lockUsers, type Tx, withTxRetry } from "./ledger";
@@ -332,8 +332,7 @@ export interface MarketQuery {
 
 export async function getMarketListings(query: MarketQuery = {}) {
   const perPage = query.perPage ?? 36;
-  const page = Math.max(1, query.page ?? 1);
-  const q = query.q?.trim();
+  const q = query.q?.trim().slice(0, 80);
   let cardIds: string[] | undefined;
   if (q) {
     const rows = await prisma.$queryRaw<{ id: string }[]>`
@@ -359,20 +358,36 @@ export async function getMarketListings(query: MarketQuery = {}) {
       : {}),
     ...(cardIds ? { cardId: { in: cardIds } } : {}),
   };
-  // Prix « effectif » d'une enchère = offre courante ou prix de départ ; on trie sur le prix affiché côté SQL.
-  const orderBy: Prisma.ListingOrderByWithRelationInput[] =
-    query.sort === "ending"
-      ? [{ endsAt: { sort: "asc", nulls: "last" } }]
-      : query.sort === "price_asc"
-        ? [{ price: "asc" }]
-        : query.sort === "price_desc"
-          ? [{ price: "desc" }]
-          : [{ createdAt: "desc" }];
-  const [rows, total] = await Promise.all([
-    prisma.listing.findMany({ where, orderBy, include, skip: (page - 1) * perPage, take: perPage }),
-    prisma.listing.count({ where }),
-  ]);
-  return { listings: rows.map(toView), total, page, pages: Math.max(1, Math.ceil(total / perPage)) };
+  // Page bornée : « ?page=2.5 » ou « ?page=999 » retombent sur une page existante au lieu d'une erreur ou d'une page vide.
+  const total = await prisma.listing.count({ where });
+  const pages = Math.max(1, Math.ceil(total / perPage));
+  const asked = Math.trunc(Number(query.page ?? 1));
+  const page = Number.isFinite(asked) ? Math.min(Math.max(asked, 1), pages) : 1;
+  if (total === 0) return { listings: [], total, page, pages };
+  const skip = (page - 1) * perPage;
+
+  let rows: ListingWithJoins[];
+  if (query.sort === "price_asc" || query.sort === "price_desc") {
+    // Prix affiché = offre courante d'une enchère, sinon son prix de départ : on trie dessus en SQL.
+    const ids = await prisma.$queryRaw<{ id: string }[]>`
+      SELECT l.id FROM "Listing" l JOIN "Card" c ON c.id = l."cardId"
+      WHERE l.status = 'active'
+        ${query.type ? Prisma.sql`AND l.type = ${query.type}::"ListingType"` : Prisma.empty}
+        ${query.tier ? Prisma.sql`AND c.tier = ${query.tier}::"Tier"` : Prisma.empty}
+        ${query.wishlistOf ? Prisma.sql`AND EXISTS (SELECT 1 FROM "WishlistCard" w WHERE w."userId" = ${query.wishlistOf} AND w."cardId" = l."cardId")` : Prisma.empty}
+        ${cardIds ? Prisma.sql`AND l."cardId" = ANY(${cardIds}::text[])` : Prisma.empty}
+      ORDER BY coalesce(l."currentBid", l.price) ${query.sort === "price_asc" ? Prisma.sql`ASC` : Prisma.sql`DESC`}, l.id
+      LIMIT ${perPage} OFFSET ${skip}`;
+    const found = await prisma.listing.findMany({ where: { id: { in: ids.map((r) => r.id) } }, include });
+    const byId = new Map(found.map((l) => [l.id, l]));
+    rows = ids.flatMap((r) => byId.get(r.id) ?? []);
+  } else {
+    // Départage par id : ordre stable d'une page à l'autre (annonces à prix fixe sans échéance, créées au même instant…).
+    const orderBy: Prisma.ListingOrderByWithRelationInput[] =
+      query.sort === "ending" ? [{ endsAt: { sort: "asc", nulls: "last" } }, { createdAt: "desc" }, { id: "asc" }] : [{ createdAt: "desc" }, { id: "asc" }];
+    rows = await prisma.listing.findMany({ where, orderBy, include, skip, take: perPage });
+  }
+  return { listings: rows.map(toView), total, page, pages };
 }
 
 export async function getListing(id: string) {

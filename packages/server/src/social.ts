@@ -5,7 +5,7 @@
 import { gameConfig, REPORT_REASONS, type Tier } from "@pokeflex/config";
 import { type GuildRole, prisma, type Prisma } from "@pokeflex/db";
 import { cleanMessage, guildError, handleError, handleFromName, handleVariant, normalizeGuildTag, rankEntries } from "@pokeflex/game";
-import { applyLedger, lockUser, type Tx, withTxRetry } from "./ledger";
+import { applyLedger, lockUser, lockUsers, type Tx, withTxRetry } from "./ledger";
 
 const rules = gameConfig.social;
 
@@ -305,7 +305,7 @@ export async function sendFriendRequest(userId: string, handle: string) {
   if (target.id === userId) throw new SocialError("self", "Tu ne peux pas t'ajouter toi-même.");
   return withTxRetry(() =>
     prisma.$transaction(async (tx) => {
-      await lockUser(tx, userId);
+      await lockUsers(tx, [userId, target.id]);
       if (await isBlockedEitherWay(userId, target.id, tx)) throw new SocialError("blocked", "Impossible d'ajouter ce joueur.");
       const existing = await tx.friendship.findMany({
         where: {
@@ -317,12 +317,10 @@ export async function sendFriendRequest(userId: string, handle: string) {
       });
       if (existing.some((f) => f.status === "accepted")) throw new SocialError("already", "Vous êtes déjà amis.");
       if (existing.some((f) => f.userId === userId)) throw new SocialError("already", "Ta demande est déjà envoyée.");
-      const count = await tx.friendship.count({
-        where: { userId, status: "accepted" },
-      });
-      if (count >= rules.maxFriends) throw new SocialError("too_many", `Tu as déjà ${rules.maxFriends} amis.`);
+      await assertFriendRoom(tx, userId);
       // Il m'avait déjà demandé : on accepte directement.
       if (existing.some((f) => f.userId === target.id)) {
+        await assertFriendRoom(tx, target.id, "other");
         await tx.friendship.update({
           where: { userId_friendId: { userId: target.id, friendId: userId } },
           data: { status: "accepted" },
@@ -340,29 +338,42 @@ export async function sendFriendRequest(userId: string, handle: string) {
   );
 }
 
+/** Plafond d'amis (`social.maxFriends`), vérifié pour chacun des deux joueurs au moment où l'amitié naît. */
+async function assertFriendRoom(tx: Tx, userId: string, who: "me" | "other" = "me") {
+  const count = await tx.friendship.count({ where: { userId, status: "accepted" } });
+  if (count < rules.maxFriends) return;
+  throw new SocialError("too_many", who === "me" ? `Tu as déjà ${rules.maxFriends} amis.` : `Ce joueur a déjà ${rules.maxFriends} amis.`);
+}
+
 export async function respondFriendRequest(userId: string, fromId: string, accept: boolean) {
-  return prisma.$transaction(async (tx) => {
-    const req = await tx.friendship.findUnique({
-      where: { userId_friendId: { userId: fromId, friendId: userId } },
-    });
-    if (!req || req.status !== "pending") throw new SocialError("not_found", "Cette demande n'existe plus.");
-    if (!accept) {
-      await tx.friendship.delete({
+  return withTxRetry(() =>
+    prisma.$transaction(async (tx) => {
+      // Les deux joueurs verrouillés : deux acceptations simultanées ne dépassent pas le plafond.
+      if (accept) await lockUsers(tx, [userId, fromId]);
+      const req = await tx.friendship.findUnique({
         where: { userId_friendId: { userId: fromId, friendId: userId } },
       });
-      return { status: "declined" as const };
-    }
-    await tx.friendship.update({
-      where: { userId_friendId: { userId: fromId, friendId: userId } },
-      data: { status: "accepted" },
-    });
-    await tx.friendship.upsert({
-      where: { userId_friendId: { userId, friendId: fromId } },
-      create: { userId, friendId: fromId, status: "accepted" },
-      update: { status: "accepted" },
-    });
-    return { status: "accepted" as const };
-  });
+      if (!req || req.status !== "pending") throw new SocialError("not_found", "Cette demande n'existe plus.");
+      if (!accept) {
+        await tx.friendship.delete({
+          where: { userId_friendId: { userId: fromId, friendId: userId } },
+        });
+        return { status: "declined" as const };
+      }
+      await assertFriendRoom(tx, userId);
+      await assertFriendRoom(tx, fromId, "other");
+      await tx.friendship.update({
+        where: { userId_friendId: { userId: fromId, friendId: userId } },
+        data: { status: "accepted" },
+      });
+      await tx.friendship.upsert({
+        where: { userId_friendId: { userId, friendId: fromId } },
+        create: { userId, friendId: fromId, status: "accepted" },
+        update: { status: "accepted" },
+      });
+      return { status: "accepted" as const };
+    }),
+  );
 }
 
 /** Retire un ami, annule une demande envoyée ou refuse une demande reçue. */
@@ -437,6 +448,17 @@ export async function blockUser(userId: string, targetId: string) {
       create: { userId, blockedId: targetId },
       update: {},
     }),
+    // Les offres d'échange en attente entre vous sont annulées : elles ne pourraient plus aboutir.
+    prisma.trade.updateMany({
+      where: {
+        status: "pending",
+        OR: [
+          { proposerId: userId, recipientId: targetId },
+          { proposerId: targetId, recipientId: userId },
+        ],
+      },
+      data: { status: "cancelled", closedAt: new Date() },
+    }),
   ]);
 }
 
@@ -455,7 +477,9 @@ export async function getBlocked(userId: string): Promise<PlayerRef[]> {
 
 export async function reportUser(userId: string, targetId: string, reason: string, details?: string | null, context?: string | null) {
   if (userId === targetId) throw new SocialError("self", "Tu ne peux pas te signaler toi-même.");
-  if (!(reason in REPORT_REASONS)) throw new SocialError("invalid", "Choisis un motif.");
+  if (!Object.hasOwn(REPORT_REASONS, reason)) throw new SocialError("invalid", "Choisis un motif.");
+  const target = await prisma.user.findUnique({ where: { id: targetId }, select: { id: true } });
+  if (!target) throw new SocialError("not_found", "Joueur introuvable.");
   const recent = await prisma.report.count({
     where: {
       reporterId: userId,
@@ -684,16 +708,15 @@ export async function createGuild(userId: string, input: { name: string; tag: st
   }
 }
 
-export async function listGuilds(q = "", take = 30): Promise<GuildSummary[]> {
-  const query = q.trim();
+export async function listGuilds(q = "", take = 30, only?: string): Promise<GuildSummary[]> {
+  const query = q.trim().slice(0, 60);
   const rows = await prisma.guild.findMany({
-    where: query
-      ? {
-          OR: [{ name: { contains: query, mode: "insensitive" } }, { tag: { contains: query, mode: "insensitive" } }],
-        }
-      : {},
+    where: {
+      ...(only ? { id: only } : {}),
+      ...(query ? { OR: [{ name: { contains: query, mode: "insensitive" } }, { tag: { contains: query, mode: "insensitive" } }] } : {}),
+    },
     include: { _count: { select: { members: true } } },
-    orderBy: [{ members: { _count: "desc" } }, { createdAt: "asc" }],
+    orderBy: [{ members: { _count: "desc" } }, { createdAt: "asc" }, { id: "asc" }],
     take,
   });
   return rows.map((g) => ({
@@ -704,6 +727,11 @@ export async function listGuilds(q = "", take = 30): Promise<GuildSummary[]> {
     members: g._count.members,
     createdAt: g.createdAt.toISOString(),
   }));
+}
+
+/** Résumé d'une guilde précise, même hors des premières de la liste (encart « Ma guilde »). */
+export async function getGuildSummary(guildId: string): Promise<GuildSummary | null> {
+  return (await listGuilds("", 1, guildId))[0] ?? null;
 }
 
 export async function getMyGuildId(userId: string): Promise<string | null> {

@@ -8,6 +8,7 @@ import { Jetons } from "@/components/jetons";
 import { ListingTile } from "@/components/market/listing-tile";
 import { Button } from "@/components/ui/button";
 import { getCurrentPlayerSafe } from "@/lib/player";
+import { firstParam } from "@/lib/params";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -15,7 +16,8 @@ export const metadata: Metadata = {
   description: "Achète et vends des cartes Pokémon entre joueurs, à prix fixe ou aux enchères, en Jetons (sans valeur réelle).",
 };
 
-type SearchParams = Promise<{ q?: string; type?: string; rarete?: string; tri?: string; page?: string; wishlist?: string }>;
+type Param = string | string[] | undefined;
+type SearchParams = Promise<{ q?: Param; type?: Param; rarete?: Param; tri?: Param; page?: Param; wishlist?: Param }>;
 
 const TYPES = [
   { id: "", label: "Tout" },
@@ -30,13 +32,23 @@ const SORTS: { id: MarketSort; label: string }[] = [
 ];
 
 export default async function MarketPage({ searchParams }: { searchParams: SearchParams }) {
-  const sp = await searchParams;
+  const raw = await searchParams;
+  // Une URL bricolée (paramètre répété, page 2.5…) ne doit pas faire planter la page.
+  const sp = {
+    q: firstParam(raw.q, "", 80) || undefined,
+    type: firstParam(raw.type),
+    rarete: firstParam(raw.rarete),
+    tri: firstParam(raw.tri) || undefined,
+    page: firstParam(raw.page),
+    wishlist: firstParam(raw.wishlist),
+  };
   // Rattrapage : une enchère échue est clôturée avant affichage, même si le serveur temps réel est arrêté.
   await closeDueAuctions();
   const type = sp.type === "fixed" || sp.type === "auction" ? sp.type : undefined;
   const tier = (TIERS as readonly string[]).includes(sp.rarete ?? "") ? (sp.rarete as Tier) : undefined;
   const sort = SORTS.find((s) => s.id === sp.tri)?.id ?? (type === "auction" ? "ending" : "recent");
-  const page = Math.max(1, Number(sp.page) || 1);
+  // Page bornée par le serveur (getMarketListings) : 2.5, -1 ou 999 retombent sur une page existante.
+  const page = Number(sp.page) || 1;
   const player = await getCurrentPlayerSafe();
   const onlyWishlist = Boolean(player && sp.wishlist === "1");
   const [result, sales24h] = await Promise.all([
@@ -184,17 +196,17 @@ export default async function MarketPage({ searchParams }: { searchParams: Searc
 
       {result.pages > 1 && (
         <nav aria-label="Pages" className="flex items-center justify-center gap-3 text-sm">
-          {page > 1 && (
+          {result.page > 1 && (
             <Button asChild variant="secondary" size="sm">
-              <Link href={qs({ page: String(page - 1) })}>Précédente</Link>
+              <Link href={qs({ page: String(result.page - 1) })}>Précédente</Link>
             </Button>
           )}
           <span className="font-mono text-muted">
-            {page} / {result.pages}
+            {result.page} / {result.pages}
           </span>
-          {page < result.pages && (
+          {result.page < result.pages && (
             <Button asChild variant="secondary" size="sm">
-              <Link href={qs({ page: String(page + 1) })}>Suivante</Link>
+              <Link href={qs({ page: String(result.page + 1) })}>Suivante</Link>
             </Button>
           )}
         </nav>
