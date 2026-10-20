@@ -8,6 +8,7 @@ import { CreateGuild } from "@/components/social/create-guild";
 import { firstParam } from "@/lib/params";
 import { getCurrentPlayerSafe } from "@/lib/player";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export const metadata: Metadata = {
   title: "Guildes",
@@ -67,17 +68,16 @@ export default async function GuildsPage({ searchParams }: { searchParams: Promi
               name="q"
               defaultValue={q}
               placeholder="Nom ou sigle…"
-              className="h-10 w-full rounded-xl border border-line bg-bg pr-3 pl-9 text-sm outline-none focus:border-accent"
+              className="h-11 w-full rounded-xl border border-line bg-bg pr-3 pl-9 text-base outline-none focus:border-accent sm:text-sm"
             />
           </form>
         </div>
         {guilds.length === 0 ? (
-          <div className="grid justify-items-center gap-2 rounded-2xl border border-dashed border-line p-8 text-center text-sm text-muted">
-            <Shield aria-hidden="true" className="size-8" />
-            {q ? "Aucune guilde ne correspond." : "Aucune guilde pour l'instant : fonde la première\u00a0!"}
-          </div>
+          <EmptyState icon={<Shield />} title={q ? "Aucune guilde ne correspond." : "Aucune guilde pour l'instant"}>
+            {q ? "Essaie un autre nom ou un autre sigle." : "Fonde la première\u00a0!"}
+          </EmptyState>
         ) : (
-          <ul className="grid gap-2 sm:grid-cols-2">
+          <ul className="grid gap-2 sm:grid-cols-2 2xl:grid-cols-3">
             {guilds.map((g) => {
               const full = g.members >= gameConfig.social.guildMaxMembers;
               return (

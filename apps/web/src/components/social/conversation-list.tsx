@@ -51,7 +51,7 @@ export function ConversationList({ conversations }: { conversations: Conversatio
           <div className="grid justify-items-center gap-2">
             <MessageCircle aria-hidden="true" className="size-8" />
             Aucune conversation pour l&apos;instant.
-            <Link href="/amis" className="text-accent hover:underline">
+            <Link href="/amis" className="pf-hit relative text-accent hover:underline">
               Trouver des amis
             </Link>
           </div>

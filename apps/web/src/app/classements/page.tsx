@@ -5,6 +5,7 @@ import Link from "next/link";
 import { PlayerAvatar } from "@/components/player-avatar";
 import { getCurrentPlayerSafe } from "@/lib/player";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export const metadata: Metadata = {
   title: "Classements",
@@ -112,7 +113,7 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
                 href={k === "collection" ? "/classements" : `/classements?type=${k}`}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-colors",
+                  "flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-colors lg:min-h-9",
                   active ? "bg-gradient-to-r from-accent-strong to-coral-strong text-fg" : "text-muted hover:text-fg",
                 )}
               >
@@ -125,10 +126,9 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
       </header>
 
       {board.entries.length === 0 ? (
-        <div className="grid justify-items-center gap-2 rounded-2xl border border-dashed border-line p-10 text-center text-sm text-muted">
-          <Trophy aria-hidden="true" className="size-8" />
-          Personne n&apos;est encore classé ici. La première place est à prendre&nbsp;!
-        </div>
+        <EmptyState icon={<Trophy />} title="Personne n'est encore classé ici">
+          La première place est à prendre&nbsp;!
+        </EmptyState>
       ) : (
         <>
           <Podium entries={board.entries} kind={kind} />

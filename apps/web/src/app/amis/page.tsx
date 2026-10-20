@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { AddFriend } from "@/components/social/add-friend";
 import { FriendRow, RequestRow } from "@/components/social/friend-rows";
 import { getCurrentPlayerSafe } from "@/lib/player";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export const metadata: Metadata = { title: "Amis", robots: { index: false } };
 
@@ -50,12 +51,11 @@ export default async function FriendsPage() {
 
       <Section title="Mes amis" count={friends.length}>
         {friends.length === 0 ? (
-          <div className="grid justify-items-center gap-2 rounded-2xl border border-dashed border-line p-8 text-center">
-            <Users aria-hidden="true" className="size-8 text-muted" />
-            <p className="text-sm text-muted">Pas encore d&apos;ami. Cherche un dresseur par son pseudo ci-dessus&nbsp;!</p>
-          </div>
+          <EmptyState icon={<Users />} title="Pas encore d'ami">
+            Cherche un dresseur par son pseudo ci-dessus&nbsp;!
+          </EmptyState>
         ) : (
-          <ul className="grid gap-2 sm:grid-cols-2">
+          <ul className="grid gap-2 sm:grid-cols-2 2xl:grid-cols-3">
             {friends.map((p) => (
               <FriendRow key={p.id} player={p} />
             ))}
