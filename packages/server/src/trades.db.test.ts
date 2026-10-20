@@ -190,7 +190,8 @@ describe.skipIf(skip)("échanges (Postgres)", () => {
     const cb = await give(b, cardIds[1]!);
     const { tradeId } = await proposeTrade(a, { to: b, give: [ca.id], take: [cb.id] });
     await blockUser(b, a);
-    expect(await code(acceptTrade(b, tradeId))).toBe("blocked");
+    // Le blocage annule l'offre en attente : elle n'est plus acceptable.
+    expect(await code(acceptTrade(b, tradeId))).toBe("closed");
     expect(await code(proposeTrade(a, { to: b, give: [ca.id], take: [cb.id] }))).toBe("blocked");
     expect(await code(getTradeComposer(a, b))).toBe("blocked");
     expect((await getCardTraders(cardIds[1]!, a, 100)).some((p) => p.id === b)).toBe(false);

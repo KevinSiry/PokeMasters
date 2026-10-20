@@ -335,6 +335,8 @@ model LedgerEntry {
   createdAt    DateTime     @default(now())
 
   @@index([userId, createdAt])
+  /// Historique des Jetons, paginé par id décroissant (`/jetons?avant=`).
+  @@index([userId, id])
 }
 
 /// Set complété par un joueur : le bonus n'est versé qu'une fois, même si des cartes sont recyclées ensuite.
@@ -408,6 +410,8 @@ model Listing {
   @@index([cardId, status])
   @@index([sellerId, status])
   @@index([status, createdAt])
+  /// Jetons réservés par les enchères en cours d'un joueur (en-tête du marché).
+  @@index([currentBidderId, status])
 }
 
 model Bid {
@@ -440,6 +444,9 @@ model Sale {
 
   @@index([cardId, createdAt])
   @@index([createdAt])
+  /// Ventes d'un joueur (profil public, classement « Marché ») et suppression d'un compte.
+  @@index([sellerId])
+  @@index([buyerId])
 }
 
 // ───────── Social (phase 7) ─────────
@@ -472,6 +479,8 @@ model Block {
   createdAt DateTime @default(now())
 
   @@id([userId, blockedId])
+  /// « Qui m'a bloqué » : recherches de joueurs, suggestions d'échange, alertes wishlist.
+  @@index([blockedId])
 }
 
 enum ReportStatus {
@@ -494,6 +503,8 @@ model Report {
   createdAt  DateTime     @default(now())
 
   @@index([status, createdAt])
+  /// Un signalement par heure et par joueur visé.
+  @@index([reporterId, targetId, createdAt])
 }
 
 enum GuildRole {

@@ -32,8 +32,14 @@ export async function getSetDropPools(setId: string): Promise<Record<Tier, strin
   const rows = await prisma.card.findMany({ where: { setId, droppable: true }, select: { id: true, tier: true }, orderBy: { id: "asc" } });
   const pools = Object.fromEntries(TIERS.map((t) => [t, [] as string[]])) as Record<Tier, string[]>;
   for (const r of rows) pools[r.tier].push(r.id);
-  setPoolCache.set(setId, { at: Date.now(), pools });
+  // Seuls les sets qui ont des cartes tirables sont mis en cache : un id inventé ne fait pas grossir la mémoire.
+  if (rows.length > 0) setPoolCache.set(setId, { at: Date.now(), pools });
   return pools;
+}
+
+/** Nombre de sets en cache (tests). */
+export function cachedSetPoolCount() {
+  return setPoolCache.size;
 }
 
 export function invalidateDropPools() {

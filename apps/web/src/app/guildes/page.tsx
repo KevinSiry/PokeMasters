@@ -1,10 +1,11 @@
 import { gameConfig } from "@pokeflex/config";
-import { getMyGuildId, listGuilds } from "@pokeflex/server";
+import { getGuildSummary, getMyGuildId, listGuilds } from "@pokeflex/server";
 import { ChevronRight, Search, Shield, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Jetons } from "@/components/jetons";
 import { CreateGuild } from "@/components/social/create-guild";
+import { firstParam } from "@/lib/params";
 import { getCurrentPlayerSafe } from "@/lib/player";
 import { cn } from "@/lib/utils";
 
@@ -13,11 +14,12 @@ export const metadata: Metadata = {
   description: "Rejoins une guilde de collectionneurs PokeFlex et discute avec elle en direct.",
 };
 
-export default async function GuildsPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
-  const { q = "" } = await searchParams;
+export default async function GuildsPage({ searchParams }: { searchParams: Promise<{ q?: string | string[] }> }) {
+  const q = firstParam((await searchParams).q, "", 60);
   const player = await getCurrentPlayerSafe();
   const [guilds, myGuildId] = await Promise.all([listGuilds(q), player ? getMyGuildId(player.id) : Promise.resolve(null)]);
-  const mine = myGuildId ? (guilds.find((g) => g.id === myGuildId) ?? (await listGuilds()).find((g) => g.id === myGuildId)) : null;
+  // Ma guilde, même si elle n'est pas parmi les 30 premières affichées.
+  const mine = myGuildId ? (guilds.find((g) => g.id === myGuildId) ?? (await getGuildSummary(myGuildId))) : null;
 
   return (
     <div className="grid grid-cols-1 gap-8 py-8 sm:py-12">

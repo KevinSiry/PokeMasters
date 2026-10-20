@@ -6,17 +6,19 @@ import { SearchBox } from "@/components/catalog/search-box";
 import { TileListToggle } from "@/components/lists/tile-list-toggle";
 import { searchCards } from "@/lib/catalog";
 import { getOwnedCountsFor } from "@/lib/collection";
+import { firstParam } from "@/lib/params";
 import { getCurrentPlayerSafe } from "@/lib/player";
 
 export const metadata: Metadata = { title: "Recherche", robots: { index: false } };
 
-type SearchParams = Promise<{ q?: string; illustrateur?: string }>;
+type SearchParams = Promise<{ q?: string | string[]; illustrateur?: string | string[] }>;
 
 const SUGGESTIONS = ["Dracaufeu", "Pikachu", "Mewtwo", "Évoli", "Rayquaza", "Lugia"];
 
 export default async function SearchPage({ searchParams }: { searchParams: SearchParams }) {
-  const { q = "", illustrateur } = await searchParams;
-  const query = q.trim();
+  const sp = await searchParams;
+  const query = firstParam(sp.q, "", 80).trim();
+  const illustrateur = firstParam(sp.illustrateur, "", 120) || undefined;
   const [results, player] = await Promise.all([
     illustrateur ? searchCards("", { illustrator: illustrateur, limit: 120 }) : searchCards(query),
     getCurrentPlayerSafe(),

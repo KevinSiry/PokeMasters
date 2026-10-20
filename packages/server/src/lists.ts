@@ -41,9 +41,10 @@ export interface ListCard {
   addedAt: Date;
 }
 
-async function assertCard(cardId: string) {
-  const card = await prisma.card.findUnique({ where: { id: cardId }, select: { id: true } });
-  if (!card) throw new ListError("not_found", "Carte introuvable.");
+/** La carte existe ; pour la wishlist, elle doit aussi être tirable (les cartes sans image sont masquées partout). */
+async function assertCard(cardId: string, droppableOnly = false) {
+  const card = await prisma.card.findUnique({ where: { id: cardId }, select: { id: true, droppable: true } });
+  if (!card || (droppableOnly && !card.droppable)) throw new ListError("not_found", "Carte introuvable.");
 }
 
 async function assertRoom(kind: CardListKind, userId: string) {
@@ -75,7 +76,7 @@ export async function setWishlisted(userId: string, cardId: string, on: boolean)
     await prisma.wishlistCard.deleteMany({ where: { userId, cardId } });
     return { wished: false };
   }
-  await assertCard(cardId);
+  await assertCard(cardId, true);
   const already = await prisma.wishlistCard.findUnique({ where: { userId_cardId: { userId, cardId } }, select: { cardId: true } });
   if (already) return { wished: true };
   const owned = await prisma.cardCopy.count({ where: { ownerId: userId, cardId } });

@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { prisma } from "@pokeflex/db";
 import { NextResponse, type NextRequest } from "next/server";
 import { devLoginEnabled } from "@/lib/env";
+import { safeInternalPath } from "@/lib/params";
 
 const SESSION_DAYS = 30;
 
@@ -21,8 +22,7 @@ export async function POST(req: NextRequest) {
   const expires = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
   await prisma.session.create({ data: { sessionToken, userId: user.id, expires } });
 
-  const suite = String(form.get("suite") ?? "/");
-  const target = suite.startsWith("/") && !suite.startsWith("//") ? suite : "/";
+  const target = safeInternalPath(String(form.get("suite") ?? "/"));
   const res = NextResponse.redirect(new URL(target, req.url), { status: 303 });
   res.cookies.set("authjs.session-token", sessionToken, {
     httpOnly: true,

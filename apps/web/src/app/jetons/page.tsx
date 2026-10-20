@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { JetonIcon, Jetons } from "@/components/jetons";
 import { Button } from "@/components/ui/button";
 import { getLedger, LEDGER_LABELS_FR } from "@pokeflex/server";
+import { ledgerCursor } from "@/lib/params";
 import { getCurrentPlayer } from "@/lib/player";
 import { cn, formatJetons } from "@/lib/utils";
 
@@ -38,13 +39,13 @@ function detail(reason: LedgerReason, meta: unknown): string | null {
   return null;
 }
 
-type SearchParams = Promise<{ avant?: string }>;
+type SearchParams = Promise<{ avant?: string | string[] }>;
 
 export default async function JetonsPage({ searchParams }: { searchParams: SearchParams }) {
   const player = await getCurrentPlayer();
   if (!player) redirect("/connexion?suite=/jetons");
   const { avant } = await searchParams;
-  const before = avant && /^\d+$/.test(avant) ? BigInt(avant) : undefined;
+  const before = ledgerCursor(avant);
   const entries = await getLedger(player.id, PAGE + 1, before);
   const more = entries.length > PAGE;
   const page = entries.slice(0, PAGE);
