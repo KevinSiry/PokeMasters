@@ -49,7 +49,7 @@ export function UserMenu({
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label={`Menu de ${name}${friendRequests > 0 ? `, ${friendRequests} demande${friendRequests > 1 ? "s" : ""} d'ami` : ""}${pendingTrades > 0 ? `, ${pendingTrades} proposition${pendingTrades > 1 ? "s" : ""} d'échange` : ""}`}
-        className="relative grid size-10 place-items-center rounded-full border sm:size-9 border-line bg-elev transition-colors hover:border-accent"
+        className="pf-hit relative grid size-10 place-items-center rounded-full border sm:size-9 border-line bg-elev transition-colors hover:border-accent"
       >
         {friendRequests + pendingTrades > 0 && <span aria-hidden="true" className="absolute -top-0.5 -right-0.5 size-3 rounded-full border-2 border-bg bg-coral" />}
         {image ? (

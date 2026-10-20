@@ -16,7 +16,7 @@ const buttonVariants = cva(
         ghost: "rounded-full text-muted hover:text-fg hover:bg-elev",
       },
       size: {
-        sm: "h-9 px-4 text-sm",
+        sm: "pf-hit relative h-9 px-4 text-sm",
         md: "h-11 px-5 text-sm",
         lg: "h-14 px-7 text-base",
       },

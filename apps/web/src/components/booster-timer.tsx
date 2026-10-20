@@ -24,7 +24,7 @@ export function BoosterTimer({ available, maxStock, nextAt, refillIntervalMs, cl
     <Link
       href="/boosters"
       className={cn(
-        "flex h-10 items-center gap-2 rounded-full border border-line bg-elev pr-3 pl-1.5 sm:h-auto sm:py-1 font-mono text-xs font-tabular transition-colors hover:border-accent",
+        "pf-hit relative flex h-10 items-center gap-2 rounded-full border border-line bg-elev pr-3 pl-1.5 sm:h-auto sm:py-1 font-mono text-xs font-tabular transition-colors hover:border-accent",
         className,
       )}
       aria-label={

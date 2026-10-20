@@ -21,7 +21,7 @@ export function BackLink({ href, label = "Retour", className }: { href: string; 
         e.preventDefault();
         router.back();
       }}
-      className={cn("inline-flex w-fit items-center gap-1 text-sm text-muted hover:text-fg", className)}
+      className={cn("pf-hit relative inline-flex w-fit items-center gap-1 text-sm text-muted hover:text-fg", className)}
     >
       <ChevronLeft aria-hidden="true" className="size-4" />
       {label}

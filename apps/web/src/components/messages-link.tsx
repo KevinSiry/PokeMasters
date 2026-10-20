@@ -15,7 +15,7 @@ export function MessagesLink({ unread }: { unread: number }) {
       aria-label={unread > 0 ? `Messages, ${unread} non lu${unread > 1 ? "s" : ""}` : "Messages"}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "relative grid size-10 place-items-center sm:size-9 rounded-full border border-line bg-elev text-muted transition-colors hover:border-accent hover:text-fg",
+        "pf-hit relative grid size-10 place-items-center sm:size-9 rounded-full border border-line bg-elev text-muted transition-colors hover:border-accent hover:text-fg",
         active && "border-accent text-fg",
       )}
     >

@@ -330,7 +330,7 @@ export default async function CardPage({ params }: { params: Params }) {
             Aucune annonce en ce moment. {copies && copies.length > 0 ? "Tu peux vendre un exemplaire depuis « Gérer » ci-dessus." : ""}
           </p>
         ) : (
-          <ul className="pf-scroll-x -mx-4 flex snap-x gap-3 px-4 pb-2">
+          <ul className="pf-scroll-x pf-bleed flex snap-x gap-3 pb-2">
             {market.active.map((l) => (
               <li key={l.id} className="w-32 shrink-0 snap-start sm:w-40">
                 <ListingTile l={l} mine={l.seller.id === player?.id} />
@@ -351,7 +351,7 @@ export default async function CardPage({ params }: { params: Params }) {
               {lists?.wished ? "Elle est dans ta wishlist : ces joueurs peuvent te l'échanger." : "Ces joueurs en ont un exemplaire libre à échanger."}
             </p>
           </div>
-          <ul className="pf-scroll-x -mx-4 flex snap-x gap-3 px-4 pb-2">
+          <ul className="pf-scroll-x pf-bleed flex snap-x gap-3 pb-2">
             {traders.map((t) => (
               <li key={t.id} className="w-44 shrink-0 snap-start">
                 <Link
@@ -378,7 +378,7 @@ export default async function CardPage({ params }: { params: Params }) {
           <h2 id="same" className="font-display text-xl font-bold">
             {card.name.split(/\s/)[0]} dans d&apos;autres sets
           </h2>
-          <ul className="pf-scroll-x -mx-4 flex snap-x gap-3 px-4 pb-2">
+          <ul className="pf-scroll-x pf-bleed flex snap-x gap-3 pb-2">
             {same.map((c) => (
               <li key={c.id} className="w-32 shrink-0 snap-start sm:w-36">
                 <CardTile card={c} subtitle={`n° ${c.localId}`} />

@@ -38,7 +38,7 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 - **Recherche** : `pg_trgm` + `unaccent` (fonction `pf_unaccent` immuable pour l'index GIN) sur les noms FR et EN. « charizard », « dracofeu » ou « electhor » trouvent la bonne carte.
 - **Nom français déduit pour les cartes importées en anglais** (demande de Kevin, 2026-10-13) : même nom anglais qu'une carte française du catalogue, sinon nom de l'espèce remplacé via le numéro de Pokédex (« Charmander V » → « Salamèche V »). Seules les vraies cartes FR servent de référence. Recalculé à la fin de chaque synchro, ou à la demande avec `npm run sync:catalog -- --names`. Une carte sans correspondance (dresseur propre à un set anglais) garde son nom anglais.
 - **Échantillon de catalogue dans le seed** (Set de Base + 151, données réelles exportées par `npm run fixture:export`) : la CI et une première découverte hors ligne ont des cartes à montrer.
-- **Navigation mobile** : barre d'onglets en bas de l'écran (zone du pouce), liens dans l'en-tête sur ordinateur.
+- **Navigation mobile** : barre d'onglets en bas de l'écran (zone du pouce), liens dans l'en-tête sur ordinateur (remplacés par une barre latérale le 2026-10-20, voir « Refonte de l'interface »).
 
 ## Boosters et collection (phase 3)
 
@@ -158,6 +158,14 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 
 - **Retour « dans le même état »** (demande de Kevin, 2026-10-17) : revenir sur une page retrouve sa position de défilement, ses filtres et sa page. Le défilement est mémorisé par entrée d'historique (`ScrollRestorer`, `lib/history.ts`) et rétabli une fois la page réaffichée, même quand elle doit être redemandée au serveur (après un favori, un rafraîchissement temps réel, un rechargement), là où le navigateur seul remontait trop tôt. Les filtres côté client (grille d'un set, vitrine des boosters de set) vivent dans l'URL (`?filtre=`, `?tiers=`, `?categorie=`, `?type=`, `?possession=`, `?statut=`), réécrite sans nouvelle entrée d'historique (`useUrlFilters`).
 - **Bouton « Retour »** sur les pages de détail (carte, set, joueur, annonce, guilde, booster de set, nouvel échange) : il fait comme le bouton précédent du navigateur si la page d'avant est sur le site, sinon il mène à la page parente (arrivée par un lien partagé).
+
+## Refonte de l'interface (demande de Kevin, 2026-10-20)
+
+- **Barre latérale sur ordinateur** (à partir de 1024 px) : rail d'icônes avec libellé dessous, puis icône et libellé côte à côte dès 1280 px. Elle donne aussi Échanges, Classements, Amis et Guildes à un clic, avec les pastilles d'attente. L'en-tête garde la recherche, le minuteur, le solde, les messages et le menu du joueur. Pourquoi : à 768 px les liens de l'ancien en-tête passaient sous le minuteur, et un grand écran a la place d'une colonne de navigation. **Barre du bas jusqu'à 1023 px** (téléphone et tablette).
+- **Colonne de contenu élargie** (`pf-container`) : 72rem, puis 96rem à partir de 1536 px. Les rangées qui défilent jusqu'au bord de l'écran passent par `pf-bleed`.
+- **Zones tactiles de 44 px au doigt** : quand un contrôle doit rester petit à l'œil (lien « Retour », pastilles de l'en-tête, petits boutons), `pf-hit` agrandit sa zone de toucher par un pseudo-élément invisible, sans changer la mise en page. Les puces de filtre passent à 44 px sur écran tactile.
+- **Chargement et erreurs** : une barre de progression part dès le clic sur un lien interne (ou un retour arrière) et s'efface à l'arrivée de la page (`NavigationProgress`) ; les contenus chargés côté client gardent leurs silhouettes (`Skeleton`, `CardGridSkeleton`). **Pas de `loading.tsx`** : la frontière Suspense qu'il pose fait répondre 200 une page qui devrait répondre 404 (fiche, set, profil introuvables) et, à l'essai, un tap juste après l'affichage, pendant l'hydratation, se perdait une fois sur trois. Une erreur de rendu affiche « Réessayer » plutôt qu'une page blanche. États vides communs : `EmptyState`.
+- **Audit outillé** : `npm run audit:ui -- --out <dossier>` passe chaque page à 360, 390, 768, 1280 et 1920 px, relève débordements, cibles trop petites (44 px au doigt, 24 px à la souris), contrôles sans libellé et images sans `alt`, et enregistre les captures. Les mêmes contrôles servent aux tests e2e (`e2e/ui-checks.ts`, `responsive.spec.ts`).
 
 ## Ouverture de booster
 

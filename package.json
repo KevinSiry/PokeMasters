@@ -32,7 +32,8 @@
     "sync:catalog": "tsx --env-file-if-exists=.env scripts/sync-catalog.ts",
     "fixture:export": "tsx --env-file-if-exists=.env scripts/export-fixture.ts",
     "audit:ledger": "tsx --env-file-if-exists=.env scripts/audit-ledger.ts",
-    "render:card-back": "tsx scripts/render-card-back.ts"
+    "render:card-back": "tsx scripts/render-card-back.ts",
+    "audit:ui": "tsx --env-file-if-exists=.env scripts/ui-audit.ts"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
