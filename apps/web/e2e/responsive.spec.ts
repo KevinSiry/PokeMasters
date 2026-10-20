@@ -119,4 +119,26 @@ test.describe("zones tactiles", () => {
       expect(await smallTargets(page, 44, "main"), url).toEqual([]);
     }
   });
+
+  test.describe("ouverture de booster", () => {
+    test.use({ storageState: auth("demo-dresseur") });
+
+    test("boutiques, révélation et récapitulatif offrent 44 px au doigt", async ({ page }) => {
+      await page.setViewportSize({ width: 360, height: 760 });
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      for (const url of ["/boosters/sets", "/boosters/sets/base1"]) {
+        await page.goto(url);
+        expect(await smallTargets(page, 44, "main"), url).toEqual([]);
+      }
+      await page.goto("/boosters");
+      expect(await smallTargets(page, 44, "main"), "/boosters").toEqual([]);
+      await page.getByRole("button", { name: "Ouvrir le booster" }).click();
+      await page.getByRole("button", { name: "Retourner la carte" }).click();
+      await expect(page.getByRole("button", { name: /Carte suivante/ })).toBeVisible();
+      expect(await smallTargets(page, 44, "main"), "révélation").toEqual([]);
+      await page.getByRole("button", { name: "Tout révéler" }).click();
+      await expect(page.getByRole("heading", { name: "Ton booster" })).toBeVisible();
+      expect(await smallTargets(page, 44, "main"), "récapitulatif").toEqual([]);
+    });
+  });
 });

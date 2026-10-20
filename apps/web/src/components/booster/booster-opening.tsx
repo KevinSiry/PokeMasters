@@ -197,7 +197,7 @@ function PullBadges({ card, className, compact }: { card: PulledCard; className?
 
 /**
  * Étoile « favori » d'une carte tirée. `overlay` : pastille posée sur une vignette du récapitulatif
- * (zone tactile de 40 px, comme les vignettes du catalogue) ; sinon bouton rond à côté du nom.
+ * (zone tactile de 44 px, comme les vignettes du catalogue) ; sinon bouton rond à côté du nom.
  */
 function FavoriteStar({ card, on, pending, onToggle, overlay }: { card: PulledCard; on: boolean; pending: boolean; onToggle: () => void; overlay?: boolean }) {
   const label = on ? `Retirer ${card.name} de tes favoris` : `Mettre ${card.name} en favori`;
@@ -211,7 +211,7 @@ function FavoriteStar({ card, on, pending, onToggle, overlay }: { card: PulledCa
       title={label}
       className={cn(
         "group/fav grid place-items-center rounded-full outline-none disabled:opacity-70",
-        overlay ? "absolute top-0 left-0 z-10 size-10" : "size-11 shrink-0",
+        overlay ? "absolute top-0 left-0 z-10 size-11" : "size-11 shrink-0",
       )}
     >
       <span
@@ -801,7 +801,7 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
             <ul className="flex flex-wrap justify-center gap-2">
               {result.questsDone.map((q) => (
                 <li key={q.kind}>
-                  <Link href="/#quetes" className="inline-flex items-center gap-2 rounded-full border border-accent/60 bg-accent/10 px-3.5 py-1.5 text-sm hover:bg-accent/20">
+                  <Link href="/#quetes" className="inline-flex min-h-11 items-center gap-2 rounded-full border border-accent/60 bg-accent/10 px-3.5 py-1.5 text-sm hover:bg-accent/20">
                     <Target aria-hidden="true" className="size-4 text-accent" />
                     Quête terminée : {q.label} · réclame <Jetons value={q.reward} className="text-[#FFC93C]" />
                   </Link>

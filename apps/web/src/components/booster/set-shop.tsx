@@ -7,6 +7,7 @@ import { useDeferredValue, useMemo, useState } from "react";
 import { BoosterPackArt } from "@/components/booster/booster-pack";
 import { Jetons } from "@/components/jetons";
 import { ProgressBar } from "@/components/progress";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useUrlFilters } from "@/lib/use-url-filters";
 import { cn } from "@/lib/utils";
 
@@ -89,14 +90,18 @@ export function SetShop({ sets, balance, price }: { sets: ShopSet[]; balance: nu
         </div>
       </div>
 
-      {groups.length === 0 && <p className="rounded-xl bg-surface p-6 text-center text-muted">Aucun set ne correspond.</p>}
+      {groups.length === 0 && (
+        <EmptyState icon={<Search />} title="Aucun set ne correspond">
+          Essaie le nom de la série, ou un autre filtre.
+        </EmptyState>
+      )}
 
       {groups.map(([id, g]) => (
         <section key={id} aria-labelledby={`shop-${id}`} className="grid min-w-0 gap-3">
           <h2 id={`shop-${id}`} className="font-display text-lg font-bold">
             {g.name}
           </h2>
-          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 min-[112rem]:grid-cols-7">
             {g.sets.map((s) => (
               <li key={s.id} className="min-w-0">
                 <Link
