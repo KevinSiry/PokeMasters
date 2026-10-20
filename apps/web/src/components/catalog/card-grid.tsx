@@ -8,9 +8,10 @@ import { CardTile } from "@/components/catalog/card-tile";
 import { EnergyIcon, TYPE_LABELS } from "@/components/energy-icon";
 import { TileListToggle } from "@/components/lists/tile-list-toggle";
 import { TIER_ICON } from "@/components/tier-badge";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { CardTile as CardTileData } from "@/lib/catalog";
 import { useUrlFilters } from "@/lib/use-url-filters";
-import { cn } from "@/lib/utils";
 
 const CATEGORIES = [
   { id: "pokemon", label: "Pokémon" },
@@ -166,7 +167,7 @@ export function CardGrid({ cards, owned = null, lists = null, subtitle }: CardGr
             {filtered ? ` sur ${cards.length}` : ""}
           </span>
           {filtered ? (
-            <button type="button" onClick={reset} className="inline-flex items-center gap-1 text-accent hover:underline">
+            <button type="button" onClick={reset} className="pf-hit relative inline-flex items-center gap-1 text-accent hover:underline">
               <X aria-hidden="true" className="size-3.5" />
               Effacer les filtres
             </button>
@@ -175,11 +176,19 @@ export function CardGrid({ cards, owned = null, lists = null, subtitle }: CardGr
       </div>
 
       {shown.length === 0 ? (
-        <p className="rounded-[var(--radius-card)] border border-dashed border-line p-8 text-center text-muted">
-          Aucune carte ne correspond à ces filtres.
-        </p>
+        <EmptyState
+          icon={<Search />}
+          title="Aucune carte ne correspond"
+          action={
+            <Button variant="secondary" size="sm" onClick={reset}>
+              Effacer les filtres
+            </Button>
+          }
+        >
+          Essaie un autre nom, ou retire un filtre.
+        </EmptyState>
       ) : (
-        <ul className={cn("grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6")}>
+        <ul className={"pf-card-grid"}>
           {shown.map((c, i) => {
             const count = owned ? (owned[c.id] ?? 0) : null;
             return (

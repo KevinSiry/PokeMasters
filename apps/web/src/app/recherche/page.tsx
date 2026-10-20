@@ -1,9 +1,11 @@
 import { getFavoriteCardIds, getWishlistCardIds } from "@pokeflex/server";
 import type { Metadata } from "next";
+import { SearchX } from "lucide-react";
 import Link from "next/link";
 import { CardTile } from "@/components/catalog/card-tile";
 import { SearchBox } from "@/components/catalog/search-box";
 import { TileListToggle } from "@/components/lists/tile-list-toggle";
+import { EmptyState } from "@/components/ui/empty-state";
 import { searchCards } from "@/lib/catalog";
 import { getOwnedCountsFor } from "@/lib/collection";
 import { getCurrentPlayerSafe } from "@/lib/player";
@@ -74,16 +76,16 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
           </ul>
         </div>
       ) : results.length === 0 ? (
-        <p className="rounded-[var(--radius-card)] border border-dashed border-line p-8 text-center text-muted">
-          Aucune carte trouvée pour « {query || illustrateur} ». Essaie le nom anglais ou une orthographe plus courte.
-        </p>
+        <EmptyState icon={<SearchX />} title={`Aucune carte trouvée pour « ${query || illustrateur} »`}>
+          Essaie le nom anglais ou une orthographe plus courte.
+        </EmptyState>
       ) : (
         <section aria-label="Résultats" className="grid gap-4">
           <p className="text-sm text-muted" aria-live="polite">
             {results.length} résultat{results.length > 1 ? "s" : ""}
             {results.length >= 60 && !illustrateur ? " (les plus pertinents)" : ""}
           </p>
-          <ul className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+          <ul className="pf-card-grid">
             {results.map((c, i) => {
               const count = owned ? (owned[c.id] ?? 0) : null;
               return (

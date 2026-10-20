@@ -89,6 +89,15 @@ test.describe("mise en page à toutes les largeurs", () => {
       }
     }
   });
+  test("le contenu s'élargit sur grand écran", async ({ page }) => {
+    const columns = async () =>
+      page.evaluate(() => getComputedStyle(document.querySelector(".pf-card-grid")!).gridTemplateColumns.split(" ").length);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/catalogue/base1");
+    const laptop = await columns();
+    await page.setViewportSize({ width: 1920, height: 900 });
+    expect(await columns()).toBeGreaterThan(laptop);
+  });
 });
 
 test.describe("zones tactiles", () => {
@@ -100,6 +109,14 @@ test.describe("zones tactiles", () => {
     for (const url of ["/", "/cartes/base1-4", "/marche"]) {
       await page.goto(url);
       expect(await smallTargets(page, 44, "header, nav.fixed, footer"), url).toEqual([]);
+    }
+  });
+
+  test("catalogue, fiche, recherche et collection offrent 44 px au doigt", async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 760 });
+    for (const url of ["/catalogue", "/catalogue/base1", "/cartes/base1-4", "/recherche?q=dra", "/collection", "/collection?vue=cartes", "/collection?vue=pokedex"]) {
+      await page.goto(url);
+      expect(await smallTargets(page, 44, "main"), url).toEqual([]);
     }
   });
 });

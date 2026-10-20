@@ -1,4 +1,3 @@
-import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -6,13 +5,14 @@ import { cn } from "@/lib/utils";
  * Même cadre pointillé partout (collection, marché, échanges, social).
  */
 export function EmptyState({
-  icon: Icon,
+  icon,
   title,
   children,
   action,
   className,
 }: {
-  icon?: LucideIcon;
+  /** Pictogramme (lucide, `size-6`), déjà coloré si besoin. */
+  icon?: React.ReactNode;
   title: string;
   children?: React.ReactNode;
   action?: React.ReactNode;
@@ -20,9 +20,9 @@ export function EmptyState({
 }) {
   return (
     <div className={cn("grid justify-items-center gap-3 rounded-2xl border border-dashed border-line px-5 py-10 text-center", className)}>
-      {Icon && (
-        <span aria-hidden="true" className="grid size-12 place-items-center rounded-2xl bg-elev text-accent">
-          <Icon className="size-6" />
+      {icon && (
+        <span aria-hidden="true" className="grid size-12 place-items-center rounded-2xl bg-elev text-accent [&_svg]:size-6">
+          {icon}
         </span>
       )}
       <p className="font-display text-base font-bold">{title}</p>

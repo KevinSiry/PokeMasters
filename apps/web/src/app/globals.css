@@ -349,8 +349,8 @@
     border-color: var(--color-accent);
   }
 }
-/* Doigt plutôt que souris : puces plus hautes, plus faciles à viser. */
-@media (pointer: coarse) {
+/* Doigt plutôt que souris (ou écran de téléphone/tablette) : puces de 44 px, faciles à viser. */
+@media (pointer: coarse), (max-width: 63.98rem) {
   .pf-chip {
     height: 2.75rem;
   }
