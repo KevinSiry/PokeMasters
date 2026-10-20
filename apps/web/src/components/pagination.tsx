@@ -13,7 +13,7 @@ type Target = { href: (page: number) => string; onPage?: never } | { onPage: (pa
 export function Pagination({ info, label = "Pages", ...target }: { info: Pick<PageInfo, "page" | "pageCount">; label?: string } & Target) {
   if (info.pageCount <= 1) return null;
   const { page, pageCount } = info;
-  const arrow = "pf-chip size-10 justify-center p-0";
+  const arrow = "pf-chip size-11 justify-center p-0 lg:size-10";
   type ItemProps = { className: string; "aria-label": string; "aria-current"?: "page"; rel?: string };
   const item = (to: number, props: ItemProps, children: ReactNode) =>
     target.href ? (
@@ -45,7 +45,7 @@ export function Pagination({ info, label = "Pages", ...target }: { info: Pick<Pa
             </li>
           ) : (
             <li key={p}>
-              {item(p, { className: "pf-chip min-w-10 justify-center font-mono", "aria-label": `Page ${p}`, "aria-current": p === page ? "page" : undefined }, p)}
+              {item(p, { className: "pf-chip min-w-11 justify-center font-mono", "aria-label": `Page ${p}`, "aria-current": p === page ? "page" : undefined }, p)}
             </li>
           ),
         )}

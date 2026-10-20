@@ -67,11 +67,11 @@ export default async function CardPage({ params }: { params: Params }) {
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <BackLink href={`/catalogue/${card.set.id}`} />
         <nav aria-label="Fil d'Ariane" className="flex flex-wrap items-center gap-1 text-sm text-muted">
-          <Link href="/catalogue" className="hover:text-fg">
+          <Link href="/catalogue" className="pf-hit relative hover:text-fg">
             Catalogue
           </Link>
           <ChevronRight aria-hidden="true" className="size-3.5" />
-          <Link href={`/catalogue/${card.set.id}`} className="hover:text-fg">
+          <Link href={`/catalogue/${card.set.id}`} className="pf-hit relative hover:text-fg">
             {card.set.name}
           </Link>
           <ChevronRight aria-hidden="true" className="size-3.5" />
@@ -247,7 +247,7 @@ export default async function CardPage({ params }: { params: Params }) {
               <div className="flex items-center justify-between gap-3 sm:block">
                 <dt className="text-muted">Set</dt>
                 <dd className="flex items-center gap-2 font-semibold">
-                  <Link href={`/catalogue/${card.set.id}`} className="hover:text-accent">
+                  <Link href={`/catalogue/${card.set.id}`} className="pf-hit relative hover:text-accent">
                     {card.set.name}
                   </Link>
                 </dd>
@@ -268,7 +268,7 @@ export default async function CardPage({ params }: { params: Params }) {
                   <dd>
                     <Link
                       href={`/recherche?illustrateur=${encodeURIComponent(card.illustrator)}`}
-                      className="inline-flex items-center gap-1.5 font-semibold text-accent hover:underline"
+                      className="pf-hit relative inline-flex items-center gap-1.5 font-semibold text-accent hover:underline"
                     >
                       <Palette aria-hidden="true" className="size-3.5" />
                       {card.illustrator}

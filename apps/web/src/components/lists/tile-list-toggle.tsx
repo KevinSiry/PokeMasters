@@ -31,7 +31,7 @@ export function TileListToggle({ cardId, cardName, owned, favorite, wished }: { 
       aria-label={label}
       title={label}
       data-list={isFavorite ? "favorite" : "wishlist"}
-      className="group/toggle absolute top-0 left-0 z-10 grid size-10 place-items-center rounded-full outline-none disabled:opacity-70"
+      className="group/toggle absolute top-0 left-0 z-10 grid size-11 place-items-center rounded-full outline-none disabled:opacity-70"
     >
       <span
         aria-hidden="true"

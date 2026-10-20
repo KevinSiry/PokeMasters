@@ -66,7 +66,7 @@ export default async function CataloguePage() {
                       {from && to ? (from === to ? from : `${from} – ${to}`) : null} · {plural(s.sets.length, "set")}
                     </span>
                   </div>
-                  <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                  <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 min-[112rem]:grid-cols-6">
                     {s.sets.map((set, i) => (
                       <li key={set.id}>
                         <Link

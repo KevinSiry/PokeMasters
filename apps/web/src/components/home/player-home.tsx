@@ -77,7 +77,7 @@ export async function PlayerHome({ player }: { player: CurrentPlayer }) {
             Tes dernières cartes
           </h2>
           {recent.length > 0 && (
-            <Link href="/collection?vue=cartes" className="text-sm font-semibold text-accent hover:underline">
+            <Link href="/collection?vue=cartes" className="pf-hit relative shrink-0 text-sm font-semibold whitespace-nowrap text-accent hover:underline">
               Tout voir
             </Link>
           )}

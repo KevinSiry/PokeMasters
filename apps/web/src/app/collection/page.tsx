@@ -1,6 +1,6 @@
 import { FINISH_LABELS_FR, gameConfig } from "@pokeflex/config";
 import { getFavoriteCardIds, getFavorites, getWishlist, getWishlistSummary } from "@pokeflex/server";
-import { CheckCircle2, ChevronDown, Heart, Sparkles, Star, Store } from "lucide-react";
+import { CheckCircle2, ChevronDown, GalleryVerticalEnd, Heart, Sparkles, Star, Store } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -11,6 +11,7 @@ import { Pagination } from "@/components/pagination";
 import { SetLogo } from "@/components/catalog/set-logo";
 import { ProgressBar, ProgressRing } from "@/components/progress";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   GENERATIONS,
   getCollectionTotals,
@@ -82,16 +83,20 @@ export default async function CollectionPage({ searchParams }: { searchParams: S
       </header>
 
       {totals.copies === 0 && view !== "wishlist" ? (
-        <div className="grid justify-items-center gap-4 rounded-[var(--radius-card)] border border-dashed border-line p-10 text-center">
-          <p className="font-display text-xl font-bold">Ton classeur est vide</p>
-          <p className="max-w-[44ch] text-muted">Ouvre ton premier booster : 5 cartes tirées dans tout le catalogue, dont au moins une Peu commune.</p>
-          <Button asChild size="lg">
-            <Link href="/boosters">
-              <Sparkles aria-hidden="true" />
-              Ouvrir un booster
-            </Link>
-          </Button>
-        </div>
+        <EmptyState
+          icon={<GalleryVerticalEnd />}
+          title="Ton classeur est vide"
+          action={
+            <Button asChild size="lg">
+              <Link href="/boosters">
+                <Sparkles aria-hidden="true" />
+                Ouvrir un booster
+              </Link>
+            </Button>
+          }
+        >
+          Ouvre ton premier booster : 5 cartes tirées dans tout le catalogue, dont au moins une Peu commune.
+        </EmptyState>
       ) : (
         <>
           <nav aria-label="Vues de la collection" className="pf-scroll-x pf-bleed flex gap-2">
@@ -138,7 +143,7 @@ async function SetsView({ userId }: { userId: string }) {
               <ProgressBar value={owned} max={total} className="hidden w-40 sm:block" label={`Complétion ${serie.name}`} />
               <ChevronDown aria-hidden="true" className="size-5 text-muted transition-transform group-open:rotate-180" />
             </summary>
-            <ul className="grid grid-cols-1 gap-1 border-t border-line p-2 sm:grid-cols-2">
+            <ul className="grid grid-cols-1 gap-1 border-t border-line p-2 sm:grid-cols-2 2xl:grid-cols-3">
               {serie.sets.map((s) => (
                 <li key={s.id} className="min-w-0">
                   <Link href={`/catalogue/${s.id}`} className="flex items-center gap-3 rounded-xl p-2.5 transition-colors hover:bg-elev">
@@ -190,7 +195,7 @@ async function CardsView({ userId, sort, page }: { userId: string; sort: Collect
         <RecycleDuplicates />
       </div>
       <PageCount info={owned} />
-      <ul className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+      <ul className="pf-card-grid">
         {cards.map((c, i) => (
           <li key={c.id}>
             <CardTile
@@ -226,11 +231,9 @@ function PageCount({ info }: { info: PageInfo }) {
 
 function ListEmpty({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
-    <div className="grid justify-items-center gap-2 rounded-[var(--radius-card)] border border-dashed border-line p-10 text-center">
-      {icon}
-      <p className="font-display text-lg font-bold">{title}</p>
-      <p className="max-w-[48ch] text-sm text-muted">{children}</p>
-    </div>
+    <EmptyState icon={icon} title={title}>
+      {children}
+    </EmptyState>
   );
 }
 
@@ -250,7 +253,7 @@ async function FavoritesView({ userId, page }: { userId: string; page?: string }
       <p className="text-sm text-muted">
         {plural(all.length, "carte favorite", "cartes favorites")} sur {gameConfig.lists.favoritesMax} · jamais recyclées avec les doublons
       </p>
-      <ul className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+      <ul className="pf-card-grid">
         {cards.map((c, i) => (
           <li key={c.id}>
             <CardTile
@@ -304,7 +307,7 @@ async function WishlistView({ userId, page }: { userId: string; page?: string })
           </Button>
         )}
       </div>
-      <ul className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+      <ul className="pf-card-grid">
         {cards.map((c, i) => (
           <li key={c.id} className="grid gap-1.5">
             <CardTile
@@ -342,7 +345,7 @@ async function DexView({ userId, gen }: { userId: string; gen: number }) {
       <p className="text-sm text-muted">
         {caught} Pokémon sur {g.to - g.from + 1} de {g.label} ont au moins une carte dans ta collection.
       </p>
-      <ul className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-5 lg:grid-cols-7">
+      <ul className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-5 lg:grid-cols-7 2xl:grid-cols-9">
         {entries.map((e) => (
           <li key={e.dex}>
             <CardTile

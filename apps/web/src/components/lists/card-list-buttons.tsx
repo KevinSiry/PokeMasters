@@ -13,7 +13,7 @@ export function CardListButtons({ cardId, cardName, owned, favorite, wished }: {
   const { fav, wish, pending, toggleFavorite, toggleWishlist } = useCardLists(cardId, cardName, favorite, wished);
 
   const base =
-    "inline-flex h-9 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition-colors disabled:opacity-60 [&_svg]:size-4 [&_svg]:shrink-0";
+    "inline-flex h-11 items-center gap-2 rounded-full border px-4 text-sm lg:h-9 font-semibold transition-colors disabled:opacity-60 [&_svg]:size-4 [&_svg]:shrink-0";
   return (
     <div className="flex flex-wrap gap-2">
       {(owned || fav) && (
