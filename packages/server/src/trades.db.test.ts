@@ -285,6 +285,27 @@ describe.skipIf(skip)("échanges (Postgres)", () => {
     expect([both.total, both.wished, both.wishlistVisible]).toEqual([1, 1, true]);
   });
 
+  it("ne compte pas un exemplaire en vente comme doublon", async () => {
+    // Des Jetons pour les frais de mise en vente.
+    const [a, b] = [await newUser(100), await newUser(100)];
+    // b : cardIds[0] en deux exemplaires dont un en vente, il ne lui en reste qu'un à échanger.
+    const listed = await give(b, cardIds[0]!);
+    await give(b, cardIds[0]!);
+    await createListing(b, { copyId: listed.id, type: "fixed", price: 40 });
+    // a : pareil avec cardIds[1], en holo pour l'exemplaire en vente.
+    const mineListed = await give(a, cardIds[1]!, "holo");
+    await give(a, cardIds[1]!);
+
+    const theirs = await getTradePickerPage(a, b, "theirs");
+    expect([theirs.total, theirs.duplicates, theirs.groups[0]!.duplicate]).toEqual([1, 0, false]);
+    expect((await getTradePickerPage(a, b, "theirs", { onlyDuplicates: true })).total).toBe(0);
+
+    await createListing(a, { copyId: mineListed.id, type: "fixed", price: 40 });
+    const mine = await getTradePickerPage(a, b, "mine");
+    expect([mine.total, mine.duplicates]).toEqual([1, 0]);
+    expect((await getTradePickerPage(a, b, "mine", { onlyDuplicates: true })).total).toBe(0);
+  });
+
   it("limite le nombre de propositions en attente", async () => {
     const [a, b] = [await newUser(), await newUser()];
     const ca = await give(a, cardIds[0]!);

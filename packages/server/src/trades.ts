@@ -378,7 +378,7 @@ export interface TradeableGroup extends TradeCardView {
   wished: boolean;
   /** Carte que l'autre joueur n'a pas encore (calculé pour les cartes demandées). */
   isNew: boolean;
-  /** Doublon : son propriétaire en a au moins deux exemplaires, toutes finitions confondues. */
+  /** Doublon : son propriétaire en a au moins deux exemplaires hors vente, toutes finitions confondues. */
   duplicate: boolean;
 }
 
@@ -394,11 +394,11 @@ interface GroupFilter {
 }
 
 /**
- * Doublon : le propriétaire garde au moins un autre exemplaire de la carte (toutes finitions, en vente
- * compris), comme pour « Recycler les doublons ».
+ * Doublon : le propriétaire garde au moins un autre exemplaire de la carte (toutes finitions), comme pour
+ * « Recycler les doublons ». Un exemplaire en vente au marché ne compte pas : il n'est ni échangeable ni recyclable.
  */
 const isDuplicate = (ownerId: string) =>
-  Prisma.sql`(SELECT count(*) FROM "CardCopy" d WHERE d."ownerId" = ${ownerId} AND d."cardId" = cc."cardId") >= 2`;
+  Prisma.sql`(SELECT count(*) FROM "CardCopy" d WHERE d."ownerId" = ${ownerId} AND d."cardId" = cc."cardId" AND d.status = 'owned') >= 2`;
 
 /** Conditions SQL communes : exemplaires libres (ni en vente ni favoris) et filtres du sélecteur. */
 function groupWhere(ownerId: string, wisherId: string | null, f: GroupFilter) {
