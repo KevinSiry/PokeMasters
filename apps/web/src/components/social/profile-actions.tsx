@@ -139,7 +139,7 @@ export function ProfileActions({ target, relation }: { target: Target; relation:
       )}
       {!blocked && (
         <>
-          <Button asChild size="sm" variant="secondary" className="max-sm:w-9 max-sm:px-0">
+          <Button asChild size="sm" variant="secondary" className="max-sm:w-11 max-sm:px-0">
             <Link href={`/messages/${target.handle}`} aria-label={`Écrire à ${target.name}`}>
               <MessageCircle aria-hidden="true" />
               <span className="max-sm:hidden">Message</span>
@@ -155,7 +155,7 @@ export function ProfileActions({ target, relation }: { target: Target; relation:
           aria-haspopup="menu"
           aria-expanded={menu}
           onClick={() => setMenu((m) => !m)}
-          className="w-9 px-0"
+          className="w-11 px-0 sm:w-9"
         >
           <MoreHorizontal aria-hidden="true" />
         </Button>

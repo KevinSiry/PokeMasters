@@ -27,7 +27,7 @@ export default async function ProfilePage() {
           <h1 className="font-display text-2xl font-bold sm:text-3xl">Mon profil</h1>
           <p className="text-sm text-muted">Ce que les autres dresseurs voient de toi.</p>
         </div>
-        <Link href={`/joueurs/${player.handle}`} className="inline-flex items-center gap-1 text-sm text-accent hover:underline">
+        <Link href={`/joueurs/${player.handle}`} className="pf-hit relative inline-flex w-fit items-center gap-1 text-sm text-accent hover:underline">
           Voir mon profil public
           <ArrowUpRight aria-hidden="true" className="size-4" />
         </Link>

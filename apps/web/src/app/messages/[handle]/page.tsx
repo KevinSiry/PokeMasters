@@ -32,11 +32,11 @@ export default async function ConversationPage({ params }: { params: Promise<{ h
         <Link
           href="/messages"
           aria-label="Toutes les conversations"
-          className="grid size-9 place-items-center rounded-full text-muted hover:bg-elev hover:text-fg md:hidden"
+          className="grid size-11 shrink-0 place-items-center rounded-full text-muted hover:bg-elev hover:text-fg md:hidden"
         >
           <ArrowLeft aria-hidden="true" className="size-5" />
         </Link>
-        <Link href={`/joueurs/${other.handle}`} className="flex min-w-0 flex-1 items-center gap-3">
+        <Link href={`/joueurs/${other.handle}`} className="flex min-h-11 min-w-0 flex-1 items-center gap-3">
           <PlayerAvatar name={other.name} image={other.image} size="sm" />
           <span className="grid min-w-0">
             <span className="truncate text-sm font-semibold">{other.name}</span>

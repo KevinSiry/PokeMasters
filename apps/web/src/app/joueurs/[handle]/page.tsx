@@ -97,9 +97,9 @@ export default async function PlayerPage({ params }: { params: Promise<{ handle:
               </Link>
             </Button>
           ) : viewer && profile.relation ? (
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
               {canTrade(profile.relation) && (
-                <Button asChild variant="secondary" size="sm">
+                <Button asChild variant="secondary" size="sm" className="max-sm:w-full">
                   <Link href={`/echanges/nouveau?avec=${encodeURIComponent(player.handle!)}`}>
                     <Repeat2 aria-hidden="true" />
                     Échanger
@@ -190,7 +190,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ handle:
               Ta wishlist est vide : ajoute les cartes que tu cherches depuis leur fiche.
             </div>
           ) : (
-            <ul className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-6">
+            <ul className="pf-card-grid">
               {wishlist.cards.map((c) => (
                 <li key={c.id}>
                   <CardTile card={c} subtitle={c.setName} />

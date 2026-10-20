@@ -154,6 +154,13 @@ test.describe("zones tactiles", () => {
     await expect(page.getByRole("button", { name: /Enchérir|Solde insuffisant/ })).toBeVisible();
     expect(await smallTargets(page, 44, "main"), "annonce").toEqual([]);
   });
+  test("profils, social, classements et jetons offrent 44 px au doigt", async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 760 });
+    for (const url of ["/classements", "/amis", "/guildes", "/messages", "/messages/demo-marchand", "/profil", "/jetons", "/joueurs/demo-marchand"]) {
+      await page.goto(url);
+      expect(await smallTargets(page, 44, "main"), url).toEqual([]);
+    }
+  });
 });
 
 test.describe("barre d'envoi d'un échange", () => {
@@ -172,6 +179,22 @@ test.describe("barre d'envoi d'un échange", () => {
       // Barre du bas visible jusqu'à 1023 px : la barre d'envoi reste au-dessus.
       const nav = page.locator("nav.fixed");
       if (await nav.isVisible()) expect(bar!.y + bar!.height).toBeLessThanOrEqual((await nav.boundingBox())!.y);
+    });
+  }
+});
+
+test.describe("messagerie", () => {
+  test.use({ storageState: auth("demo-collection") });
+
+  for (const width of [360, 768, 1280]) {
+    test(`le champ de message reste au-dessus de la barre du bas à ${width} px`, async ({ page, isMobile }) => {
+      test.skip(isMobile, "largeur fixée par le test");
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto("/messages/demo-marchand");
+      const input = await page.getByRole("textbox").last().boundingBox();
+      expect(input!.y + input!.height).toBeLessThanOrEqual(800);
+      const nav = page.locator("nav.fixed");
+      if (await nav.isVisible()) expect(input!.y + input!.height).toBeLessThanOrEqual((await nav.boundingBox())!.y);
     });
   }
 });

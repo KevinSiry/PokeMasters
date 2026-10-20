@@ -10,7 +10,7 @@ export default async function MessagesLayout({ children }: { children: React.Rea
   const conversations = await getConversations(player.id);
 
   return (
-    <div className="grid h-[calc(100dvh-7.5rem-env(safe-area-inset-bottom))] min-h-[420px] grid-cols-1 gap-4 py-4 md:h-[calc(100dvh-6rem)] md:grid-cols-[300px_1fr] md:py-6">
+    <div className="grid h-[calc(100dvh-7.5rem-env(safe-area-inset-bottom))] min-h-[420px] grid-cols-1 gap-4 py-4 md:h-[calc(100dvh-8rem-env(safe-area-inset-bottom))] md:grid-cols-[300px_1fr] md:py-6 lg:h-[calc(100dvh-6rem)] lg:grid-cols-[340px_1fr]">
       <ConversationList conversations={conversations} />
       {children}
     </div>
