@@ -50,7 +50,7 @@ export default async function ListingPage({ params }: { params: Params }) {
               {l.card.lang === "en" && <span className="rounded-full bg-elev px-2.5 py-1 font-mono text-xs">EN</span>}
               {owned !== null &&
                 (owned > 0 ? (
-                  <Link href={`/cartes/${l.card.id}`} className="inline-flex items-center gap-1 rounded-full bg-lime/15 px-2.5 py-1 text-xs font-bold text-lime hover:bg-lime/25">
+                  <Link href={`/cartes/${l.card.id}`} className="pf-hit relative inline-flex items-center gap-1 rounded-full bg-lime/15 px-2.5 py-1 text-xs font-bold text-lime hover:bg-lime/25">
                     <Check aria-hidden="true" className="size-3.5" strokeWidth={3} />
                     Déjà obtenue · {owned} ex.
                   </Link>
@@ -143,7 +143,7 @@ export default async function ListingPage({ params }: { params: Params }) {
             </section>
           )}
 
-          <Link href={`/cartes/${l.card.id}`} className="text-sm font-semibold text-accent hover:underline">
+          <Link href={`/cartes/${l.card.id}`} className="pf-hit relative w-fit text-sm font-semibold text-accent hover:underline">
             Fiche complète de la carte
           </Link>
         </div>

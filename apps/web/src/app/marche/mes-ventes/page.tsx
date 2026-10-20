@@ -1,8 +1,8 @@
 import { FINISH_LABELS_FR } from "@pokeflex/config";
 import { closeDueAuctions, getMyListings } from "@pokeflex/server";
-import { ChevronLeft } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { BackLink } from "@/components/back-link";
 import { redirect } from "next/navigation";
 import { Jetons } from "@/components/jetons";
 import { CancelListing } from "@/components/market/cancel-listing";
@@ -25,12 +25,7 @@ export default async function MySalesPage() {
 
   return (
     <div className="grid grid-cols-1 gap-8 py-6 sm:py-10">
-      <nav aria-label="Fil d'Ariane">
-        <Link href="/marche" className="inline-flex items-center gap-1 text-sm text-muted hover:text-fg">
-          <ChevronLeft aria-hidden="true" className="size-4" />
-          Marché
-        </Link>
-      </nav>
+      <BackLink href="/marche" label="Marché" />
       <header className="grid gap-1">
         <h1 className="font-display text-2xl font-bold sm:text-3xl">Mes ventes</h1>
         <p className="text-sm text-muted">
@@ -47,7 +42,7 @@ export default async function MySalesPage() {
             Rien en vente. Ouvre une carte de ta collection, puis « Gérer » et « Vendre ».
           </p>
         ) : (
-          <ul className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+          <ul className="pf-card-grid">
             {active.map((l) => (
               <li key={l.id} className="grid min-w-0 content-start gap-2">
                 <ListingTile l={l} mine />

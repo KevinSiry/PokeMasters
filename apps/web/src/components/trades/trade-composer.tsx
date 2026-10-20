@@ -2,7 +2,7 @@
 
 import { FINISH_LABELS_FR } from "@pokeflex/config";
 import type { PlayerRef, TradeableGroup, TradePickerPage, TradeSide } from "@pokeflex/server";
-import { ArrowDownLeft, ArrowUpRight, Check, Heart, Layers, Loader2, Search, Send, Sparkles, X } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Check, Heart, Layers, Loader2, Search, SearchX, Send, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState, useTransition } from "react";
@@ -12,6 +12,7 @@ import { Pagination } from "@/components/pagination";
 import { TIER_ICON } from "@/components/tier-badge";
 import { toast } from "@/components/toaster";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { pingTrade } from "@/lib/trades";
 import { cn } from "@/lib/utils";
 
@@ -94,7 +95,7 @@ function Picker({
               setPage(1);
             }}
             placeholder="Filtrer par nom ou set"
-            className="h-10 w-full rounded-full border border-line bg-surface pr-3 pl-9 text-sm outline-none focus:border-accent"
+            className="h-11 w-full rounded-full border border-line bg-surface pr-3 pl-9 text-base outline-none focus:border-accent sm:text-sm"
           />
         </label>
         <div role="group" aria-label="Filtres" className="flex flex-wrap gap-2">
@@ -144,9 +145,11 @@ function Picker({
         {data.pageCount > 1 && ` · page ${data.page} / ${data.pageCount}`}
       </p>
       {data.groups.length === 0 ? (
-        <p className="p-4 text-center text-sm text-muted">Aucune carte ne correspond.</p>
+        <EmptyState icon={<SearchX />} title="Aucune carte ne correspond." className="py-8">
+          Retire un filtre ou change la recherche.
+        </EmptyState>
       ) : (
-        <ul className={cn("grid grid-cols-3 gap-x-3 gap-y-4 transition-opacity sm:grid-cols-4 md:grid-cols-6", loading && "opacity-60")}>
+        <ul className={cn("pf-card-grid transition-opacity", loading && "opacity-60")}>
           {data.groups.map((g) => {
             const key = keyOf(g);
             const on = selected.has(key);
@@ -319,7 +322,7 @@ export function TradeComposer({
             aria-selected={tab === t.id}
             onClick={() => setTab(t.id)}
             className={cn(
-              "flex h-10 items-center justify-center gap-2 rounded-full text-sm font-semibold transition-colors",
+              "flex h-11 items-center justify-center gap-2 rounded-full text-sm font-semibold transition-colors",
               tab === t.id ? "bg-elev text-fg shadow-[inset_0_0_0_1px_var(--color-accent)]" : "text-muted hover:text-fg",
             )}
           >
@@ -359,33 +362,43 @@ export function TradeComposer({
         />
       </div>
 
-      <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 grid gap-3 rounded-2xl border border-accent/40 bg-surface/95 p-3 shadow-[0_18px_40px_-12px_rgb(0_0_0/0.8)] backdrop-blur md:bottom-4">
-        <p className="text-xs text-muted">
+      {/* Barre d'envoi collante, compacte (une ligne) pour masquer le moins de cartes possible ; au-dessus de la barre du bas jusqu'à 1023 px. */}
+      <div
+        data-sticky-actions
+        className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 grid gap-2 rounded-2xl border border-accent/40 bg-surface/95 p-2.5 shadow-[0_18px_40px_-12px_rgb(0_0_0/0.8)] backdrop-blur lg:bottom-4 lg:p-3"
+      >
+        <p className="px-1 text-xs text-muted">
           {ready
             ? `Tu demandes ${take.size} carte${take.size > 1 ? "s" : ""} et tu en proposes ${give.size}. ${maxPerSide} au plus de chaque côté.`
             : take.size === 0
               ? `Choisis au moins une carte de ${other.name}.`
               : "Choisis au moins une de tes cartes à proposer en retour."}
         </p>
-        <div className="grid gap-2 sm:flex sm:items-center">
-          <label className="min-w-0 sm:flex-1">
+        <div className="flex items-center gap-2">
+          <label className="min-w-0 flex-1">
             <span className="sr-only">Petit mot (facultatif)</span>
             <input
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               maxLength={messageMaxLength}
               placeholder="Petit mot (facultatif)"
-              className="h-10 w-full rounded-full border border-line bg-bg px-4 text-sm outline-none focus:border-accent"
+              className="h-11 w-full rounded-full border border-line bg-bg px-4 text-base outline-none focus:border-accent sm:text-sm"
             />
           </label>
           {!ready && take.size > 0 && tab === "take" ? (
-            <Button size="sm" variant="secondary" onClick={() => setTab("give")}>
-              Choisir mes cartes
+            <Button variant="secondary" className="shrink-0" aria-label="Choisir mes cartes" onClick={() => setTab("give")}>
+              Mes cartes
             </Button>
           ) : (
-            <Button size="sm" onClick={submit} disabled={!ready || pending}>
+            <Button
+              onClick={submit}
+              disabled={!ready || pending}
+              className="shrink-0 font-sans"
+              aria-label={counterOf ? "Envoyer la contre-proposition" : "Envoyer la proposition"}
+            >
               {pending ? <Loader2 aria-hidden="true" className="animate-spin" /> : <Send aria-hidden="true" />}
-              {counterOf ? "Envoyer la contre-proposition" : "Envoyer la proposition"}
+              Envoyer
+              <span className="hidden sm:inline">{counterOf ? " la contre-proposition" : " la proposition"}</span>
             </Button>
           )}
         </div>

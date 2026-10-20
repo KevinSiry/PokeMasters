@@ -226,7 +226,8 @@ export function ListingActions({ listing: l, viewer }: Props) {
                 key={s}
                 type="button"
                 onClick={() => setAmount(s)}
-                className={cn("rounded-full border px-3 py-1.5 font-mono text-xs font-bold", amount === s ? "border-[#FFC93C] text-[#FFC93C]" : "border-line text-muted hover:text-fg")}
+                aria-pressed={amount === s}
+                className={cn("min-h-11 min-w-11 rounded-full border px-4 font-mono text-sm font-bold lg:min-h-9", amount === s ? "border-[#FFC93C] text-[#FFC93C]" : "border-line text-muted hover:text-fg")}
               >
                 {formatJetons(s)}
               </button>

@@ -6,6 +6,8 @@ import { redirect } from "next/navigation";
 import { CardImage } from "@/components/card-image";
 import { PlayerAvatar } from "@/components/player-avatar";
 import { TradeCard } from "@/components/trades/trade-card";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { getCurrentPlayerSafe } from "@/lib/player";
 
 export const metadata: Metadata = { title: "Échanges", robots: { index: false } };
@@ -41,9 +43,19 @@ export default async function TradesPage() {
 
       <Section id="recues" title="Propositions reçues" count={received.length}>
         {received.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-line p-6 text-center text-sm text-muted">Aucune proposition en attente.</p>
+          <EmptyState
+            icon={<Repeat2 />}
+            title="Aucune proposition en attente."
+            action={
+              <Button asChild variant="secondary" size="sm">
+                <Link href="/amis">Trouver des joueurs</Link>
+              </Button>
+            }
+          >
+            Ouvre le profil d&apos;un joueur et touche « Échanger », ou la fiche d&apos;une carte de ta wishlist.
+          </EmptyState>
         ) : (
-          <ul className="grid gap-3">
+          <ul className="grid gap-3 xl:grid-cols-2">
             {received.map((t) => (
               <li key={t.id}>
                 <TradeCard trade={t} />
@@ -87,7 +99,7 @@ export default async function TradesPage() {
 
       {sent.length > 0 && (
         <Section id="envoyees" title="Propositions envoyées" count={sent.length}>
-          <ul className="grid gap-3">
+          <ul className="grid gap-3 xl:grid-cols-2">
             {sent.map((t) => (
               <li key={t.id}>
                 <TradeCard trade={t} />
@@ -99,7 +111,7 @@ export default async function TradesPage() {
 
       {history.length > 0 && (
         <Section id="historique" title="Historique">
-          <ul className="grid gap-3">
+          <ul className="grid gap-3 xl:grid-cols-2">
             {history.map((t) => (
               <li key={t.id}>
                 <TradeCard trade={t} />
