@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Jetons } from "@/components/jetons";
 import { ListingTile } from "@/components/market/listing-tile";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { getCurrentPlayerSafe } from "@/lib/player";
 import { cn } from "@/lib/utils";
 
@@ -81,14 +82,14 @@ export default async function MarketPage({ searchParams }: { searchParams: Searc
           </p>
         </div>
         {player && (
-          <div className="flex flex-wrap gap-2">
-            <Button asChild variant="secondary" size="sm">
+          <div className="grid grid-cols-2 gap-2 sm:flex">
+            <Button asChild variant="secondary" size="sm" className="px-3">
               <Link href="/marche/mes-ventes">
                 <Tag aria-hidden="true" />
                 Mes ventes
               </Link>
             </Button>
-            <Button asChild variant="secondary" size="sm">
+            <Button asChild variant="secondary" size="sm" className="px-3">
               <Link href="/marche/mes-encheres">
                 <Gavel aria-hidden="true" />
                 Mes enchères
@@ -149,7 +150,7 @@ export default async function MarketPage({ searchParams }: { searchParams: Searc
         <div className="pf-scroll-x pf-bleed flex items-center gap-2 text-sm" role="group" aria-label="Trier">
           <span className="shrink-0 text-muted">Trier :</span>
           {SORTS.map((s) => (
-            <Link key={s.id} href={qs({ tri: s.id, page: undefined })} className={cn("shrink-0 rounded-full px-3 py-1", s.id === sort ? "bg-elev text-fg" : "text-muted hover:text-fg")} aria-current={s.id === sort ? "page" : undefined}>
+            <Link key={s.id} href={qs({ tri: s.id, page: undefined })} className={cn("inline-flex min-h-11 shrink-0 items-center rounded-full px-3 lg:min-h-8", s.id === sort ? "bg-elev text-fg" : "text-muted hover:text-fg")} aria-current={s.id === sort ? "page" : undefined}>
               {s.label}
             </Link>
           ))}
@@ -157,23 +158,25 @@ export default async function MarketPage({ searchParams }: { searchParams: Searc
       </div>
 
       {result.listings.length === 0 ? (
-        <div className="grid justify-items-center gap-3 rounded-[var(--radius-card)] border border-dashed border-line p-10 text-center">
-          <p className="font-display text-lg font-bold">Aucune annonce {sp.q || tier || type || onlyWishlist ? "ne correspond" : "pour l'instant"}</p>
-          <p className="max-w-[44ch] text-sm text-muted">
-            {onlyWishlist
-              ? wishlistEmpty
-                ? "Ta wishlist est vide : ajoute les cartes que tu cherches depuis leur fiche."
-                : "Aucune carte de ta wishlist n'est en vente. Une alerte s'affichera dès qu'un joueur en propose une."
-              : "Mets une carte en vente depuis sa fiche : ouvre une carte de ta collection, puis « Gérer » et « Vendre »."}
-          </p>
-          {player && (
-            <Button asChild variant="secondary">
-              <Link href="/collection?vue=cartes&tri=duplicates">Voir mes doublons</Link>
-            </Button>
-          )}
-        </div>
+        <EmptyState
+          icon={<Store />}
+          title={`Aucune annonce ${sp.q || tier || type || onlyWishlist ? "ne correspond" : "pour l'instant"}`}
+          action={
+            player && (
+              <Button asChild variant="secondary">
+                <Link href="/collection?vue=cartes&tri=duplicates">Voir mes doublons</Link>
+              </Button>
+            )
+          }
+        >
+          {onlyWishlist
+            ? wishlistEmpty
+              ? "Ta wishlist est vide : ajoute les cartes que tu cherches depuis leur fiche."
+              : "Aucune carte de ta wishlist n'est en vente. Une alerte s'affichera dès qu'un joueur en propose une."
+            : "Mets une carte en vente depuis sa fiche : ouvre une carte de ta collection, puis « Gérer » et « Vendre »."}
+        </EmptyState>
       ) : (
-        <ul className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+        <ul className="pf-card-grid">
           {result.listings.map((l, i) => (
             <li key={l.id} className="min-w-0">
               <ListingTile l={l} mine={l.seller.id === player?.id} wished={wished.has(l.card.id)} owned={owned ? (owned.get(l.card.id) ?? 0) : undefined} priority={i < 12} />

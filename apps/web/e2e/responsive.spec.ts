@@ -141,4 +141,37 @@ test.describe("zones tactiles", () => {
       expect(await smallTargets(page, 44, "main"), "récapitulatif").toEqual([]);
     });
   });
+
+  test("marché, annonce et échanges offrent 44 px au doigt", async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 760 });
+    for (const url of ["/marche", "/marche/mes-ventes", "/marche/mes-encheres", "/echanges", "/echanges/nouveau?avec=demo-marchand"]) {
+      await page.goto(url);
+      expect(await smallTargets(page, 44, "main"), url).toEqual([]);
+    }
+    await page.goto("/marche?type=auction");
+    await page.locator('main a[href^="/marche/"]').filter({ has: page.locator("img") }).first().click();
+    await expect(page).toHaveURL(/\/marche\/[^/?]+$/);
+    await expect(page.getByRole("button", { name: /Enchérir|Solde insuffisant/ })).toBeVisible();
+    expect(await smallTargets(page, 44, "main"), "annonce").toEqual([]);
+  });
+});
+
+test.describe("barre d'envoi d'un échange", () => {
+  test.use({ storageState: auth("demo-collection") });
+
+  for (const width of [360, 768, 1280]) {
+    test(`ne masque pas la dernière rangée de cartes à ${width} px`, async ({ page, isMobile }) => {
+      test.skip(isMobile, "largeur fixée par le test");
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto("/echanges/nouveau?avec=demo-marchand");
+      await expect(page.locator("main ul.pf-card-grid > li").first()).toBeVisible();
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      const bar = await page.locator("[data-sticky-actions]").boundingBox();
+      const last = await page.locator("main ul.pf-card-grid:visible > li").last().boundingBox();
+      expect(last!.y + last!.height).toBeLessThanOrEqual(bar!.y);
+      // Barre du bas visible jusqu'à 1023 px : la barre d'envoi reste au-dessus.
+      const nav = page.locator("nav.fixed");
+      if (await nav.isVisible()) expect(bar!.y + bar!.height).toBeLessThanOrEqual((await nav.boundingBox())!.y);
+    });
+  }
 });
