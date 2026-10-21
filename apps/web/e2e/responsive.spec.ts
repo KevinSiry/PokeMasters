@@ -149,7 +149,7 @@ test.describe("zones tactiles", () => {
       expect(await smallTargets(page, 44, "main"), url).toEqual([]);
     }
     await page.goto("/marche?type=auction");
-    await page.locator('main a[href^="/marche/"]').filter({ has: page.locator("img") }).first().click();
+    await page.locator('main a[href^="/marche/"]').filter({ has: page.getByRole("img") }).first().click();
     await expect(page).toHaveURL(/\/marche\/[^/?]+$/);
     await expect(page.getByRole("button", { name: /Enchérir|Solde insuffisant/ })).toBeVisible();
     expect(await smallTargets(page, 44, "main"), "annonce").toEqual([]);

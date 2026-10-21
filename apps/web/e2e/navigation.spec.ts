@@ -18,7 +18,8 @@ test.describe("retour à la page précédente", () => {
 
     await page.evaluate(() => window.scrollTo(0, 1200));
     await expect.poll(() => scrollY(page)).toBe(1200);
-    const card = page.locator('main a[href^="/cartes/"]').filter({ has: page.locator("img") });
+    // role img : la vignette compte aussi quand le CDN ne répond pas (visuel de remplacement sans <img>).
+    const card = page.locator('main a[href^="/cartes/"]').filter({ has: page.getByRole("img") });
     let target = card.first();
     for (const c of await card.all()) {
       if (((await c.boundingBox())?.y ?? -1) > 80) {
