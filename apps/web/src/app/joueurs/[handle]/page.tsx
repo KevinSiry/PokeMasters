@@ -1,5 +1,5 @@
 import { gameConfig } from "@pokeflex/config";
-import { getProfileWishlist, getPublicProfile, listBinders } from "@pokeflex/server";
+import { getMedals, getProfileWishlist, getPublicProfile, listBinders } from "@pokeflex/server";
 import { CalendarDays, Layers, Pencil, Repeat2, Shield, Store, Trophy, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -9,6 +9,7 @@ import { BackLink } from "@/components/back-link";
 import { BinderList } from "@/components/binders/binder-list";
 import { CardImage } from "@/components/card-image";
 import { CardTile } from "@/components/catalog/card-tile";
+import { MedalGrid } from "@/components/medals/medal-grid";
 import { PlayerAvatar } from "@/components/player-avatar";
 import { ProfileActions } from "@/components/social/profile-actions";
 import { TIER_ICON, TIER_TEXT } from "@/components/tier-badge";
@@ -48,9 +49,10 @@ export default async function PlayerPage({ params }: { params: Promise<{ handle:
   if (!profile) notFound();
   const { player, stats } = profile;
   const isMe = profile.relation === "self";
-  const [wishlist, binders] = await Promise.all([
+  const [wishlist, binders, medals] = await Promise.all([
     getProfileWishlist(player.id, viewer?.id ?? null),
     listBinders(player.id, { publicOnly: !isMe }),
+    getMedals(player.id),
   ]);
 
   const statItems = [
@@ -175,6 +177,13 @@ export default async function PlayerPage({ params }: { params: Promise<{ handle:
             ))}
           </ul>
         )}
+      </section>
+
+      <section className="grid gap-4" aria-labelledby="medailles">
+        <h2 id="medailles" className="font-display text-lg font-bold">
+          Médailles <span className="font-mono text-sm font-normal text-muted">{medals.reduce((n, m) => n + m.level, 0)}/{medals.length * 3}</span>
+        </h2>
+        <MedalGrid medals={medals} mine={isMe} />
       </section>
 
       {binders.length > 0 && (

@@ -6,7 +6,9 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { checkActionRate } from "@/lib/rate-limit";
 import {
+  claimGuildMission,
   claimQuest,
+  GuildMissionError,
   previewDuplicates,
   QuestError,
   recycleCopy,
@@ -32,7 +34,7 @@ async function run<T>(fn: (uid: string) => Promise<T>, label: string): Promise<R
     revalidatePath("/", "layout");
     return { ok: true, data };
   } catch (err) {
-    if (err instanceof RecycleError || err instanceof QuestError) return { ok: false, error: err.message };
+    if (err instanceof RecycleError || err instanceof QuestError || err instanceof GuildMissionError) return { ok: false, error: err.message };
     if (err instanceof InsufficientFundsError) return { ok: false, error: "Solde insuffisant." };
     console.error(`[economie] ${label}`, err);
     return { ok: false, error: "L'action a échoué, réessaie dans un instant." };
@@ -57,4 +59,8 @@ export async function recycleDuplicatesAction(tiers: Tier[]): Promise<Result<Rec
 
 export async function claimQuestAction(questId: string): Promise<Result<{ reward: number; balance: number }>> {
   return run((uid) => claimQuest(uid, String(questId)), "quête");
+}
+
+export async function claimGuildMissionAction(kind: string): Promise<Result<{ reward: number; balance: number }>> {
+  return run((uid) => claimGuildMission(uid, String(kind)), "mission de guilde");
 }

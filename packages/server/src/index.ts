@@ -8,3 +8,4 @@ export * from "./social";
 export * from "./lists";
 export * from "./trades";
 export * from "./binders";
+export * from "./medals";

@@ -67,6 +67,8 @@ export const LEDGER_LABELS_FR: Record<LedgerReason, string> = {
   bid_hold: "Enchère réservée",
   bid_release: "Enchère libérée",
   guild_create: "Création de guilde",
+  medal: "Médaille",
+  guild_mission: "Mission de guilde",
 };
 
 export async function getLedger(userId: string, take = 50, before?: bigint) {

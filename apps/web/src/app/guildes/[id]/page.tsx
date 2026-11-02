@@ -1,10 +1,11 @@
 import { gameConfig } from "@pokeflex/config";
-import { getGuild, getGuildMessages, getMyGuildId } from "@pokeflex/server";
+import { getGuild, getGuildMessages, getGuildMissions, getMyGuildId } from "@pokeflex/server";
 import { Layers, Users } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { BackLink } from "@/components/back-link";
+import { GuildMissions } from "@/components/medals/guild-missions";
 import { GuildActions } from "@/components/social/guild-actions";
 import { GuildChat } from "@/components/social/guild-chat";
 import { GuildMembers } from "@/components/social/guild-members";
@@ -29,7 +30,7 @@ export default async function GuildPage({ params }: { params: Promise<{ id: stri
   if (!guild) notFound();
   const myGuildId = player ? await getMyGuildId(player.id) : null;
   const me = player ? guild.members.find((m) => m.id === player.id) : undefined;
-  const messages = me ? await getGuildMessages(guild.id) : [];
+  const [messages, missions] = await Promise.all([me ? getGuildMessages(guild.id) : Promise.resolve([]), getGuildMissions(guild.id, player?.id ?? null)]);
 
   return (
     <div className="grid grid-cols-1 gap-6 py-6 sm:py-10">
@@ -60,6 +61,8 @@ export default async function GuildPage({ params }: { params: Promise<{ id: stri
           description={guild.description ?? ""}
         />
       </header>
+
+      <GuildMissions missions={missions.missions} resetAt={missions.resetAt} member={Boolean(me)} />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         {me && player ? (
