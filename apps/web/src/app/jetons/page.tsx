@@ -1,6 +1,6 @@
-import { gameConfig, TIER_LABELS_FR, type Tier } from "@pokeflex/config";
+import { gameConfig, MEDAL_LEVEL_LABELS_FR, TIER_LABELS_FR, type Tier } from "@pokeflex/config";
 import type { LedgerReason } from "@pokeflex/db";
-import { Gift, Library, Recycle, Store, Swords, Target, Trophy } from "lucide-react";
+import { Gift, Library, Medal, Recycle, Shield, Store, Swords, Target, Trophy } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -23,13 +23,15 @@ const ICONS: Partial<Record<LedgerReason, typeof Gift>> = {
   set_bonus: Trophy,
   rarity_bonus: Trophy,
   quest: Target,
+  medal: Medal,
+  guild_mission: Shield,
   duel_win: Swords,
   duel_draw: Swords,
   duel_loss: Swords,
 };
 
 function detail(reason: LedgerReason, meta: unknown): string | null {
-  const m = (meta ?? {}) as { count?: number; byTier?: Partial<Record<Tier, number>>; name?: string; setId?: string; rarity?: string };
+  const m = (meta ?? {}) as { count?: number; byTier?: Partial<Record<Tier, number>>; name?: string; setId?: string; rarity?: string; medal?: string; level?: string; mission?: string };
   if (reason === "recycle" && m.count) {
     const tiers = Object.entries(m.byTier ?? {})
       .map(([t, n]) => `${n} ${TIER_LABELS_FR[t as Tier]}`)
@@ -38,6 +40,8 @@ function detail(reason: LedgerReason, meta: unknown): string | null {
   }
   if (reason === "set_bonus" && m.name) return m.name;
   if (reason === "rarity_bonus" && m.name) return `${m.name} · toutes les ${m.rarity ?? "cartes"}`;
+  if (reason === "medal" && m.medal) return `${m.medal} · ${MEDAL_LEVEL_LABELS_FR[m.level ?? ""] ?? m.level ?? ""}`;
+  if (reason === "guild_mission" && m.mission) return m.mission;
   return null;
 }
 
@@ -62,6 +66,8 @@ export default async function JetonsPage({ searchParams }: { searchParams: Searc
     { icon: Recycle, title: "Recycler", text: `De ${gameConfig.economy.recycleValue.common} à ${gameConfig.economy.recycleValue.mythic} Jetons par carte selon la rareté.`, href: "/collection?vue=cartes&tri=duplicates" },
     { icon: Target, title: "Quêtes du jour", text: "Trois quêtes chaque jour, jusqu'à 50 Jetons chacune.", href: "/#quetes" },
     { icon: Trophy, title: "Compléter un set", text: `${gameConfig.economy.setCompletionBonusPerCard} Jetons par carte officielle du set, une fois.`, href: "/collection" },
+    { icon: Medal, title: "Médailles", text: `De ${gameConfig.medals.rewards.bronze} à ${gameConfig.medals.rewards.gold} Jetons par palier atteint, une fois.`, href: "/profil#medailles" },
+    { icon: Shield, title: "Missions de guilde", text: "Des objectifs collectifs chaque semaine, récompensés pour chaque membre.", href: "/guildes" },
     { icon: Store, title: "Vendre au marché", text: "Fixe ton prix ou lance une enchère : les autres joueurs paient en Jetons.", href: "/marche" },
   ];
 
@@ -84,7 +90,7 @@ export default async function JetonsPage({ searchParams }: { searchParams: Searc
         <h2 id="gagner" className="font-display text-lg font-bold">
           Gagner des Jetons
         </h2>
-        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {ways.map((w) => {
             const body = (
               <>

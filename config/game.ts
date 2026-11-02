@@ -25,6 +25,9 @@ export const TIER_LABELS_FR: Record<Tier, string> = {
   mythic: "Rare Secrète",
 };
 
+/** Paliers de médaille (clé enregistrée → libellé). */
+export const MEDAL_LEVEL_LABELS_FR: Record<string, string> = { bronze: "Bronze", silver: "Argent", gold: "Or" };
+
 /** Finitions physiques d'un exemplaire (tirées parmi les variantes existantes de la carte). */
 export const FINISHES = ["normal", "reverse", "holo", "firstEdition"] as const;
 export type Finish = (typeof FINISHES)[number];
@@ -202,6 +205,40 @@ export const gameConfig = {
     maxSlots: 360,
     pageSize: 9,
     nameMaxLength: 40,
+  },
+
+  /**
+   * Médailles (idée reprise d'HoloPocket) : succès permanents affichés sur le profil. Chaque médaille
+   * a trois paliers (bronze, argent, or) ; chaque palier atteint verse une fois `rewards[palier]` Jetons.
+   * `metric` dit ce qui est compté (voir `packages/server/src/medals.ts`).
+   */
+  medals: {
+    rewards: { bronze: 50, silver: 200, gold: 750 },
+    list: [
+      { id: "collector", metric: "distinct_cards", labelFr: "Collectionneur", unitFr: "cartes différentes", thresholds: [50, 300, 1500] },
+      { id: "opener", metric: "boosters_opened", labelFr: "Ouvreur de boosters", unitFr: "boosters ouverts", thresholds: [25, 250, 1500] },
+      { id: "completer", metric: "sets_completed", labelFr: "Maître des sets", unitFr: "sets complétés", thresholds: [1, 5, 20] },
+      { id: "rarities", metric: "rarities_completed", labelFr: "Chasseur de raretés", unitFr: "raretés de set complétées", thresholds: [3, 20, 80] },
+      { id: "merchant", metric: "sales", labelFr: "Marchand", unitFr: "ventes au marché", thresholds: [5, 50, 250] },
+      { id: "trader", metric: "trades", labelFr: "Négociateur", unitFr: "échanges conclus", thresholds: [1, 15, 75] },
+      { id: "friendly", metric: "friends", labelFr: "Sociable", unitFr: "amis", thresholds: [1, 10, 30] },
+      { id: "archivist", metric: "binder_cards", labelFr: "Archiviste", unitFr: "cartes rangées en classeur", thresholds: [9, 90, 360] },
+    ],
+  },
+
+  /**
+   * Missions de guilde hebdomadaires : objectifs collectifs, remis à zéro le lundi à minuit
+   * (fuseau des quêtes). Cible = max(`min`, arrondi supérieur de `perMember` × nombre de membres).
+   * Chaque membre réclame `reward` Jetons par mission réussie, une fois par semaine et par mission,
+   * même s'il change de guilde.
+   */
+  guildMissions: {
+    list: [
+      { kind: "open_boosters", labelFr: "Ouvrir des boosters", perMember: 10, min: 20, reward: 60 },
+      { kind: "rarities_completed", labelFr: "Compléter des raretés de set", perMember: 0.5, min: 2, reward: 80 },
+      { kind: "sales", labelFr: "Vendre des cartes au marché", perMember: 1, min: 3, reward: 60 },
+      { kind: "trades", labelFr: "Conclure des échanges", perMember: 0.5, min: 2, reward: 60 },
+    ],
   },
 
   /** Favoris (cartes possédées mises en avant) et wishlist (cartes recherchées). */

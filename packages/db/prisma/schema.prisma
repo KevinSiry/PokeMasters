@@ -41,34 +41,36 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  accounts          Account[]
-  sessions          Session[]
-  copies            CardCopy[]
-  openings          BoosterOpening[]
-  ledger            LedgerEntry[]
-  completions       SetCompletion[]
-  rarityCompletions SetRarityCompletion[]
-  binders           Binder[]
-  quests            DailyQuest[]
-  listings          Listing[]             @relation("seller")
-  bids              Bid[]
-  purchases         Sale[]                @relation("buyer")
-  sales             Sale[]                @relation("seller")
-  friendsOut        Friendship[]          @relation("friendFrom")
-  friendsIn         Friendship[]          @relation("friendTo")
-  blocks            Block[]               @relation("blocker")
-  blockedBy         Block[]               @relation("blocked")
-  reports           Report[]              @relation("reporter")
-  reported          Report[]              @relation("reportedUser")
-  guildMember       GuildMember?
-  guildsOwned       Guild[]
-  guildMessages     GuildMessage[]
-  sentMessages      DirectMessage[]       @relation("dmSender")
-  receivedMessages  DirectMessage[]       @relation("dmRecipient")
-  favorites         FavoriteCard[]
-  wishlist          WishlistCard[]
-  tradesOut         Trade[]               @relation("tradeProposer")
-  tradesIn          Trade[]               @relation("tradeRecipient")
+  accounts           Account[]
+  sessions           Session[]
+  copies             CardCopy[]
+  openings           BoosterOpening[]
+  ledger             LedgerEntry[]
+  completions        SetCompletion[]
+  rarityCompletions  SetRarityCompletion[]
+  binders            Binder[]
+  medals             UserMedal[]
+  guildMissionClaims GuildMissionClaim[]
+  quests             DailyQuest[]
+  listings           Listing[]             @relation("seller")
+  bids               Bid[]
+  purchases          Sale[]                @relation("buyer")
+  sales              Sale[]                @relation("seller")
+  friendsOut         Friendship[]          @relation("friendFrom")
+  friendsIn          Friendship[]          @relation("friendTo")
+  blocks             Block[]               @relation("blocker")
+  blockedBy          Block[]               @relation("blocked")
+  reports            Report[]              @relation("reporter")
+  reported           Report[]              @relation("reportedUser")
+  guildMember        GuildMember?
+  guildsOwned        Guild[]
+  guildMessages      GuildMessage[]
+  sentMessages       DirectMessage[]       @relation("dmSender")
+  receivedMessages   DirectMessage[]       @relation("dmRecipient")
+  favorites          FavoriteCard[]
+  wishlist           WishlistCard[]
+  tradesOut          Trade[]               @relation("tradeProposer")
+  tradesIn           Trade[]               @relation("tradeRecipient")
 }
 
 // ───────── Modèles standard Auth.js (adaptateur Prisma) ─────────
@@ -352,6 +354,10 @@ enum LedgerReason {
   bid_hold
   bid_release
   guild_create
+  /// Palier de médaille atteint (versé une fois).
+  medal
+  /// Mission de guilde hebdomadaire réussie (réclamée par chaque membre).
+  guild_mission
 }
 
 /// Source de vérité des Jetons, en ajout seul. Chaque modification de `User.balance` écrit une ligne
@@ -704,4 +710,30 @@ model LeaderboardSnapshot {
   entries Json
 
   @@index([kind, takenAt])
+}
+
+/// Palier de médaille obtenu (bronze, silver, gold). Définitions dans `config.medals`.
+model UserMedal {
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  medalId  String
+  level    String
+  reward   Int
+  earnedAt DateTime @default(now())
+
+  @@id([userId, medalId, level])
+}
+
+/// Récompense de mission de guilde réclamée : une par joueur, semaine et mission, quelle que soit la guilde.
+model GuildMissionClaim {
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Lundi de la semaine (fuseau des quêtes).
+  week      String
+  kind      String
+  guildId   String
+  reward    Int
+  claimedAt DateTime @default(now())
+
+  @@id([userId, week, kind])
 }
