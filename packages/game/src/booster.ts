@@ -53,6 +53,21 @@ export function drawBoosterSlots(
   return out;
 }
 
+/**
+ * God pack : tiré une fois sur `oneIn`, seulement si le pool contient des cartes des tiers du
+ * god pack (sinon aucun aléa n'est consommé). Renvoie la composition à utiliser, ou null.
+ */
+export function rollGodPack(
+  layout: readonly BoosterSlotSpec[],
+  god: { oneIn: number; slot: Omit<BoosterSlotSpec, "count"> },
+  pools: TierPoolSizes,
+  rng: Rng,
+): BoosterSlotSpec[] | null {
+  const eligible = TIERS.some((t) => (god.slot.tiers[t] ?? 0) > 0 && pools[t] > 0);
+  if (!eligible || god.oneIn < 1 || rng.int(god.oneIn) !== 0) return null;
+  return [{ ...god.slot, count: layout.reduce((n, s) => n + s.count, 0) }];
+}
+
 /** Espérance d'une valeur par tier (recyclage…) sur un booster, pool complet. */
 export function expectedLayoutValue(layout: readonly BoosterSlotSpec[], values: Readonly<Record<Tier, number>>): number {
   return layout.reduce((sum, slot) => {

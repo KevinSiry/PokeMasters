@@ -617,3 +617,20 @@
     animation: none;
   }
 }
+
+/* God pack : bandeau prismatique (dégradé arc-en-ciel qui défile). */
+.pf-godpack {
+  background: linear-gradient(100deg, #ffc93c, #ff7a59, #ff5fa2, #8b7bff, #3fd0ff, #7cf29a, #ffc93c);
+  background-size: 300% 100%;
+  animation: pf-godpack-shift 4s linear infinite;
+}
+@keyframes pf-godpack-shift {
+  to {
+    background-position: 300% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pf-godpack {
+    animation: none;
+  }
+}

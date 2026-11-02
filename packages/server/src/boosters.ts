@@ -4,7 +4,7 @@
  */
 import { boosterLayoutFor, gameConfig, TIERS, type Finish, type Tier } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
-import { boosterStatus, consumeBooster, cryptoRng, drawBoosterSlots, drawFinish, drawIndex, InsufficientFundsError, type Rng } from "@pokeflex/game";
+import { boosterStatus, consumeBooster, cryptoRng, drawBoosterSlots, drawFinish, rollGodPack, drawIndex, InsufficientFundsError, type Rng } from "@pokeflex/game";
 import { checkSetCompletions, type CompletedSet } from "./completion";
 import { applyLedger, lockUser } from "./ledger";
 import { removeObtainedFromWishlist } from "./lists";
@@ -76,6 +76,8 @@ export interface PulledCard {
 
 export interface BoosterResult {
   openingId: string;
+  /** God pack : que des grosses raretés. */
+  godPack: boolean;
   cards: PulledCard[];
   boosters: { available: number; nextAt: string | null };
   balance: number;
@@ -128,7 +130,8 @@ export async function openBooster(userId: string, what: BoosterKind, rng: Rng = 
       await tx.user.update({ where: { id: userId }, data: { boosterStock: stock.stock, boosterAnchorAt: stock.anchorAt } });
     }
 
-    const slots = drawBoosterSlots(gameConfig.boosters.layouts[layout], sizes, gameConfig.boosters.tierWeights, rng);
+    const god = rollGodPack(gameConfig.boosters.layouts[layout], gameConfig.boosters.godPack, sizes, rng);
+    const slots = drawBoosterSlots(god ?? gameConfig.boosters.layouts[layout], sizes, gameConfig.boosters.tierWeights, rng);
     const tiers = slots.map((s) => s.tier);
     const ids = tiers.map((t) => pools[t][drawIndex(pools[t].length, rng)]!);
     const cards = await tx.card.findMany({
@@ -157,6 +160,7 @@ export async function openBooster(userId: string, what: BoosterKind, rng: Rng = 
         tiers,
         finishes,
         cost: price,
+        godPack: god !== null,
       },
     });
     if (price > 0) {
@@ -226,7 +230,7 @@ export async function openBooster(userId: string, what: BoosterKind, rng: Rng = 
       const status = boosterStatus(stock, now, gameConfig.boosters);
       boosters = { available: status.available, nextAt: status.nextAt?.toISOString() ?? null };
     }
-    return { openingId: opening.id, cards: pulled, boosters, balance, completedSets, questsDone };
+    return { openingId: opening.id, godPack: opening.godPack, cards: pulled, boosters, balance, completedSets, questsDone };
   });
 }
 
@@ -292,4 +296,17 @@ export async function getPackCover(setId?: string): Promise<string | null> {
   const cover = card?.image ?? null;
   coverCache.set(key, { at: Date.now(), cover });
   return cover;
+}
+
+/**
+ * Annonce d'un god pack (serveur temps réel) : seulement pour une ouverture récente, du joueur
+ * qui la signale, et réellement god pack.
+ */
+export async function godPackAnnouncement(userId: string, openingId: string, now = new Date()) {
+  const o = await prisma.boosterOpening.findUnique({
+    where: { id: String(openingId) },
+    select: { userId: true, godPack: true, createdAt: true, user: { select: { name: true, handle: true } } },
+  });
+  if (!o || o.userId !== userId || !o.godPack || now.getTime() - o.createdAt.getTime() > 10 * 60_000) return null;
+  return { openingId: String(openingId), name: o.user.name ?? o.user.handle ?? "Un dresseur", handle: o.user.handle };
 }

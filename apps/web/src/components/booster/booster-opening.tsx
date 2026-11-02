@@ -18,6 +18,7 @@ import { cardImageUrl } from "@/lib/card-image";
 import { emitBalance } from "@/lib/balance-events";
 import type { BoosterResult, PulledCard } from "@pokeflex/server";
 import { useBoosterCountdown } from "@/lib/use-booster-countdown";
+import { getSocket } from "@/lib/realtime";
 import { cn } from "@/lib/utils";
 
 /**
@@ -290,6 +291,7 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
       }
       preload(res.result.cards);
       resetFavorites(res.result.cards);
+      if (res.result.godPack) getSocket().emit("booster:godpack", { openingId: res.result.openingId });
       setResult(res.result);
       setStock(res.result.boosters);
       // Le prix est débité tout de suite ; les bonus de set complété s'afficheront au récapitulatif.
@@ -552,6 +554,11 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
       {/* ─── Déchirure, sortie des cartes puis révélation carte par carte : une même scène ─── */}
       {staged && (
         <div className="relative z-40 grid w-full justify-items-center gap-5 pt-[min(29vw,5.75rem)]">
+          {result?.godPack && phase === "reveal" && (
+            <div className="absolute top-0 left-1/2 -translate-x-1/2">
+              <GodPackBadge />
+            </div>
+          )}
           <div className="relative mb-[min(11vw,2.75rem)] aspect-[63/88] w-[min(70vw,300px,31dvh)]">
             {(phase === "tearing" || phase === "emerging") && (
               <TearPack
@@ -770,6 +777,7 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
           transition={{ duration: 0.3 }}
         >
           <div className="grid justify-items-center gap-2 text-center">
+            {result.godPack && <GodPackBadge />}
             <h2 className="font-display text-2xl font-bold sm:text-3xl">{set ? set.name : "Ton booster"}</h2>
             {best && (
               <p className="text-muted">
@@ -864,5 +872,18 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
         </motion.div>
       )}
     </div>
+  );
+}
+
+/** Bandeau du god pack : reflet prismatique qui défile (immobile si les animations sont réduites). */
+function GodPackBadge() {
+  return (
+    <p
+      role="status"
+      className="pf-godpack inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 font-display text-sm font-bold tracking-[0.14em] text-bg uppercase shadow-[0_0_32px_-6px_#FFC93C]"
+    >
+      <Sparkles aria-hidden="true" className="size-4" />
+      God pack · que des grosses raretés
+    </p>
   );
 }
