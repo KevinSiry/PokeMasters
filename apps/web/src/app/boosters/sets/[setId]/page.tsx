@@ -1,6 +1,6 @@
 import { boosterLayoutFor, boosterSize, gameConfig } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
-import { getPackCover, getWeeklySet } from "@pokeflex/server";
+import { getPackCover, getWeeklySet, hasSetBooster } from "@pokeflex/server";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { BackLink } from "@/components/back-link";
@@ -12,8 +12,7 @@ type Params = Promise<{ setId: string }>;
 async function getEligibleSet(setId: string) {
   const set = await prisma.set.findUnique({ where: { id: setId }, select: { id: true, name: true, logo: true, serieId: true } });
   if (!set) return null;
-  const droppable = await prisma.card.count({ where: { setId, droppable: true } });
-  return droppable >= gameConfig.setBoosters.minDroppableCards ? set : null;
+  return (await hasSetBooster(set.id)) ? set : null;
 }
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {

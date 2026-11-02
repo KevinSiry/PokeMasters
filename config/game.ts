@@ -201,6 +201,21 @@ export const gameConfig = {
   /** Boosters de set : seuls les sets avec assez de cartes tirables sont proposés. */
   setBoosters: {
     minDroppableCards: 10,
+    /** Au moins autant de cartes Pokémon tirables : écarte les sets d'Énergies ou de Dresseurs seuls. */
+    minPokemonCards: 10,
+    /**
+     * Sets qui n'ont jamais existé en booster (ids TCGdex) : promos, kits du dresseur, McDonald's,
+     * cartes Jumbo, Énergies, et les sous-sets tirés dans les boosters d'un autre set (Galeries de
+     * Dresseurs, Coffres Étincelants, Collection Classique, Radiant Collection, Zarbi…). Leurs cartes
+     * restent tirables dans le booster gratuit « Toutes époques ».
+     */
+    notBoosterSets: [
+      "^tk-",
+      "^\\d{4}",
+      "^(basep|wp|np|dpp|hgssp|bwp|xyp|smp|swshp|svp|mep|P-A)$",
+      "tg$",
+      "^(jumbo|xya|rc|exu|cel25cc|sma|swsh4\\.5sv|30th-c|sve|mee)$",
+    ] as readonly string[],
     /**
      * Set de la semaine : chaque lundi à minuit (fuseau des quêtes), un set tiré au sort parmi
      * ceux qui ont un booster est mis en avant, et son booster coûte `priceFactor` × le prix normal.
@@ -361,6 +376,11 @@ export type BoosterLayoutName = keyof typeof gameConfig.boosters.layouts;
 /** Composition d'un booster selon la série du set (booster gratuit : `modern`). */
 export function boosterLayoutFor(serieId: string | null | undefined): BoosterLayoutName {
   return serieId && gameConfig.boosters.classicSeries.includes(serieId) ? "classic" : "modern";
+}
+
+/** Le set a-t-il existé en booster ? (voir `setBoosters.notBoosterSets`) */
+export function isRealBoosterSet(setId: string): boolean {
+  return !gameConfig.setBoosters.notBoosterSets.some((p) => new RegExp(p).test(setId));
 }
 
 /** Nombre de cartes d'un booster. */

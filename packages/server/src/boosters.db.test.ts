@@ -6,7 +6,7 @@ import { boosterSize, gameConfig, tierRank } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
 import { seededRng } from "@pokeflex/game";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { BoosterError, getDropPools, getWeeklySet, godPackAnnouncement, openBooster, openFreeBooster, resetWeeklySetCache, setBoosterPrice } from "./boosters";
+import { BoosterError, boosterSetIds, getDropPools, hasSetBooster, invalidateDropPools, getWeeklySet, godPackAnnouncement, openBooster, openFreeBooster, resetWeeklySetCache, setBoosterPrice } from "./boosters";
 
 const skip = process.env.SKIP_DB_TESTS === "1";
 
@@ -94,5 +94,37 @@ describe.skipIf(skip)("set de la semaine (Postgres)", () => {
     await prisma.ledgerEntry.create({ data: { userId: u.id, delta: weekly!.price, balanceAfter: weekly!.price, reason: "admin" } });
     const res = await openBooster(u.id, { kind: "set", setId: weekly!.setId }, seededRng(8), now);
     expect(res.balance).toBe(0);
+  });
+});
+
+describe.skipIf(skip)("sets sans booster (Postgres)", () => {
+  const setId = "test-energies-seules";
+  afterAll(async () => {
+    await prisma.card.deleteMany({ where: { setId } });
+    await prisma.set.deleteMany({ where: { id: setId } });
+    invalidateDropPools();
+  });
+
+  it("n'offre pas de booster pour un set d'Énergies, même avec assez de cartes", async () => {
+    const serie = await prisma.serie.findFirstOrThrow({ select: { id: true } });
+    await prisma.set.create({ data: { id: setId, serieId: serie.id, name: "Énergies seules", cardCountOfficial: 12, cardCountTotal: 12 } });
+    await prisma.card.createMany({
+      data: Array.from({ length: 12 }, (_, i) => ({
+        id: `${setId}-${i}`,
+        setId,
+        localId: String(i + 1),
+        sortKey: i + 1,
+        name: "Énergie",
+        lang: "fr" as const,
+        category: "energy" as const,
+        tier: "common" as const,
+        tierReason: "rarity",
+        droppable: true,
+        image: "https://assets.tcgdex.net/fr/test",
+      })),
+    });
+    invalidateDropPools();
+    expect(await hasSetBooster(setId)).toBe(false);
+    expect((await boosterSetIds()).has("base1")).toBe(true);
   });
 });
