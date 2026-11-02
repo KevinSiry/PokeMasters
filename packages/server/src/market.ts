@@ -95,8 +95,12 @@ export async function createListing(userId: string, input: CreateListingInput, n
     if (active >= rules.maxActiveListingsPerUser) {
       throw new MarketError("too_many", `Tu as déjà ${rules.maxActiveListingsPerUser} annonces actives.`);
     }
-    const copy = await tx.cardCopy.findFirst({ where: { id: input.copyId, ownerId: userId, status: "owned" }, select: { id: true, cardId: true, finish: true } });
+    const copy = await tx.cardCopy.findFirst({
+      where: { id: input.copyId, ownerId: userId, status: "owned" },
+      select: { id: true, cardId: true, finish: true, lockedAt: true },
+    });
     if (!copy) throw new MarketError("not_available", "Cet exemplaire n'est plus disponible.");
+    if (copy.lockedAt) throw new MarketError("not_available", "Cet exemplaire est protégé : déverrouille-le pour le vendre.");
     await tx.cardCopy.update({ where: { id: copy.id }, data: { status: "listed" } });
     const listing = await tx.listing.create({
       data: {

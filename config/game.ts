@@ -193,6 +193,17 @@ export const gameConfig = {
     leaderboardRefreshMs: HOUR,
   },
 
+  /**
+   * Classeurs personnalisés (idée reprise d'HoloPocket) : pages de `pageSize` emplacements.
+   * Un exemplaire rangé dans un classeur est protégé (ni vente, ni recyclage, ni échange).
+   */
+  binders: {
+    maxPerUser: 20,
+    maxSlots: 360,
+    pageSize: 9,
+    nameMaxLength: 40,
+  },
+
   /** Favoris (cartes possédées mises en avant) et wishlist (cartes recherchées). */
   lists: {
     favoritesMax: 500,

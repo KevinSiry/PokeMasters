@@ -1,11 +1,12 @@
 import { gameConfig } from "@pokeflex/config";
-import { getProfileWishlist, getPublicProfile } from "@pokeflex/server";
+import { getProfileWishlist, getPublicProfile, listBinders } from "@pokeflex/server";
 import { CalendarDays, Layers, Pencil, Repeat2, Shield, Store, Trophy, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { BackLink } from "@/components/back-link";
+import { BinderList } from "@/components/binders/binder-list";
 import { CardImage } from "@/components/card-image";
 import { CardTile } from "@/components/catalog/card-tile";
 import { PlayerAvatar } from "@/components/player-avatar";
@@ -47,7 +48,10 @@ export default async function PlayerPage({ params }: { params: Promise<{ handle:
   if (!profile) notFound();
   const { player, stats } = profile;
   const isMe = profile.relation === "self";
-  const wishlist = await getProfileWishlist(player.id, viewer?.id ?? null);
+  const [wishlist, binders] = await Promise.all([
+    getProfileWishlist(player.id, viewer?.id ?? null),
+    listBinders(player.id, { publicOnly: !isMe }),
+  ]);
 
   const statItems = [
     { icon: Layers, label: "Cartes différentes", value: stats.distinctCards },
@@ -172,6 +176,15 @@ export default async function PlayerPage({ params }: { params: Promise<{ handle:
           </ul>
         )}
       </section>
+
+      {binders.length > 0 && (
+        <section className="grid gap-4" aria-labelledby="classeurs">
+          <h2 id="classeurs" className="font-display text-lg font-bold">
+            Classeurs <span className="font-mono text-sm font-normal text-muted">{binders.length}</span>
+          </h2>
+          <BinderList binders={binders} showPrivacy={isMe} />
+        </section>
+      )}
 
       {wishlist && (wishlist.total > 0 || isMe) && (
         <section className="grid gap-4" aria-labelledby="wishlist">

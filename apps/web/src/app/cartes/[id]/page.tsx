@@ -1,5 +1,5 @@
 import { FINISH_LABELS_FR, gameConfig, rarityLabel, type Finish } from "@pokeflex/config";
-import { countWishers, getCardListState, getCardMarket, getCardTraders } from "@pokeflex/server";
+import { countWishers, getCardListState, getCardMarket, getCardTraders, listBinders } from "@pokeflex/server";
 import { ChevronLeft, ChevronRight, Heart, Palette, Repeat2 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -56,9 +56,14 @@ export default async function CardPage({ params }: { params: Params }) {
     countWishers(card.id),
   ]);
   const suggestedPrice = market.stats.average ?? Math.max(5, gameConfig.economy.recycleValue[card.tier] * 3);
-  const [copies, lists, traders] = player
-    ? await Promise.all([getMyCopies(player.id, card.id), getCardListState(player.id, card.id), getCardTraders(card.id, player.id)])
-    : [null, null, []];
+  const [copies, lists, traders, binders] = player
+    ? await Promise.all([
+        getMyCopies(player.id, card.id),
+        getCardListState(player.id, card.id),
+        getCardTraders(card.id, player.id),
+        listBinders(player.id).then((bs) => bs.map((b) => ({ id: b.id, name: b.name }))),
+      ])
+    : [null, null, [], []];
   const finishes = (Object.keys(FINISH_LABELS_FR) as Finish[]).filter((f) => card.variants?.[f]);
   const price = formatEur(card.priceEurTrend);
 
@@ -147,7 +152,13 @@ export default async function CardPage({ params }: { params: Params }) {
 
           {copies && (
             <MyCopies
-              copies={copies.map((c) => ({ ...c, obtainedAt: c.obtainedAt.toISOString() }))}
+              copies={copies.map(({ binderSlot, lockedAt, ...c }) => ({
+                ...c,
+                obtainedAt: c.obtainedAt.toISOString(),
+                locked: lockedAt !== null,
+                binder: binderSlot?.binder ?? null,
+              }))}
+              binders={binders}
               value={gameConfig.economy.recycleValue[card.tier]}
               cardName={card.name}
               suggestedPrice={suggestedPrice}

@@ -125,3 +125,15 @@ describe("rarityCompletionBonus", () => {
     expect(rarityCompletionBonus(3, 50, 3)).toBe(150);
   });
 });
+
+describe("pickDuplicates et exemplaires protégés", () => {
+  const at = (n: number) => new Date(2026, 0, n);
+  it("garde l'exemplaire protégé et ne recycle jamais un protégé", () => {
+    const copies = [
+      { id: "a", cardId: "x", tier: "common" as const, finish: "holo" as const, obtainedAt: at(1) },
+      { id: "b", cardId: "x", tier: "common" as const, finish: "normal" as const, obtainedAt: at(2), locked: true },
+      { id: "c", cardId: "x", tier: "common" as const, finish: "normal" as const, obtainedAt: at(3), locked: true },
+    ];
+    expect(pickDuplicates(copies).map((c) => c.id)).toEqual(["a"]);
+  });
+});

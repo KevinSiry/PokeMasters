@@ -1,11 +1,12 @@
 "use client";
 
 import { FINISH_LABELS_FR, type Finish } from "@pokeflex/config";
-import { ChevronDown, Recycle, Tag } from "lucide-react";
+import { BookOpen, ChevronDown, Lock, LockOpen, Recycle, Tag } from "lucide-react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
+import { addToBinderAction, removeFromBinderAction, setCopyLockAction } from "@/app/actions/binders";
 import { recycleCopyAction } from "@/app/actions/economy";
 import { Jetons } from "@/components/jetons";
 import { SellDialog } from "@/components/market/sell-dialog";
@@ -19,25 +20,35 @@ export interface CopyView {
   status: "owned" | "listed";
   obtainedAt: string;
   obtainedVia: string;
+  /** Protégé : ni vente, ni recyclage, ni échange. */
+  locked: boolean;
+  /** Classeur où l'exemplaire est rangé (il est alors protégé d'office). */
+  binder: { id: string; name: string } | null;
 }
 
 const VIA: Record<string, string> = { booster: "Booster", set_booster: "Booster de set", market: "Marché", trade: "Échange", duel: "Duel", seed: "Démo" };
 const STATUS: Record<CopyView["status"], string> = { owned: "", listed: "En vente" };
 const date = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" });
 
-/** Exemplaires possédés d'une carte, avec recyclage unitaire (confirmation en deux temps). */
+/**
+ * Exemplaires possédés d'une carte : recyclage unitaire (confirmation en deux temps), vente,
+ * cadenas (protection) et rangement dans un classeur.
+ */
 export function MyCopies({
   copies,
   value,
   cardName,
   suggestedPrice,
   balance,
+  binders = [],
 }: {
   copies: CopyView[];
   value: number;
   cardName: string;
   suggestedPrice: number;
   balance: number;
+  /** Classeurs du joueur (pour y ranger un exemplaire). */
+  binders?: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const [list, setList] = useState(copies);
@@ -45,6 +56,7 @@ export function MyCopies({
   const [confirming, setConfirming] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const [selling, setSelling] = useState<CopyView | null>(null);
+  const [filing, setFiling] = useState<string | null>(null);
 
   useEffect(() => setList(copies), [copies]);
   useEffect(() => {
@@ -75,6 +87,40 @@ export function MyCopies({
       router.refresh();
     });
   }
+
+  function patch(id: string, p: Partial<CopyView>) {
+    setList((l) => l.map((x) => (x.id === id ? { ...x, ...p } : x)));
+  }
+
+  function toggleLock(c: CopyView) {
+    start(async () => {
+      const res = await setCopyLockAction(c.id, !c.locked);
+      if (!res.ok) return void toast({ title: "Impossible", description: res.error, tone: "error" });
+      patch(c.id, { locked: res.data.locked });
+      toast({ title: res.data.locked ? "Exemplaire protégé" : "Exemplaire libéré", tone: "info" });
+    });
+  }
+
+  function file(c: CopyView, binder: { id: string; name: string }) {
+    setFiling(null);
+    start(async () => {
+      const res = await addToBinderAction(binder.id, c.id);
+      if (!res.ok) return void toast({ title: "Rangement impossible", description: res.error, tone: "error" });
+      patch(c.id, { locked: true, binder });
+      toast({ title: `Rangée dans « ${binder.name} »`, description: "Elle est protégée tant qu'elle y reste.", tone: "info" });
+    });
+  }
+
+  function unfile(c: CopyView) {
+    start(async () => {
+      const res = await removeFromBinderAction(c.id);
+      if (!res.ok) return void toast({ title: "Impossible", description: res.error, tone: "error" });
+      patch(c.id, { locked: false, binder: null });
+      toast({ title: "Retirée du classeur", tone: "info" });
+    });
+  }
+
+  const chip = "inline-flex h-8 items-center gap-1.5 rounded-full border border-line px-3 text-xs font-semibold transition-colors disabled:opacity-50";
 
   return (
     <div className="grid rounded-xl border border-lime/40 bg-lime/5 text-sm">
@@ -115,8 +161,65 @@ export function MyCopies({
                     ) : (
                       <span className="ml-auto text-xs text-accent">{STATUS[c.status]}</span>
                     )
+                  ) : c.locked ? (
+                    <span className="ml-auto flex flex-wrap items-center justify-end gap-1.5">
+                      {c.binder ? (
+                        <>
+                          <Link href={`/classeurs/${c.binder.id}`} className="inline-flex items-center gap-1 text-xs font-semibold text-accent hover:underline">
+                            <BookOpen aria-hidden="true" className="size-3.5" />
+                            {c.binder.name}
+                          </Link>
+                          <button type="button" disabled={pending} onClick={() => unfile(c)} className={cn(chip, "hover:border-coral")}>
+                            Retirer du classeur
+                          </button>
+                        </>
+                      ) : (
+                        <button type="button" disabled={pending} onClick={() => toggleLock(c)} className={cn(chip, "border-accent/50 text-accent hover:border-accent")}>
+                          <Lock aria-hidden="true" className="size-3.5" />
+                          Protégé · libérer
+                        </button>
+                      )}
+                    </span>
                   ) : (
-                    <span className="ml-auto flex gap-1.5">
+                    <span className="ml-auto flex flex-wrap justify-end gap-1.5">
+                    <button
+                      type="button"
+                      disabled={pending}
+                      onClick={() => toggleLock(c)}
+                      aria-label="Protéger cet exemplaire"
+                      title="Protéger : ni vente, ni recyclage, ni échange"
+                      className={cn(chip, "px-2.5 hover:border-accent")}
+                    >
+                      <LockOpen aria-hidden="true" className="size-3.5" />
+                    </button>
+                    {binders.length > 0 && (
+                      <span className="relative">
+                        <button
+                          type="button"
+                          disabled={pending}
+                          onClick={() => setFiling(filing === c.id ? null : c.id)}
+                          aria-expanded={filing === c.id}
+                          className={cn(chip, "hover:border-accent")}
+                        >
+                          <BookOpen aria-hidden="true" className="size-3.5" />
+                          Classeur
+                        </button>
+                        {filing === c.id && (
+                          <span className="absolute right-0 bottom-full z-20 mb-1 grid min-w-44 rounded-xl border border-line bg-elev p-1 shadow-lg">
+                            {binders.map((b) => (
+                              <button
+                                key={b.id}
+                                type="button"
+                                onClick={() => file(c, b)}
+                                className="min-h-11 rounded-lg px-3 text-left text-xs font-semibold hover:bg-surface lg:min-h-9"
+                              >
+                                {b.name}
+                              </button>
+                            ))}
+                          </span>
+                        )}
+                      </span>
+                    )}
                     <button
                       type="button"
                       onClick={() => setSelling(c)}

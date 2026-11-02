@@ -8,7 +8,7 @@ import { bumpQuest, type QuestProgressed } from "./quests";
 
 export class RecycleError extends Error {
   constructor(
-    readonly code: "empty" | "unavailable",
+    readonly code: "empty" | "unavailable" | "locked",
     message: string,
   ) {
     super(message);
@@ -24,14 +24,16 @@ export interface RecycleResult extends RecyclePayout {
 async function ownedCopies(db: Tx | typeof prisma, userId: string) {
   const rows = await db.cardCopy.findMany({
     where: { ownerId: userId, status: "owned" },
-    select: { id: true, cardId: true, finish: true, obtainedAt: true, card: { select: { tier: true } } },
+    select: { id: true, cardId: true, finish: true, obtainedAt: true, lockedAt: true, card: { select: { tier: true } } },
   });
-  return rows.map((r) => ({ id: r.id, cardId: r.cardId, finish: r.finish, obtainedAt: r.obtainedAt, tier: r.card.tier }));
+  return rows.map((r) => ({ id: r.id, cardId: r.cardId, finish: r.finish, obtainedAt: r.obtainedAt, tier: r.card.tier, locked: r.lockedAt !== null }));
 }
 
 async function recycleInTx(tx: Tx, userId: string, items: { id: string; tier: Tier }[], kind: "single" | "duplicates") {
   if (items.length === 0) throw new RecycleError("empty", "Rien à recycler.");
-  const deleted = await tx.cardCopy.deleteMany({ where: { id: { in: items.map((i) => i.id) }, ownerId: userId, status: "owned" } });
+  const deleted = await tx.cardCopy.deleteMany({
+    where: { id: { in: items.map((i) => i.id) }, ownerId: userId, status: "owned", lockedAt: null },
+  });
   if (deleted.count !== items.length) throw new RecycleError("unavailable", "Cet exemplaire n'est plus disponible.");
   const payout = recyclePayout(items, gameConfig.economy.recycleValue);
   const balance = await applyLedger(tx, {
@@ -51,9 +53,10 @@ export async function recycleCopy(userId: string, copyId: string): Promise<Recyc
     await lockUser(tx, userId);
     const copy = await tx.cardCopy.findFirst({
       where: { id: copyId, ownerId: userId, status: "owned" },
-      select: { id: true, card: { select: { tier: true } } },
+      select: { id: true, lockedAt: true, card: { select: { tier: true } } },
     });
     if (!copy) throw new RecycleError("unavailable", "Cet exemplaire n'est plus disponible.");
+    if (copy.lockedAt) throw new RecycleError("locked", "Cet exemplaire est protégé : déverrouille-le pour le recycler.");
     return recycleInTx(tx, userId, [{ id: copy.id, tier: copy.card.tier }], "single");
   });
 }

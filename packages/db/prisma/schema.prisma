@@ -48,6 +48,7 @@ model User {
   ledger            LedgerEntry[]
   completions       SetCompletion[]
   rarityCompletions SetRarityCompletion[]
+  binders           Binder[]
   quests            DailyQuest[]
   listings          Listing[]             @relation("seller")
   bids              Bid[]
@@ -274,12 +275,43 @@ model CardCopy {
   obtainedVia String
   openingId   String?
   obtainedAt  DateTime    @default(now())
+  /// Protégé (cadenas) : ni vente, ni recyclage, ni échange tant qu'il n'est pas déverrouillé. Null = libre.
+  lockedAt    DateTime?
   listings    Listing[]
   tradeItems  TradeItem[]
+  binderSlot  BinderSlot?
 
   @@index([ownerId, cardId])
   @@index([ownerId, obtainedAt])
   @@index([cardId])
+}
+
+/// Classeur personnalisé : pages de 9 emplacements, chacun tenant un exemplaire possédé (protégé d'office).
+model Binder {
+  id        String       @id @default(cuid())
+  ownerId   String
+  owner     User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name      String
+  /// Visible sur le profil public.
+  isPublic  Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  slots     BinderSlot[]
+
+  @@index([ownerId])
+}
+
+/// Un exemplaire rangé dans un classeur (un exemplaire n'est que dans un classeur à la fois).
+model BinderSlot {
+  binderId String
+  binder   Binder   @relation(fields: [binderId], references: [id], onDelete: Cascade)
+  copyId   String   @unique
+  copy     CardCopy @relation(fields: [copyId], references: [id], onDelete: Cascade)
+  /// Ordre dans le classeur (0, 1, 2…) ; page = floor(position / 9).
+  position Int
+  addedAt  DateTime @default(now())
+
+  @@id([binderId, position])
 }
 
 /// Audit de chaque ouverture : le tirage est figé côté serveur avant toute animation.

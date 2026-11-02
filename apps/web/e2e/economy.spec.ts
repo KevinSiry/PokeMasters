@@ -41,6 +41,8 @@ test.describe("économie", () => {
     const dialog = page.getByRole("dialog");
     await expect(dialog.getByRole("heading", { name: "Recycler les doublons" })).toBeVisible();
     const confirm = dialog.getByRole("button", { name: /^Recycler \d+ carte/ });
+    // L'aperçu se charge après l'ouverture : on attend le bouton ou le message avant de choisir.
+    await expect(confirm.or(dialog.getByText(/Aucun doublon|Choisis au moins/))).toBeVisible();
     if ((await confirm.count()) === 0) {
       await expect(dialog.getByText(/Aucun doublon|Choisis au moins/)).toBeVisible();
       return;

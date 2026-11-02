@@ -207,7 +207,15 @@ export async function getMyCopies(userId: string, cardId: string) {
   return prisma.cardCopy.findMany({
     where: { ownerId: userId, cardId },
     orderBy: { obtainedAt: "desc" },
-    select: { id: true, finish: true, status: true, obtainedAt: true, obtainedVia: true },
+    select: {
+      id: true,
+      finish: true,
+      status: true,
+      obtainedAt: true,
+      obtainedVia: true,
+      lockedAt: true,
+      binderSlot: { select: { binder: { select: { id: true, name: true } } } },
+    },
   });
 }
 
