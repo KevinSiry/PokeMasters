@@ -7,18 +7,21 @@ import { ProgressRing } from "@/components/progress";
 import { Button } from "@/components/ui/button";
 import { QuestsPanel } from "@/components/economy/quests-panel";
 import { getCollectionTotals, getRecentPulls } from "@/lib/collection";
-import { getDailyQuests, getPackCover } from "@pokeflex/server";
+import { getDailyQuests, getPackCover, getWeeklySet } from "@pokeflex/server";
 import type { CurrentPlayer } from "@/lib/player";
+import { WeeklySetBanner } from "@/components/booster/weekly-set-banner";
 import { HomeBoosterStatus } from "./home-booster-status";
 
 /** Accueil d'un joueur connecté : son booster, sa progression, ses dernières cartes. */
 export async function PlayerHome({ player }: { player: CurrentPlayer }) {
-  const [totals, recent, daily, cover] = await Promise.all([
+  const [totals, recent, daily, cover, weekly] = await Promise.all([
     getCollectionTotals(player.id),
     getRecentPulls(player.id),
     getDailyQuests(player.id),
     getPackCover(),
+    getWeeklySet(),
   ]);
+  const weeklyCover = weekly ? await getPackCover(weekly.setId) : null;
   const has = player.boosters.available > 0;
 
   return (
@@ -68,6 +71,8 @@ export async function PlayerHome({ player }: { player: CurrentPlayer }) {
           </div>
         </Link>
       </div>
+
+      {weekly && <WeeklySetBanner weekly={weekly} cover={weeklyCover} />}
 
       <QuestsPanel quests={daily.quests} resetAt={daily.resetAt} />
 

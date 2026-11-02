@@ -213,6 +213,10 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 - **Une fois sur 1 000 boosters** (gratuits ou de set), le paquet est un god pack : toutes ses cartes sont des grosses raretés (Double Rare 60 %, Ultra Rare 30 %, Rare Secrète 10 %), holo ou reverse quand la carte existe ainsi (`gameConfig.boosters.godPack`). Le nombre de cartes reste celui du paquet (10 ou 11). Un set sans aucune de ces raretés n'a pas de god pack. Le tirage reste fait côté serveur ; l'ouverture est marquée (`BoosterOpening.godPack`).
 - **Annonce** : un bandeau prismatique pendant la révélation et au récapitulatif, et une notification « God pack ! » à tous les joueurs connectés. Le serveur temps réel vérifie en base que l'ouverture est récente, qu'elle appartient au joueur qui la signale et qu'elle est bien un god pack, et ne l'annonce qu'une fois.
 
+## Set de la semaine (demande de Kevin, 2026-11-02)
+
+- Chaque lundi à minuit (heure de Paris), un set qui a un booster est mis en avant : encart sur l'accueil et sur la page des boosters de set, et son booster coûte 60 % du prix normal (90 Jetons au lieu de 150, `gameConfig.setBoosters.weekly`). Le tirage est déterministe et évite les sets des 12 dernières semaines. Il est enregistré à la première visite de la semaine (table `WeeklySet`), pour que le choix ne change pas si le catalogue bouge en cours de semaine. Le serveur calcule le prix au moment de l'achat.
+
 ## GitHub
 
 - **Règles du dépôt reprises de Kroniq et Chabowt** (demande de Kevin, 2026-10-12) : sur `main`, suppression et force-push interdits, et le job de CI Linux doit être vert pour fusionner (le job Windows a été retiré le 2026-10-17 pour économiser les minutes GitHub Actions, comptées double sous Windows). Le ruleset est versionné dans `.github/rulesets/protect-main.json` (à importer dans *Settings → Rules → Rulesets → New ruleset → Import a ruleset*). Réglages de fusion identiques aux deux projets : auto-merge activé, branche supprimée après fusion.

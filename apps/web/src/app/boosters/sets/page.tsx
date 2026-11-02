@@ -3,8 +3,9 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { BoosterTabs } from "@/components/booster/booster-tabs";
 import { SetShop } from "@/components/booster/set-shop";
+import { WeeklySetBanner } from "@/components/booster/weekly-set-banner";
 import { Jetons } from "@/components/jetons";
-import { getBoosterSets } from "@pokeflex/server";
+import { getBoosterSets, getPackCover, getWeeklySet } from "@pokeflex/server";
 import { getCurrentPlayer } from "@/lib/player";
 
 export const metadata: Metadata = { title: "Boosters de set" };
@@ -12,7 +13,8 @@ export const metadata: Metadata = { title: "Boosters de set" };
 export default async function SetBoostersPage() {
   const player = await getCurrentPlayer();
   if (!player) redirect("/connexion?suite=/boosters/sets");
-  const sets = await getBoosterSets(player.id);
+  const [sets, weekly] = await Promise.all([getBoosterSets(player.id), getWeeklySet()]);
+  const weeklyCover = weekly ? await getPackCover(weekly.setId) : null;
   const price = gameConfig.boosters.setBoosterPrice;
   return (
     <div className="grid grid-cols-1 gap-6 pb-10">
@@ -26,10 +28,12 @@ export default async function SetBoostersPage() {
           </span>
         </p>
       </header>
+      {weekly && <WeeklySetBanner weekly={weekly} cover={weeklyCover} />}
       <SetShop
         sets={sets.map((s) => ({ ...s, releaseDate: s.releaseDate?.toISOString() ?? null }))}
         balance={player.balance}
         price={price}
+        weekly={weekly ? { setId: weekly.setId, price: weekly.price } : null}
       />
     </div>
   );

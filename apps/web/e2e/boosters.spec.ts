@@ -39,6 +39,15 @@ test.describe("boosters et collection", () => {
       await expect(page.getByRole("button", { name: /^Retirer .+ de tes favoris$/ }).first()).toBeVisible();
     });
 
+    test("met en avant le set de la semaine, à prix réduit", async ({ page }) => {
+      await page.goto("/boosters/sets");
+      const banner = page.locator("[data-weekly-set]");
+      await expect(banner.getByText("Set de la semaine")).toBeVisible();
+      await banner.click();
+      await expect(page).toHaveURL(/\/boosters\/sets\/[^/]+$/);
+      await expect(page.getByText("Set de la semaine · prix réduit")).toBeVisible();
+    });
+
     test("la collection montre les cartes obtenues", async ({ page }) => {
       await page.goto("/collection?vue=cartes");
       await expect(page.getByRole("heading", { name: "Ma collection" })).toBeVisible();

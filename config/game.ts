@@ -201,6 +201,15 @@ export const gameConfig = {
   /** Boosters de set : seuls les sets avec assez de cartes tirables sont proposés. */
   setBoosters: {
     minDroppableCards: 10,
+    /**
+     * Set de la semaine : chaque lundi à minuit (fuseau des quêtes), un set tiré au sort parmi
+     * ceux qui ont un booster est mis en avant, et son booster coûte `priceFactor` × le prix normal.
+     * Le même set ne revient pas avant `noRepeatWeeks` semaines (si le catalogue le permet).
+     */
+    weekly: {
+      priceFactor: 0.6,
+      noRepeatWeeks: 12,
+    },
   },
 
   market: {

@@ -167,6 +167,7 @@ model Set {
   cards             Card[]
   completions       SetCompletion[]
   rarityCompletions SetRarityCompletion[]
+  weeklies          WeeklySet[]
 
   @@index([serieId, releaseDate])
   @@index([releaseDate])
@@ -738,4 +739,14 @@ model GuildMissionClaim {
   claimedAt DateTime @default(now())
 
   @@id([userId, week, kind])
+}
+
+/// Set de la semaine : fixé à la première visite de la semaine (lundi, fuseau des quêtes), pour que
+/// le choix ne change pas si le catalogue bouge en cours de semaine.
+model WeeklySet {
+  /// Lundi de la semaine (« AAAA-MM-JJ »).
+  week      String   @id
+  setId     String
+  set       Set      @relation(fields: [setId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 }

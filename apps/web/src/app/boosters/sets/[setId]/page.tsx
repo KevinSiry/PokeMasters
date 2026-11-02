@@ -1,6 +1,6 @@
 import { boosterLayoutFor, boosterSize, gameConfig } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
-import { getPackCover } from "@pokeflex/server";
+import { getPackCover, getWeeklySet } from "@pokeflex/server";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { BackLink } from "@/components/back-link";
@@ -27,7 +27,8 @@ export default async function SetBoosterPage({ params }: { params: Params }) {
   if (!player) redirect(`/connexion?suite=/boosters/sets/${encodeURIComponent(setId)}`);
   const set = await getEligibleSet(setId);
   if (!set) notFound();
-  const cover = await getPackCover(set.id);
+  const [cover, weekly] = await Promise.all([getPackCover(set.id), getWeeklySet()]);
+  const isWeekly = weekly?.setId === set.id;
   return (
     <>
       <h1 className="sr-only">Booster {set.name}</h1>
@@ -38,7 +39,7 @@ export default async function SetBoosterPage({ params }: { params: Params }) {
         maxStock={player.boosters.maxStock}
         refillIntervalMs={gameConfig.boosters.refillIntervalMs}
         balance={player.balance}
-        set={{ id: set.id, name: set.name, logo: set.logo, price: gameConfig.boosters.setBoosterPrice, size: boosterSize(boosterLayoutFor(set.serieId)) }}
+        set={{ id: set.id, name: set.name, logo: set.logo, price: isWeekly ? weekly.price : gameConfig.boosters.setBoosterPrice, weekly: isWeekly, size: boosterSize(boosterLayoutFor(set.serieId)) }}
         cover={cover}
       />
     </>

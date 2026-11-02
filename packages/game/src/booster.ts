@@ -102,3 +102,22 @@ export function expectedTierShare(weights: Readonly<Record<Tier, number>>): Reco
   const total = TIERS.reduce((s, t) => s + weights[t], 0);
   return Object.fromEntries(TIERS.map((t) => [t, weights[t] / total])) as Record<Tier, number>;
 }
+
+/**
+ * Set de la semaine : tirage déterministe (même résultat pour une même semaine et une même liste),
+ * en évitant les sets mis en avant récemment tant qu'il en reste d'autres.
+ */
+export function pickWeeklySet(week: string, candidates: readonly string[], recent: ReadonlySet<string>): string | null {
+  const sorted = [...new Set(candidates)].sort();
+  if (sorted.length === 0) return null;
+  const fresh = sorted.filter((id) => !recent.has(id));
+  const pool = fresh.length > 0 ? fresh : sorted;
+  let h = 2166136261;
+  for (let i = 0; i < week.length; i++) h = Math.imul(h ^ week.charCodeAt(i), 16777619);
+  return pool[(h >>> 0) % pool.length]!;
+}
+
+/** Prix réduit du booster du set de la semaine (au moins 1 Jeton). */
+export function weeklyBoosterPrice(price: number, factor: number): number {
+  return Math.max(1, Math.round(price * factor));
+}

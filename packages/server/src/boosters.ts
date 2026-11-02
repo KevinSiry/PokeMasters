@@ -4,7 +4,7 @@
  */
 import { boosterLayoutFor, gameConfig, TIERS, type Finish, type Tier } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
-import { boosterStatus, consumeBooster, cryptoRng, drawBoosterSlots, drawFinish, rollGodPack, drawIndex, InsufficientFundsError, type Rng } from "@pokeflex/game";
+import { boosterStatus, consumeBooster, cryptoRng, drawBoosterSlots, drawFinish, nextWeekReset, pickWeeklySet, rollGodPack, weekKey, weeklyBoosterPrice, drawIndex, InsufficientFundsError, type Rng } from "@pokeflex/game";
 import { checkSetCompletions, type CompletedSet } from "./completion";
 import { applyLedger, lockUser } from "./ledger";
 import { removeObtainedFromWishlist } from "./lists";
@@ -112,7 +112,7 @@ export async function openBooster(userId: string, what: BoosterKind, rng: Rng = 
   if (what.kind === "set" && droppable < gameConfig.setBoosters.minDroppableCards) {
     throw new BoosterError("unknown_set", "Ce set n'a pas de booster disponible.");
   }
-  const price = what.kind === "set" ? gameConfig.boosters.setBoosterPrice : 0;
+  const price = what.kind === "set" ? await setBoosterPrice(what.setId, now) : 0;
   const layout = what.kind === "set" ? boosterLayoutFor(await setSerie(what.setId)) : "modern";
 
   return prisma.$transaction(async (tx) => {
@@ -309,4 +309,74 @@ export async function godPackAnnouncement(userId: string, openingId: string, now
   });
   if (!o || o.userId !== userId || !o.godPack || now.getTime() - o.createdAt.getTime() > 10 * 60_000) return null;
   return { openingId: String(openingId), name: o.user.name ?? o.user.handle ?? "Un dresseur", handle: o.user.handle };
+}
+
+// ───────── Set de la semaine ─────────
+
+export interface WeeklySetInfo {
+  week: string;
+  setId: string;
+  name: string;
+  logo: string | null;
+  serieId: string;
+  price: number;
+  /** Prix habituel, barré à l'affichage. */
+  fullPrice: number;
+  endsAt: string;
+}
+
+const weeklyCache = new Map<string, WeeklySetInfo | null>();
+
+/**
+ * Set de la semaine : fixé en base à la première demande de la semaine (tirage déterministe
+ * parmi les sets qui ont un booster, sans répéter les dernières semaines). Null si aucun set.
+ */
+export async function getWeeklySet(now = new Date()): Promise<WeeklySetInfo | null> {
+  const { timeZone } = gameConfig.quests;
+  const week = weekKey(now, timeZone);
+  if (weeklyCache.has(week)) return weeklyCache.get(week)!;
+  let row = await prisma.weeklySet.findUnique({ where: { week }, select: { setId: true } });
+  if (!row) {
+    const eligible = await prisma.$queryRaw<{ id: string }[]>`
+      SELECT "setId" AS id FROM "Card" WHERE droppable GROUP BY "setId"
+      HAVING count(*) >= ${gameConfig.setBoosters.minDroppableCards}`;
+    const recent = await prisma.weeklySet.findMany({
+      orderBy: { week: "desc" },
+      take: gameConfig.setBoosters.weekly.noRepeatWeeks,
+      select: { setId: true },
+    });
+    const setId = pickWeeklySet(week, eligible.map((e) => e.id), new Set(recent.map((r) => r.setId)));
+    if (!setId) return null;
+    // Deux premières visites simultanées : la première écriture gagne, l'autre relit.
+    await prisma.weeklySet.createMany({ data: [{ week, setId }], skipDuplicates: true });
+    row = await prisma.weeklySet.findUniqueOrThrow({ where: { week }, select: { setId: true } });
+  }
+  const set = await prisma.set.findUnique({ where: { id: row.setId }, select: { id: true, name: true, logo: true, serieId: true } });
+  const full = gameConfig.boosters.setBoosterPrice;
+  const info = set
+    ? {
+        week,
+        setId: set.id,
+        name: set.name,
+        logo: set.logo,
+        serieId: set.serieId,
+        price: weeklyBoosterPrice(full, gameConfig.setBoosters.weekly.priceFactor),
+        fullPrice: full,
+        endsAt: nextWeekReset(now, timeZone).toISOString(),
+      }
+    : null;
+  if (weeklyCache.size > 8) weeklyCache.clear();
+  weeklyCache.set(week, info);
+  return info;
+}
+
+/** Prix d'un booster de set : réduit pour le set de la semaine. */
+export async function setBoosterPrice(setId: string, now = new Date()): Promise<number> {
+  const weekly = await getWeeklySet(now);
+  return weekly?.setId === setId ? weekly.price : gameConfig.boosters.setBoosterPrice;
+}
+
+/** Vide le cache du set de la semaine (tests). */
+export function resetWeeklySetCache() {
+  weeklyCache.clear();
 }
