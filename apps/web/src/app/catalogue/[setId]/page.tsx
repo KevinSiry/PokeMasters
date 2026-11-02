@@ -1,7 +1,7 @@
 import { gameConfig } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
 import { setCompletionBonus } from "@pokeflex/game";
-import { getFavoriteCardIds, getWishlistCardIds, rarityProgress } from "@pokeflex/server";
+import { getFavoriteCardIds, getWishlistCardIds, hasSetBooster, rarityProgress } from "@pokeflex/server";
 import { CheckCircle2, Sparkles } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -63,7 +63,7 @@ export default async function SetPage({ params }: { params: Params }) {
   const inSet = (id: string) => setCardIds.has(id);
   const lists =
     favoriteIds && wishlistIds ? { favorites: [...favoriteIds].filter(inSet), wishlist: wishlistIds.filter(inSet) } : null;
-  const hasBooster = collectable.length >= gameConfig.setBoosters.minDroppableCards;
+  const hasBooster = await hasSetBooster(set.id);
 
   return (
     <div className="grid grid-cols-1 gap-8 py-6 sm:py-10">

@@ -217,6 +217,10 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 
 - Chaque lundi à minuit (heure de Paris), un set qui a un booster est mis en avant : encart sur l'accueil et sur la page des boosters de set, et son booster coûte 60 % du prix normal (90 Jetons au lieu de 150, `gameConfig.setBoosters.weekly`). Le tirage est déterministe et évite les sets des 12 dernières semaines. Il est enregistré à la première visite de la semaine (table `WeeklySet`), pour que le choix ne change pas si le catalogue bouge en cours de semaine. Le serveur calcule le prix au moment de l'achat.
 
+## Boosters de set : seulement les vrais boosters (demande de Kevin, 2026-11-02)
+
+- Un set n'a de booster que s'il a existé en booster dans la vraie vie : sont exclus les promos, les kits du dresseur, les collections McDonald's, les cartes Jumbo, les sets d'Énergies, et les sous-sets tirés dans les boosters d'un autre set (Galeries de Dresseurs, Coffres Étincelants, Collection Classique, Radiant Collection, Zarbi…). La liste est dans `gameConfig.setBoosters.notBoosterSets` (motifs d'ids TCGdex). Il faut aussi au moins 10 cartes Pokémon tirables, ce qui écarte d'office un futur set d'Énergies ou de Dresseurs seuls. Les cartes de ces sets restent dans le catalogue et dans le booster gratuit « Toutes époques ». Le set de la semaine est tiré parmi les mêmes sets.
+
 ## GitHub
 
 - **Règles du dépôt reprises de Kroniq et Chabowt** (demande de Kevin, 2026-10-12) : sur `main`, suppression et force-push interdits, et le job de CI Linux doit être vert pour fusionner (le job Windows a été retiré le 2026-10-17 pour économiser les minutes GitHub Actions, comptées double sous Windows). Le ruleset est versionné dans `.github/rulesets/protect-main.json` (à importer dans *Settings → Rules → Rulesets → New ruleset → Import a ruleset*). Réglages de fusion identiques aux deux projets : auto-merge activé, branche supprimée après fusion.

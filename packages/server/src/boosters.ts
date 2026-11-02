@@ -2,7 +2,7 @@
  * Ouverture des boosters, entièrement côté serveur.
  * Le tirage est fait et enregistré ici avant toute animation : le client ne fait que révéler.
  */
-import { boosterLayoutFor, gameConfig, TIERS, type Finish, type Tier } from "@pokeflex/config";
+import { boosterLayoutFor, gameConfig, isRealBoosterSet, TIERS, type Finish, type Tier } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
 import { boosterStatus, consumeBooster, cryptoRng, drawBoosterSlots, drawFinish, nextWeekReset, pickWeeklySet, rollGodPack, weekKey, weeklyBoosterPrice, drawIndex, InsufficientFundsError, type Rng } from "@pokeflex/game";
 import { checkSetCompletions, type CompletedSet } from "./completion";
@@ -47,6 +47,28 @@ async function setSerie(setId: string): Promise<string | null> {
   return set?.serieId ?? null;
 }
 
+let boosterSetsCache: { at: number; ids: Set<string> } | null = null;
+
+/**
+ * Sets qui ont un booster : sets qui ont existé en booster, avec assez de cartes tirables dont
+ * assez de Pokémon (mis en cache 10 min).
+ */
+export async function boosterSetIds(): Promise<Set<string>> {
+  if (boosterSetsCache && Date.now() - boosterSetsCache.at < POOL_TTL_MS) return boosterSetsCache.ids;
+  const rows = await prisma.$queryRaw<{ id: string }[]>`
+    SELECT "setId" AS id FROM "Card" WHERE droppable GROUP BY "setId"
+    HAVING count(*) >= ${gameConfig.setBoosters.minDroppableCards}
+       AND count(*) FILTER (WHERE category = 'pokemon') >= ${gameConfig.setBoosters.minPokemonCards}`;
+  const ids = new Set(rows.map((r) => r.id).filter(isRealBoosterSet));
+  boosterSetsCache = { at: Date.now(), ids };
+  return ids;
+}
+
+/** Le set a-t-il un booster en vente ? */
+export async function hasSetBooster(setId: string): Promise<boolean> {
+  return (await boosterSetIds()).has(String(setId));
+}
+
 /** Nombre de sets en cache (tests). */
 export function cachedSetPoolCount() {
   return setPoolCache.size;
@@ -54,6 +76,7 @@ export function cachedSetPoolCount() {
 
 export function invalidateDropPools() {
   poolCache = null;
+  boosterSetsCache = null;
   setPoolCache.clear();
 }
 
@@ -109,7 +132,7 @@ export async function openBooster(userId: string, what: BoosterKind, rng: Rng = 
   if (what.kind === "free" && droppable === 0) {
     throw new BoosterError("empty_catalog", "Le catalogue est vide : lance npm run sync:catalog.");
   }
-  if (what.kind === "set" && droppable < gameConfig.setBoosters.minDroppableCards) {
+  if (what.kind === "set" && !(await hasSetBooster(what.setId))) {
     throw new BoosterError("unknown_set", "Ce set n'a pas de booster disponible.");
   }
   const price = what.kind === "set" ? await setBoosterPrice(what.setId, now) : 0;
@@ -269,8 +292,9 @@ export async function getBoosterSets(userId: string): Promise<BoosterSet[]> {
     LEFT JOIN (SELECT DISTINCT "cardId" FROM "CardCopy" WHERE "ownerId" = ${userId}) o ON o."cardId" = c.id
     GROUP BY s.id, se.name, se."firstReleaseDate"
     HAVING count(c.id) >= ${gameConfig.setBoosters.minDroppableCards}
+       AND count(c.id) FILTER (WHERE c.category = 'pokemon') >= ${gameConfig.setBoosters.minPokemonCards}
     ORDER BY se."firstReleaseDate" DESC NULLS LAST, s."releaseDate" DESC NULLS LAST`;
-  return rows.map((r) => ({ ...r, droppable: Number(r.droppable), owned: Number(r.owned) }));
+  return rows.filter((r) => isRealBoosterSet(r.id)).map((r) => ({ ...r, droppable: Number(r.droppable), owned: Number(r.owned) }));
 }
 
 /** Pokémon vedette de la pochette « Toutes époques » (n° du Pokédex national) : Pikachu, la mascotte. */
@@ -337,15 +361,13 @@ export async function getWeeklySet(now = new Date()): Promise<WeeklySetInfo | nu
   if (weeklyCache.has(week)) return weeklyCache.get(week)!;
   let row = await prisma.weeklySet.findUnique({ where: { week }, select: { setId: true } });
   if (!row) {
-    const eligible = await prisma.$queryRaw<{ id: string }[]>`
-      SELECT "setId" AS id FROM "Card" WHERE droppable GROUP BY "setId"
-      HAVING count(*) >= ${gameConfig.setBoosters.minDroppableCards}`;
+    const eligible = [...(await boosterSetIds())];
     const recent = await prisma.weeklySet.findMany({
       orderBy: { week: "desc" },
       take: gameConfig.setBoosters.weekly.noRepeatWeeks,
       select: { setId: true },
     });
-    const setId = pickWeeklySet(week, eligible.map((e) => e.id), new Set(recent.map((r) => r.setId)));
+    const setId = pickWeeklySet(week, eligible, new Set(recent.map((r) => r.setId)));
     if (!setId) return null;
     // Deux premières visites simultanées : la première écriture gagne, l'autre relit.
     await prisma.weeklySet.createMany({ data: [{ week, setId }], skipDuplicates: true });

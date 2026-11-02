@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FINISHES, TIERS, boosterLayoutFor, boosterSize, gameConfig, tierRank } from "./game";
+import { FINISHES, TIERS, boosterLayoutFor, boosterSize, gameConfig, isRealBoosterSet, tierRank } from "./game";
 
 describe("gameConfig", () => {
   it("définit un poids de tirage positif pour chaque tier, décroissant avec la rareté", () => {
@@ -31,6 +31,13 @@ describe("gameConfig", () => {
     expect(boosterLayoutFor("base")).toBe("classic");
     expect(boosterLayoutFor("sv")).toBe("modern");
     expect(boosterLayoutFor(null)).toBe("modern");
+  });
+
+  it("n'offre de booster que pour les sets qui ont existé en booster", () => {
+    for (const id of ["base1", "sv03.5", "sv08", "swsh12.5", "cel25", "pop1", "sm115", "me02.5"]) expect(isRealBoosterSet(id)).toBe(true);
+    for (const id of ["basep", "svp", "mep", "P-A", "tk-xy-p", "2011bw", "2018sm-fr", "swsh9tg", "sma", "swsh4.5sv", "cel25cc", "jumbo", "sve", "mee", "30th-c", "exu", "rc"]) {
+      expect(isRealBoosterSet(id)).toBe(false);
+    }
   });
 
   it("a un poids de finition pour chaque finition", () => {
