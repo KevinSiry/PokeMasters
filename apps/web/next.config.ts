@@ -14,10 +14,11 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: rootDir,
   poweredByHeader: false,
   images: {
-    // Les images de cartes viennent du CDN TCGdex (repli : Pokémon TCG API), jamais re-hébergées.
+    // Images de cartes : CDN TCGdex, scans Poképédia (cartes FR non scannées), Pokémon TCG API ; jamais re-hébergées.
     remotePatterns: [
       { protocol: "https", hostname: "assets.tcgdex.net" },
       { protocol: "https", hostname: "images.pokemontcg.io" },
+      { protocol: "https", hostname: "www.pokepedia.fr" },
     ],
     unoptimized: true,
   },

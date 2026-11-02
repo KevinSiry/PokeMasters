@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cardImageUrl } from "./card-image";
+import { cardImageUrl, pokepediaFilePage } from "./card-image";
 
 describe("cardImageUrl", () => {
   it("ajoute la qualité et l'extension webp", () => {
@@ -17,6 +17,19 @@ describe("cardImageUrl", () => {
     expect(cardImageUrl("https://images.pokemontcg.io/smp/SM01", "high")).toBe(
       "https://images.pokemontcg.io/smp/SM01_hires.png",
     );
+  });
+  it("scan Poképédia : miniature dans les grilles, image stockée en grand", () => {
+    const original = "https://www.pokepedia.fr/images/b/bf/Carte_Diamant_%26_Perle_1.png";
+    expect(cardImageUrl(original, "high")).toBe(original);
+    expect(cardImageUrl(original, "low")).toBe(
+      "https://www.pokepedia.fr/images/thumb/b/bf/Carte_Diamant_%26_Perle_1.png/245px-Carte_Diamant_%26_Perle_1.png",
+    );
+    const thumb = "https://www.pokepedia.fr/images/thumb/b/bf/Carte_Diamant_%26_Perle_1.png/600px-Carte_Diamant_%26_Perle_1.png";
+    expect(cardImageUrl(thumb, "low")).toBe(
+      "https://www.pokepedia.fr/images/thumb/b/bf/Carte_Diamant_%26_Perle_1.png/245px-Carte_Diamant_%26_Perle_1.png",
+    );
+    expect(pokepediaFilePage(thumb)).toBe("https://www.pokepedia.fr/Fichier:Carte_Diamant_%26_Perle_1.png");
+    expect(pokepediaFilePage("https://assets.tcgdex.net/fr/base/base1/4")).toBeNull();
   });
   it("renvoie null sans image", () => {
     expect(cardImageUrl(null, "low")).toBeNull();

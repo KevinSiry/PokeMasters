@@ -60,6 +60,14 @@ export default function AProposPage() {
             , une API ouverte maintenue par sa communauté. Les images sont chargées directement depuis son CDN et ne sont
             pas ré-hébergées.
           </li>
+          <li>
+            Pour les cartes françaises que TCGdex n&apos;a pas encore scannées, le scan vient de{" "}
+            <a href="https://www.pokepedia.fr" className="text-accent underline underline-offset-4" rel="noopener" target="_blank">
+              Poképédia
+            </a>{" "}
+            (licence CC BY-NC-SA 3.0), affiché directement depuis le wiki, sans ré-hébergement. Le crédit figure sur la fiche
+            de chaque carte concernée.
+          </li>
         </ul>
       </section>
 

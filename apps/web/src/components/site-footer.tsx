@@ -10,6 +10,10 @@ export function SiteFooter() {
           appartiennent à leurs détenteurs respectifs. Données et images fournies par{" "}
           <a href="https://tcgdex.dev" className="text-accent underline-offset-4 hover:underline" rel="noopener" target="_blank">
             TCGdex
+          </a>{" "}
+          et{" "}
+          <a href="https://www.pokepedia.fr" className="text-accent underline-offset-4 hover:underline" rel="noopener" target="_blank">
+            Poképédia
           </a>
           . Les Jetons n&apos;ont aucune valeur réelle.
         </p>
