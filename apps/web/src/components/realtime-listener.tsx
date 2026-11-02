@@ -82,5 +82,15 @@ export function RealtimeListener({ me }: { me: string }) {
     }
   });
 
+  useSocketEvent<{ by: string; name: string; handle: string | null }>("godpack:opened", (g) => {
+    if (g.by === me) return;
+    toast({
+      title: "God pack !",
+      description: `${g.name} vient d'ouvrir un booster rempli de grosses raretés.`,
+      tone: "info",
+      action: g.handle ? { label: "Voir son profil", href: `/joueurs/${g.handle}` } : undefined,
+    });
+  });
+
   return null;
 }

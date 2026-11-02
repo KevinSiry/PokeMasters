@@ -8,6 +8,7 @@ import { prisma } from "@pokeflex/db";
 import { RateLimiter } from "@pokeflex/game";
 import {
   getMyGuildId,
+  godPackAnnouncement,
   markConversationRead,
   relationBetween,
   sendDirectMessage,
@@ -62,6 +63,8 @@ interface ClientEvents {
   "market:listed": (p: { listingId: string }) => void;
   /** Après une action sur un échange : prévient l'autre joueur (vérifié en base). */
   "trade:ping": (p: { tradeId: string }) => void;
+  /** Après un god pack : annonce à tous les joueurs connectés (vérifié en base, une fois par ouverture). */
+  "booster:godpack": (p: { openingId: string }) => void;
 }
 
 const io = new Server<ClientEvents, Record<string, (...args: never[]) => void>, Record<string, never>, SocketData>(httpServer, {
@@ -192,6 +195,14 @@ io.on("connection", (socket) => {
     const alert = await wishlistAlertForListing(userId, listingId).catch(() => null);
     if (!alert || !markAlerted(listingId)) return;
     for (const to of alert.recipients) io.to(`user:${to}`).emit("wishlist:listed", alert.listing as never);
+  });
+
+  socket.on("booster:godpack", async (p) => {
+    const openingId = String(p?.openingId ?? "");
+    if (!openingId || alerted.has(`god:${openingId}`)) return;
+    const news = await godPackAnnouncement(userId, openingId).catch(() => null);
+    if (!news || !markAlerted(`god:${openingId}`)) return;
+    io.emit("godpack:opened", { by: userId, name: news.name, handle: news.handle } as never);
   });
 });
 

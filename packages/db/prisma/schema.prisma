@@ -328,6 +328,8 @@ model BoosterOpening {
   tiers     Tier[]
   finishes  Finish[]
   cost      Int      @default(0)
+  /// God pack : toutes les cartes du paquet sont des grosses raretés (`config.boosters.godPack`).
+  godPack   Boolean  @default(false)
   createdAt DateTime @default(now())
 
   @@index([userId, createdAt])

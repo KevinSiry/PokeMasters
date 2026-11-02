@@ -2,11 +2,11 @@
  * Tests d'intégration sur Postgres (base de développement ou service de la CI).
  * Ignorés si SKIP_DB_TESTS=1 (job Windows de la CI, sans base).
  */
-import { boosterSize } from "@pokeflex/config";
+import { boosterSize, tierRank } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
 import { seededRng } from "@pokeflex/game";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { BoosterError, getDropPools, openFreeBooster } from "./boosters";
+import { BoosterError, getDropPools, godPackAnnouncement, openFreeBooster } from "./boosters";
 
 const skip = process.env.SKIP_DB_TESTS === "1";
 
@@ -54,5 +54,16 @@ describe.skipIf(skip)("openFreeBooster (Postgres)", () => {
     await prisma.user.update({ where: { id: userId }, data: { boosterStock: 1, boosterAnchorAt: new Date() } });
     const res = await openFreeBooster(userId, seededRng(7));
     for (const c of res.cards) expect(c.favorite).toBe(c.id === first);
+  });
+
+  it("ouvre un god pack (que des grosses raretés) et ne l'annonce que pour son auteur", async () => {
+    await prisma.user.update({ where: { id: userId }, data: { boosterStock: 1, boosterAnchorAt: new Date() } });
+    // Aléa qui renvoie toujours 0 : le god pack sort, et chaque tirage prend le premier tier possible.
+    const res = await openFreeBooster(userId, { int: () => 0 });
+    expect(res.godPack).toBe(true);
+    expect(res.cards).toHaveLength(boosterSize());
+    expect(res.cards.every((c) => tierRank(c.tier) >= tierRank("epic"))).toBe(true);
+    expect(await godPackAnnouncement(userId, res.openingId)).toMatchObject({ openingId: res.openingId });
+    expect(await godPackAnnouncement("quelquun-dautre", res.openingId)).toBeNull();
   });
 });

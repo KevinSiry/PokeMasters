@@ -1,6 +1,6 @@
 import { TIERS, type Tier, boosterSize, gameConfig, tierRank } from "@pokeflex/config";
 import { describe, expect, it } from "vitest";
-import { EmptyPoolError, drawBoosterSlots, drawFinish, drawIndex } from "./booster";
+import { EmptyPoolError, drawBoosterSlots, drawFinish, drawIndex, rollGodPack } from "./booster";
 import { seededRng } from "./rng";
 
 const cfg = gameConfig.boosters;
@@ -61,6 +61,30 @@ describe("drawBoosterSlots", () => {
   it("échoue sur un pool vide", () => {
     const empty = Object.fromEntries(TIERS.map((t) => [t, 0])) as Record<Tier, number>;
     expect(() => draw(modern, empty)).toThrow(EmptyPoolError);
+  });
+});
+
+describe("rollGodPack", () => {
+  it("sort environ une fois sur oneIn, avec autant de cartes que le paquet, toutes grosses raretés", () => {
+    const rng = seededRng(99);
+    const n = 200_000;
+    let hits = 0;
+    for (let i = 0; i < n; i++) {
+      const god = rollGodPack(modern, cfg.godPack, fullPools, rng);
+      if (!god) continue;
+      hits++;
+      const tiers = drawBoosterSlots(god, fullPools, cfg.tierWeights, rng).map((s) => s.tier);
+      expect(tiers).toHaveLength(10);
+      expect(tiers.every((t) => tierRank(t) >= tierRank("epic"))).toBe(true);
+    }
+    expect(Math.abs(hits / n - 1 / cfg.godPack.oneIn)).toBeLessThan(0.0004);
+  });
+
+  it("n'existe pas pour un set sans grosses raretés", () => {
+    const rng = { int: () => 0 };
+    const noHits = { ...fullPools, epic: 0, legendary: 0, mythic: 0 };
+    expect(rollGodPack(modern, cfg.godPack, noHits, rng)).toBeNull();
+    expect(rollGodPack(classic, cfg.godPack, fullPools, rng)![0]!.count).toBe(11);
   });
 });
 

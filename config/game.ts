@@ -94,6 +94,15 @@ export const gameConfig = {
         { count: 1, tiers: { rare: 2, epic: 1 } },
       ],
     } satisfies Record<string, readonly BoosterSlot[]>,
+    /**
+     * God pack : une fois sur `oneIn` boosters (gratuits ou de set), toutes les cartes du paquet
+     * sont des grosses raretés (Double Rare ou mieux), holo ou reverse quand la carte existe ainsi.
+     * Annoncé à tous les joueurs connectés. Seulement si le pool contient de ces cartes.
+     */
+    godPack: {
+      oneIn: 1000,
+      slot: { tiers: { epic: 600, legendary: 300, mythic: 100 }, finishWeights: { holo: 3, reverse: 1 } },
+    },
     /** Séries TCGdex dont les boosters suivent la composition `classic` ; les autres suivent `modern`. */
     classicSeries: ["base", "gym", "neo", "lc"] as readonly string[],
     /**
