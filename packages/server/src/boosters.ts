@@ -2,9 +2,9 @@
  * Ouverture des boosters, entièrement côté serveur.
  * Le tirage est fait et enregistré ici avant toute animation : le client ne fait que révéler.
  */
-import { gameConfig, TIERS, type Finish, type Tier } from "@pokeflex/config";
+import { boosterLayoutFor, gameConfig, TIERS, type Finish, type Tier } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
-import { boosterStatus, consumeBooster, cryptoRng, drawBoosterTiers, drawFinish, drawIndex, InsufficientFundsError, type Rng } from "@pokeflex/game";
+import { boosterStatus, consumeBooster, cryptoRng, drawBoosterSlots, drawFinish, drawIndex, InsufficientFundsError, type Rng } from "@pokeflex/game";
 import { checkSetCompletions, type CompletedSet } from "./completion";
 import { applyLedger, lockUser } from "./ledger";
 import { removeObtainedFromWishlist } from "./lists";
@@ -35,6 +35,16 @@ export async function getSetDropPools(setId: string): Promise<Record<Tier, strin
   // Seuls les sets qui ont des cartes tirables sont mis en cache : un id inventé ne fait pas grossir la mémoire.
   if (rows.length > 0) setPoolCache.set(setId, { at: Date.now(), pools });
   return pools;
+}
+
+const serieCache = new Map<string, string | null>();
+
+/** Série d'un set (fixe : mise en cache sans expiration). */
+async function setSerie(setId: string): Promise<string | null> {
+  if (serieCache.has(setId)) return serieCache.get(setId)!;
+  const set = await prisma.set.findUnique({ where: { id: setId }, select: { serieId: true } });
+  if (set) serieCache.set(setId, set.serieId);
+  return set?.serieId ?? null;
 }
 
 /** Nombre de sets en cache (tests). */
@@ -101,6 +111,7 @@ export async function openBooster(userId: string, what: BoosterKind, rng: Rng = 
     throw new BoosterError("unknown_set", "Ce set n'a pas de booster disponible.");
   }
   const price = what.kind === "set" ? gameConfig.boosters.setBoosterPrice : 0;
+  const layout = what.kind === "set" ? boosterLayoutFor(await setSerie(what.setId)) : "modern";
 
   return prisma.$transaction(async (tx) => {
     const user = await lockUser(tx, userId);
@@ -117,7 +128,8 @@ export async function openBooster(userId: string, what: BoosterKind, rng: Rng = 
       await tx.user.update({ where: { id: userId }, data: { boosterStock: stock.stock, boosterAnchorAt: stock.anchorAt } });
     }
 
-    const tiers = drawBoosterTiers(gameConfig.boosters, sizes, rng);
+    const slots = drawBoosterSlots(gameConfig.boosters.layouts[layout], sizes, gameConfig.boosters.tierWeights, rng);
+    const tiers = slots.map((s) => s.tier);
     const ids = tiers.map((t) => pools[t][drawIndex(pools[t].length, rng)]!);
     const cards = await tx.card.findMany({
       where: { id: { in: ids } },
@@ -132,8 +144,8 @@ export async function openBooster(userId: string, what: BoosterKind, rng: Rng = 
     const favorites = new Set(
       (await tx.favoriteCard.findMany({ where: { userId, cardId: { in: ids } }, select: { cardId: true } })).map((f) => f.cardId),
     );
-    const finishes = ids.map((id) =>
-      drawFinish(byId.get(id)?.variants as Partial<Record<Finish, boolean>> | null, gameConfig.finishes.weights, rng),
+    const finishes = ids.map((id, i) =>
+      drawFinish(byId.get(id)?.variants as Partial<Record<Finish, boolean>> | null, slots[i]!.finishWeights ?? gameConfig.finishes.weights, rng),
     );
 
     const opening = await tx.boosterOpening.create({

@@ -1,4 +1,4 @@
-import { RARITY_SHOWCASE, gameConfig, officialRarityTier } from "@pokeflex/config";
+import { RARITY_SHOWCASE, boosterSize, gameConfig, officialRarityTier } from "@pokeflex/config";
 import { Layers, Sparkles, Store } from "lucide-react";
 import Link from "next/link";
 import { TierBadge } from "@/components/tier-badge";
@@ -20,7 +20,7 @@ const STEPS = [
   {
     icon: Sparkles,
     title: "Ouvre",
-    body: `Un booster de ${gameConfig.boosters.size} cartes toutes les ${minutes} minutes, jusqu'à ${gameConfig.boosters.maxStock} en réserve. Au moins une Peu Commune garantie.`,
+    body: `Un booster de ${boosterSize()} cartes toutes les ${minutes} minutes, jusqu'à ${gameConfig.boosters.maxStock} en réserve. Composé comme un vrai paquet : communes, peu communes, deux reverses et une Rare ou mieux.`,
   },
   {
     icon: Layers,

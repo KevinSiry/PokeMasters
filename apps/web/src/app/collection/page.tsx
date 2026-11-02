@@ -1,4 +1,4 @@
-import { FINISH_LABELS_FR, gameConfig } from "@pokeflex/config";
+import { boosterSize, FINISH_LABELS_FR, gameConfig } from "@pokeflex/config";
 import { getFavoriteCardIds, getFavorites, getWishlist, getWishlistSummary, listBinders } from "@pokeflex/server";
 import { BookOpen, CheckCircle2, ChevronDown, GalleryVerticalEnd, Heart, Sparkles, Star, Store } from "lucide-react";
 import type { Metadata } from "next";
@@ -98,7 +98,7 @@ export default async function CollectionPage({ searchParams }: { searchParams: S
             </Button>
           }
         >
-          Ouvre ton premier booster : 5 cartes tirées dans tout le catalogue, dont au moins une Peu Commune.
+          Ouvre ton premier booster : {boosterSize()} cartes tirées dans tout le catalogue, comme un vrai paquet, dont une Rare ou mieux.
         </EmptyState>
       ) : (
         <>

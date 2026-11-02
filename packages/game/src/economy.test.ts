@@ -1,10 +1,9 @@
 import { TIERS, type Tier, gameConfig } from "@pokeflex/config";
 import { describe, expect, it } from "vitest";
-import { drawBoosterTiers } from "./booster";
+import { drawBoosterSlots, expectedLayoutValue } from "./booster";
 import {
   InsufficientFundsError,
   applyDelta,
-  expectedBoosterValue,
   pickDuplicates,
   recyclePayout,
   setCompletionBonus,
@@ -89,30 +88,29 @@ describe("setCompletionBonus", () => {
 });
 
 describe("équilibrage", () => {
-  const { tierWeights, size, setBoosterPrice } = gameConfig.boosters;
+  const { layouts, tierWeights, setBoosterPrice } = gameConfig.boosters;
 
-  it("un booster gratuit vaut ~38 Jetons recyclé (plan, section 5)", () => {
-    const expected = expectedBoosterValue(tierWeights, values, size);
-    expect(expected).toBeGreaterThan(36);
-    expect(expected).toBeLessThan(40);
+  it("un booster gratuit (10 cartes) vaut ~50 Jetons recyclé", () => {
+    const expected = expectedLayoutValue(layouts.modern, values);
+    expect(expected).toBeGreaterThan(45);
+    expect(expected).toBeLessThan(55);
   });
 
-  it("la simulation de 100 000 boosters (garantie comprise) confirme l'espérance", () => {
+  it("la simulation de 100 000 boosters confirme l'espérance", () => {
     const rng = seededRng(4);
     const pools = Object.fromEntries(TIERS.map((t) => [t, 100])) as Record<Tier, number>;
     let total = 0;
     const n = 100_000;
-    for (let i = 0; i < n; i++) for (const t of drawBoosterTiers(gameConfig.boosters, pools, rng)) total += values[t];
-    const mean = total / n;
-    // La garantie Peu commune ajoute un peu de valeur par rapport à l'espérance brute.
-    expect(mean).toBeGreaterThan(expectedBoosterValue(tierWeights, values, size));
-    expect(mean).toBeLessThan(41);
+    for (let i = 0; i < n; i++) for (const s of drawBoosterSlots(layouts.modern, pools, tierWeights, rng)) total += values[s.tier];
+    expect(Math.abs(total / n - expectedLayoutValue(layouts.modern, values))).toBeLessThan(1);
   });
 
   it("le booster de set est un puits : environ 3× la valeur d'un booster gratuit", () => {
-    const ratio = setBoosterPrice / expectedBoosterValue(tierWeights, values, size);
-    expect(ratio).toBeGreaterThan(2.8);
-    expect(ratio).toBeLessThan(3.6);
+    for (const layout of [layouts.modern, layouts.classic]) {
+      const ratio = setBoosterPrice / expectedLayoutValue(layout, values);
+      expect(ratio).toBeGreaterThan(2.5);
+      expect(ratio).toBeLessThan(4.5);
+    }
   });
 });
 

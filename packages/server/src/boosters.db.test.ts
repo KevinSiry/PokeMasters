@@ -2,7 +2,7 @@
  * Tests d'intégration sur Postgres (base de développement ou service de la CI).
  * Ignorés si SKIP_DB_TESTS=1 (job Windows de la CI, sans base).
  */
-import { gameConfig } from "@pokeflex/config";
+import { boosterSize } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
 import { seededRng } from "@pokeflex/game";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -26,11 +26,11 @@ describe.skipIf(skip)("openFreeBooster (Postgres)", () => {
     await prisma.user.delete({ where: { id: userId } }).catch(() => {});
   });
 
-  it("enregistre 5 exemplaires, l'ouverture et décrémente le stock", async () => {
+  it("enregistre un exemplaire par carte, l'ouverture et décrémente le stock", async () => {
     const res = await openFreeBooster(userId, seededRng(1));
-    expect(res.cards).toHaveLength(gameConfig.boosters.size);
+    expect(res.cards).toHaveLength(boosterSize());
     const copies = await prisma.cardCopy.count({ where: { ownerId: userId, openingId: res.openingId } });
-    expect(copies).toBe(5);
+    expect(copies).toBe(boosterSize());
     const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
     expect(user.boosterStock).toBe(1);
     expect(res.boosters.available).toBe(1);

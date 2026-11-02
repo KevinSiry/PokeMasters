@@ -8,7 +8,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { TIERS, gameConfig, type Finish, type Tier } from "@pokeflex/config";
-import { drawBoosterTiers, drawFinish, drawIndex, seededRng } from "@pokeflex/game";
+import { drawBoosterSlots, drawFinish, drawIndex, seededRng } from "@pokeflex/game";
 import { type Prisma, prisma } from "../src/index";
 
 /** `boosters` : nombre de boosters déjà « ouverts » par le seed pour remplir la collection. */
@@ -29,9 +29,9 @@ async function seedCollection(userId: string, boosters: number, seed: number) {
   const rng = seededRng(seed);
   const data: Prisma.CardCopyCreateManyInput[] = [];
   for (let b = 0; b < boosters; b++) {
-    for (const tier of drawBoosterTiers(gameConfig.boosters, sizes, rng)) {
-      const card = pools[tier][drawIndex(pools[tier].length, rng)]!;
-      const finish = drawFinish(card.variants as Partial<Record<Finish, boolean>>, gameConfig.finishes.weights, rng);
+    for (const slot of drawBoosterSlots(gameConfig.boosters.layouts.modern, sizes, gameConfig.boosters.tierWeights, rng)) {
+      const card = pools[slot.tier][drawIndex(pools[slot.tier].length, rng)]!;
+      const finish = drawFinish(card.variants as Partial<Record<Finish, boolean>>, slot.finishWeights ?? gameConfig.finishes.weights, rng);
       data.push({ ownerId: userId, cardId: card.id, finish, obtainedVia: "seed" });
     }
   }

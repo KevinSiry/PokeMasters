@@ -25,6 +25,13 @@ export const TIER_LABELS_FR: Record<Tier, string> = {
   mythic: "Rare Secrète",
 };
 
+/** Emplacement d'un booster : `count` cartes, tier tiré selon `tiers`. */
+export interface BoosterSlot {
+  count: number;
+  tiers: Partial<Record<Tier, number>>;
+  finishWeights?: Partial<Record<Finish, number>>;
+}
+
 /** Paliers de médaille (clé enregistrée → libellé). */
 export const MEDAL_LEVEL_LABELS_FR: Record<string, string> = { bronze: "Bronze", silver: "Argent", gold: "Or" };
 
@@ -54,8 +61,6 @@ export type ReportReason = keyof typeof REPORT_REASONS;
 
 export const gameConfig = {
   boosters: {
-    /** Nombre de cartes par booster. */
-    size: 5,
     /** Un booster gratuit est crédité toutes les `refillIntervalMs`. */
     refillIntervalMs: 10 * MINUTE,
     /** Stock maximal de boosters gratuits en attente. */
@@ -63,8 +68,37 @@ export const gameConfig = {
     /** Boosters offerts à l'inscription. */
     initialStock: 1,
     /**
-     * Poids de tirage par tier (sur 1000). Ils n'ont pas besoin de sommer à 1000,
-     * ils sont normalisés au tirage ; on garde 1000 pour la lisibilité.
+     * Composition des boosters, fidèle aux vrais paquets (idée reprise d'HoloPocket). Chaque
+     * emplacement tire un tier selon ses propres poids, puis une carte de ce tier dans le pool
+     * (tout le catalogue, ou le set du booster). Les cartes se révèlent dans l'ordre des
+     * emplacements, comme en vrai : communes, peu communes, reverses, puis la rare.
+     * Poids entiers, normalisés au tirage. `finishWeights` remplace les poids de finition globaux pour l'emplacement (seules les
+     * finitions que la carte possède comptent ; sans aucune, la carte sort normale).
+     *
+     * - `modern` (Écarlate et Violet et booster gratuit « Toutes époques ») : 4 Communes,
+     *   3 Peu Communes, 2 reverses (la seconde peut cacher une Double Rare ou mieux) et une
+     *   Rare ou mieux, holo si la carte existe en holo.
+     * - `classic` (époque Wizards) : 7 Communes, 3 Peu Communes et une Rare, holo une fois sur trois.
+     */
+    layouts: {
+      modern: [
+        { count: 4, tiers: { common: 1 }, finishWeights: { normal: 1 } },
+        { count: 3, tiers: { uncommon: 1 }, finishWeights: { normal: 1 } },
+        { count: 1, tiers: { common: 50, uncommon: 35, rare: 15 }, finishWeights: { reverse: 1 } },
+        { count: 1, tiers: { common: 450, uncommon: 350, rare: 150, epic: 40, legendary: 8, mythic: 2 }, finishWeights: { reverse: 1 } },
+        { count: 1, tiers: { rare: 800, epic: 150, legendary: 40, mythic: 10 }, finishWeights: { holo: 1 } },
+      ],
+      classic: [
+        { count: 7, tiers: { common: 1 } },
+        { count: 3, tiers: { uncommon: 1 } },
+        { count: 1, tiers: { rare: 2, epic: 1 } },
+      ],
+    } satisfies Record<string, readonly BoosterSlot[]>,
+    /** Séries TCGdex dont les boosters suivent la composition `classic` ; les autres suivent `modern`. */
+    classicSeries: ["base", "gym", "neo", "lc"] as readonly string[],
+    /**
+     * Poids de repli (sur 1000) quand aucun tier d'un emplacement n'existe dans le pool
+     * (set sans Peu Commune…) : on tire alors parmi les tiers présents.
      */
     tierWeights: {
       common: 550,
@@ -74,10 +108,8 @@ export const gameConfig = {
       legendary: 13,
       mythic: 2,
     } satisfies Record<Tier, number>,
-    /** Au moins une carte de ce tier (ou mieux) par booster. */
-    guaranteedMinTier: "uncommon" as Tier,
     /** Prix d'un booster d'un set précis. */
-    setBoosterPrice: 120,
+    setBoosterPrice: 150,
   },
 
   /**
@@ -306,6 +338,17 @@ export const gameConfig = {
 } as const;
 
 export type GameConfig = typeof gameConfig;
+export type BoosterLayoutName = keyof typeof gameConfig.boosters.layouts;
+
+/** Composition d'un booster selon la série du set (booster gratuit : `modern`). */
+export function boosterLayoutFor(serieId: string | null | undefined): BoosterLayoutName {
+  return serieId && gameConfig.boosters.classicSeries.includes(serieId) ? "classic" : "modern";
+}
+
+/** Nombre de cartes d'un booster. */
+export function boosterSize(layout: BoosterLayoutName = "modern"): number {
+  return gameConfig.boosters.layouts[layout].reduce((n, s) => n + s.count, 0);
+}
 
 /** Rang numérique d'un tier (0 = Commune). */
 export function tierRank(tier: Tier): number {
