@@ -225,6 +225,13 @@ export const gameConfig = {
     fallbackLang: "en",
     /** Séries ignorées à l'import (TCG Pocket). */
     excludedSeries: ["tcgp"],
+    /**
+     * Catalogue 100 % français : une carte n'est visible et tirable que si ses données ET son
+     * image sont en français. Les cartes et extensions qui n'existent qu'en anglais, et les
+     * cartes sans scan français, restent en base mais sont cachées partout.
+     * `false` = ancien comportement (repli sur la version anglaise).
+     */
+    frenchOnly: true,
     sync: {
       concurrency: 4,
       maxRetries: 5,

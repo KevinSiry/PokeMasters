@@ -15,6 +15,9 @@ const port = Number(process.env.E2E_PORT ?? 3000);
 export const HIDDEN_SET = "e2e-masque";
 export const HIDDEN_CARD_IN_BASE = "base1-e2e-fantome";
 export const HIDDEN_CARD_NAME = "Fantômecarte";
+// Carte sans version française (catalogue 100 % FR) dont un joueur garde un exemplaire.
+export const ENGLISH_CARD = "base1-e2e-anglaise";
+export const ENGLISH_CARD_NAME = "Anglaisecarte";
 
 async function seedHiddenCards() {
   const now = new Date();
@@ -32,6 +35,31 @@ async function seedHiddenCards() {
     ],
     skipDuplicates: true,
   });
+  await prisma.card.upsert({
+    where: { id: ENGLISH_CARD },
+    create: {
+      ...card,
+      id: ENGLISH_CARD,
+      setId: "base1",
+      localId: "998",
+      sortKey: 998,
+      name: ENGLISH_CARD_NAME,
+      nameFr: null,
+      nameEn: ENGLISH_CARD_NAME,
+      lang: "en",
+      image: "https://assets.tcgdex.net/en/base/base1/4",
+      imageLang: "en",
+    },
+    update: {},
+  });
+  const owner = await prisma.user.upsert({
+    where: { handle: "e2e-collectionneur" },
+    create: { handle: "e2e-collectionneur", name: "Collectionneur e2e" },
+    update: {},
+  });
+  if (!(await prisma.cardCopy.findFirst({ where: { cardId: ENGLISH_CARD } }))) {
+    await prisma.cardCopy.create({ data: { ownerId: owner.id, cardId: ENGLISH_CARD, obtainedVia: "seed" } });
+  }
 }
 
 export default async function globalSetup() {

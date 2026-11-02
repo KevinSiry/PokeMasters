@@ -32,6 +32,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     title: `${card.name} — ${card.set.name}`,
     description: `${card.name} (${card.set.name}, ${card.localId}/${card.set.cardCountOfficial}) : tier ${TIER_LABELS_FR[card.tier]}${card.illustrator ? `, illustrée par ${card.illustrator}` : ""}.`,
     openGraph: img ? { images: [{ url: img }] } : undefined,
+    robots: card.retired ? { index: false } : undefined,
   };
 }
 
@@ -110,8 +111,12 @@ export default async function CardPage({ params }: { params: Params }) {
                 <span className="rounded-full border border-line px-2.5 py-1 text-xs text-muted">{card.rarityRaw}</span>
               )}
               <span className="rounded-full border border-line px-2.5 py-1 text-xs text-muted">{CATEGORY_LABELS[card.category]}</span>
-              {card.lang === "en" && (
-                <span className="rounded-full bg-elev px-2.5 py-1 font-mono text-xs font-bold">EN · pas de version FR</span>
+              {card.retired ? (
+                <span className="rounded-full bg-elev px-2.5 py-1 text-xs font-bold">Retirée du catalogue (pas de version française)</span>
+              ) : (
+                card.lang === "en" && (
+                  <span className="rounded-full bg-elev px-2.5 py-1 font-mono text-xs font-bold">EN · pas de version FR</span>
+                )
               )}
             </div>
             <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { categoryCode, finishesOf, localIdSortKey, needsResync, priceEurOf, toCardRecord, typeCode } from "./normalize";
+import { categoryCode, finishesOf, localIdSortKey, isPlayable, needsResync, priceEurOf, toCardRecord, typeCode } from "./normalize";
 import { cardDetailSchema } from "./schemas";
 
 // Réponse réelle de GET /v2/fr/cards/swsh3-136 (allégée), relevée le 2026-10-12.
@@ -88,9 +88,25 @@ describe("toCardRecord", () => {
   it("utilise l'image anglaise en repli et exclut du tirage une carte sans image", () => {
     const noImage = { ...FOUINAR, image: null };
     const withFallback = toCardRecord({ detail: noImage, lang: "fr", nameFr: "Fouinar", nameEn: null, fallbackImage: "https://x/en/1" });
-    expect(withFallback).toMatchObject({ image: "https://x/en/1", imageLang: "en", droppable: true });
+    expect(withFallback).toMatchObject({ image: "https://x/en/1", imageLang: "en" });
     const none = toCardRecord({ detail: noImage, lang: "fr", nameFr: "Fouinar", nameEn: null });
     expect(none).toMatchObject({ image: null, imageLang: null, droppable: false });
+  });
+});
+
+describe("isPlayable", () => {
+  const fr = { image: "https://x/fr/1", lang: "fr", imageLang: "fr" };
+  it("cache toute carte sans image", () => {
+    expect(isPlayable({ ...fr, image: null }, false)).toBe(false);
+    expect(isPlayable({ ...fr, image: null }, true)).toBe(false);
+  });
+  it("catalogue 100 % français : données et image doivent être en français", () => {
+    expect(isPlayable(fr, true)).toBe(true);
+    expect(isPlayable({ ...fr, imageLang: "en" }, true)).toBe(false);
+    expect(isPlayable({ ...fr, lang: "en", imageLang: "en" }, true)).toBe(false);
+  });
+  it("sans frenchOnly, une image anglaise suffit", () => {
+    expect(isPlayable({ ...fr, lang: "en", imageLang: "en" }, false)).toBe(true);
   });
 });
 

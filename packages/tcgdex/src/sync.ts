@@ -32,6 +32,8 @@ export interface SyncOptions {
   now?: () => Date;
   /** `fetch` des images de repli (tests). */
   fetch?: typeof fetch;
+  /** Par défaut `catalog.frenchOnly` (tests). */
+  frenchOnly?: boolean;
 }
 
 export interface SyncStats {
@@ -224,8 +226,14 @@ export async function syncCatalog(opts: SyncOptions): Promise<SyncStats & { runI
     const named = await fillFrenchNames(prisma);
     if (named) log(`• ${named} cartes anglaises ont reçu leur nom français.`);
 
-    const filled = await fillFallbackImages(prisma, { fetch: opts.fetch, log });
-    if (filled) log(`• ${filled} cartes sans scan TCGdex ont reçu une image anglaise (Pokémon TCG API).`);
+    const frenchOnly = opts.frenchOnly ?? gameConfig.catalog.frenchOnly;
+    if (!frenchOnly) {
+      const filled = await fillFallbackImages(prisma, { fetch: opts.fetch, log, frenchOnly });
+      if (filled) log(`• ${filled} cartes sans scan TCGdex ont reçu une image anglaise (Pokémon TCG API).`);
+    }
+
+    const policy = await applyLanguagePolicy(prisma, frenchOnly);
+    log(`• Catalogue : ${policy.visible} cartes visibles, ${policy.hidden} cachées.`);
 
     // Date de la première sortie de chaque série, pour les ordonner chronologiquement.
     await prisma.$executeRaw`
@@ -245,6 +253,27 @@ export async function syncCatalog(opts: SyncOptions): Promise<SyncStats & { runI
     });
     throw err;
   }
+}
+
+/**
+ * Recalcule `droppable` pour tout le catalogue selon `catalog.frenchOnly` (voir `isPlayable`) :
+ * à lancer après un changement de cette option (`npm run sync:catalog -- --french`).
+ * Les exemplaires déjà possédés ne sont pas touchés.
+ */
+export async function applyLanguagePolicy(
+  prisma: PrismaClient,
+  frenchOnly: boolean = gameConfig.catalog.frenchOnly,
+): Promise<{ visible: number; hidden: number }> {
+  if (frenchOnly) {
+    await prisma.$executeRaw`
+      UPDATE "Card" SET droppable = (image IS NOT NULL AND lang = 'fr' AND "imageLang" = 'fr')
+      WHERE droppable IS DISTINCT FROM (image IS NOT NULL AND lang = 'fr' AND "imageLang" = 'fr')`;
+  } else {
+    await prisma.$executeRaw`
+      UPDATE "Card" SET droppable = (image IS NOT NULL) WHERE droppable IS DISTINCT FROM (image IS NOT NULL)`;
+  }
+  const [visible, total] = await Promise.all([prisma.card.count({ where: { droppable: true } }), prisma.card.count()]);
+  return { visible, hidden: total - visible };
 }
 
 /**
