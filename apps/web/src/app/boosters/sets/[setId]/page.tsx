@@ -1,4 +1,4 @@
-import { gameConfig } from "@pokeflex/config";
+import { boosterLayoutFor, boosterSize, gameConfig } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
 import { getPackCover } from "@pokeflex/server";
 import type { Metadata } from "next";
@@ -10,7 +10,7 @@ import { getCurrentPlayer } from "@/lib/player";
 type Params = Promise<{ setId: string }>;
 
 async function getEligibleSet(setId: string) {
-  const set = await prisma.set.findUnique({ where: { id: setId }, select: { id: true, name: true, logo: true } });
+  const set = await prisma.set.findUnique({ where: { id: setId }, select: { id: true, name: true, logo: true, serieId: true } });
   if (!set) return null;
   const droppable = await prisma.card.count({ where: { setId, droppable: true } });
   return droppable >= gameConfig.setBoosters.minDroppableCards ? set : null;
@@ -38,7 +38,7 @@ export default async function SetBoosterPage({ params }: { params: Params }) {
         maxStock={player.boosters.maxStock}
         refillIntervalMs={gameConfig.boosters.refillIntervalMs}
         balance={player.balance}
-        set={{ id: set.id, name: set.name, logo: set.logo, price: gameConfig.boosters.setBoosterPrice }}
+        set={{ id: set.id, name: set.name, logo: set.logo, price: gameConfig.boosters.setBoosterPrice, size: boosterSize(boosterLayoutFor(set.serieId)) }}
         cover={cover}
       />
     </>

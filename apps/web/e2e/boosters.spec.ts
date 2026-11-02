@@ -1,5 +1,6 @@
 import path from "node:path";
 import { expect, test } from "@playwright/test";
+import { boosterSize } from "@pokeflex/config";
 
 const auth = (handle: string) => path.resolve(process.cwd(), `playwright/.auth/${handle}.json`);
 
@@ -14,13 +15,13 @@ test.describe("boosters et collection", () => {
   test.describe("joueur connecté", () => {
     test.use({ storageState: auth("demo-dresseur") });
 
-    test("ouvre un booster et révèle les 5 cartes", async ({ page, isMobile }) => {
+    test("ouvre un booster et révèle toutes ses cartes", async ({ page, isMobile }) => {
       // Sur mobile, le parcours animé complet (déchirure, sortie des cartes) ; sur ordinateur, animations réduites.
       if (!isMobile) await page.emulateMedia({ reducedMotion: "reduce" });
       await page.goto("/boosters");
       await page.getByRole("button", { name: "Ouvrir le booster" }).click();
       if (isMobile) await page.getByRole("button", { name: "Déchirer le booster" }).click();
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < boosterSize(); i++) {
         await page.getByRole("button", { name: "Retourner la carte" }).click();
         if (i === 0) {
           // Favori dès la révélation : l'étoile se coche sans faire passer à la carte suivante.

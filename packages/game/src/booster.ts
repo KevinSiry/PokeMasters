@@ -1,11 +1,5 @@
-import { FINISHES, TIERS, type Finish, type Tier, tierRank } from "@pokeflex/config";
+import { FINISHES, TIERS, type Finish, type Tier } from "@pokeflex/config";
 import { type Rng, weightedPick } from "./rng";
-
-export interface BoosterDrawConfig {
-  size: number;
-  tierWeights: Readonly<Record<Tier, number>>;
-  guaranteedMinTier: Tier;
-}
 
 /** Nombre de cartes tirables par tier dans le pool (catalogue entier ou un set). */
 export type TierPoolSizes = Readonly<Record<Tier, number>>;
@@ -18,38 +12,53 @@ export class EmptyPoolError extends Error {
 }
 
 /** Poids effectifs : un tier vide (vieux set sans Mythique…) est ignoré, son poids redistribué. */
-function effectiveWeights(
-  weights: Readonly<Record<Tier, number>>,
-  pools: TierPoolSizes,
-  minTier?: Tier,
-): Record<Tier, number> {
+function effectiveWeights(weights: Readonly<Record<Tier, number>>, pools: TierPoolSizes): Record<Tier, number> {
   const out = {} as Record<Tier, number>;
-  for (const t of TIERS) {
-    const allowed = pools[t] > 0 && (!minTier || tierRank(t) >= tierRank(minTier));
-    out[t] = allowed ? weights[t] : 0;
+  for (const t of TIERS) out[t] = pools[t] > 0 ? weights[t] : 0;
+  return out;
+}
+
+export interface BoosterSlotSpec {
+  count: number;
+  tiers: Readonly<Partial<Record<Tier, number>>>;
+  finishWeights?: Readonly<Partial<Record<Finish, number>>>;
+}
+
+export interface DrawnSlot {
+  tier: Tier;
+  /** Poids de finition propres à l'emplacement (sinon les poids globaux). */
+  finishWeights?: Readonly<Partial<Record<Finish, number>>>;
+}
+
+/**
+ * Tire le tier de chaque emplacement d'un booster, dans l'ordre des emplacements (l'ordre de
+ * révélation d'un vrai paquet : la rare à la fin). Un emplacement dont aucun tier n'existe dans
+ * le pool se rabat sur `fallback`, restreint aux tiers présents.
+ */
+export function drawBoosterSlots(
+  layout: readonly BoosterSlotSpec[],
+  pools: TierPoolSizes,
+  fallback: Readonly<Record<Tier, number>>,
+  rng: Rng,
+): DrawnSlot[] {
+  const backup = effectiveWeights(fallback, pools);
+  if (Object.values(backup).every((w) => w === 0)) throw new EmptyPoolError();
+  const out: DrawnSlot[] = [];
+  for (const slot of layout) {
+    const w = {} as Record<Tier, number>;
+    for (const t of TIERS) w[t] = pools[t] > 0 ? (slot.tiers[t] ?? 0) : 0;
+    const weights = Object.values(w).some((x) => x > 0) ? w : backup;
+    for (let i = 0; i < slot.count; i++) out.push({ tier: weightedPick(weights, rng), ...(slot.finishWeights ? { finishWeights: slot.finishWeights } : {}) });
   }
   return out;
 }
 
-/**
- * Tire les tiers des emplacements d'un booster.
- * Garantie : si aucun emplacement n'atteint `guaranteedMinTier`, le dernier est
- * retiré parmi les tiers ≥ ce minimum (s'il en existe dans le pool).
- * Le résultat est trié du moins rare au plus rare : la meilleure carte se révèle en dernier.
- */
-export function drawBoosterTiers(cfg: BoosterDrawConfig, pools: TierPoolSizes, rng: Rng): Tier[] {
-  const weights = effectiveWeights(cfg.tierWeights, pools);
-  if (Object.values(weights).every((w) => w === 0)) throw new EmptyPoolError();
-  const tiers: Tier[] = Array.from({ length: cfg.size }, () => weightedPick(weights, rng));
-
-  const min = tierRank(cfg.guaranteedMinTier);
-  if (!tiers.some((t) => tierRank(t) >= min)) {
-    const guaranteed = effectiveWeights(cfg.tierWeights, pools, cfg.guaranteedMinTier);
-    if (Object.values(guaranteed).some((w) => w > 0)) {
-      tiers[tiers.length - 1] = weightedPick(guaranteed, rng);
-    }
-  }
-  return tiers.sort((a, b) => tierRank(a) - tierRank(b));
+/** Espérance d'une valeur par tier (recyclage…) sur un booster, pool complet. */
+export function expectedLayoutValue(layout: readonly BoosterSlotSpec[], values: Readonly<Record<Tier, number>>): number {
+  return layout.reduce((sum, slot) => {
+    const total = TIERS.reduce((s, t) => s + (slot.tiers[t] ?? 0), 0);
+    return sum + slot.count * TIERS.reduce((s, t) => s + ((slot.tiers[t] ?? 0) / total) * values[t], 0);
+  }, 0);
 }
 
 /**
@@ -58,11 +67,11 @@ export function drawBoosterTiers(cfg: BoosterDrawConfig, pools: TierPoolSizes, r
  */
 export function drawFinish(
   available: Partial<Record<Finish, boolean>> | null | undefined,
-  weights: Readonly<Record<Finish, number>>,
+  weights: Readonly<Partial<Record<Finish, number>>>,
   rng: Rng,
 ): Finish {
   const w = {} as Record<Finish, number>;
-  for (const f of FINISHES) w[f] = available?.[f] ? weights[f] : 0;
+  for (const f of FINISHES) w[f] = available?.[f] ? (weights[f] ?? 0) : 0;
   if (Object.values(w).every((x) => x === 0)) return "normal";
   return weightedPick(w, rng);
 }

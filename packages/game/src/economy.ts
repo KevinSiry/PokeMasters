@@ -90,12 +90,3 @@ export function rarityCompletionBonus(cardCount: number, perCard: number, minCar
   return cardCount >= minCards ? cardCount * perCard : 0;
 }
 
-/** Valeur de recyclage moyenne d'un booster (sans la garantie), pour l'équilibrage. */
-export function expectedBoosterValue(
-  weights: Readonly<Record<Tier, number>>,
-  values: Readonly<Record<Tier, number>>,
-  size: number,
-): number {
-  const total = TIERS.reduce((s, t) => s + weights[t], 0);
-  return size * TIERS.reduce((s, t) => s + (weights[t] / total) * values[t], 0);
-}

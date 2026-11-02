@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FINISHES, TIERS, gameConfig, tierRank } from "./game";
+import { FINISHES, TIERS, boosterLayoutFor, boosterSize, gameConfig, tierRank } from "./game";
 
 describe("gameConfig", () => {
   it("définit un poids de tirage positif pour chaque tier, décroissant avec la rareté", () => {
@@ -13,14 +13,24 @@ describe("gameConfig", () => {
     for (let i = 1; i < values.length; i++) expect(values[i]).toBeGreaterThan(values[i - 1]!);
   });
 
-  it("garde le booster de set plus cher que la valeur moyenne de recyclage d'un booster gratuit", () => {
-    const { tierWeights, size, setBoosterPrice } = gameConfig.boosters;
-    const total = TIERS.reduce((s, t) => s + tierWeights[t], 0);
-    const expectedPerCard = TIERS.reduce(
-      (s, t) => s + (tierWeights[t] / total) * gameConfig.economy.recycleValue[t],
-      0,
-    );
-    expect(setBoosterPrice).toBeGreaterThan(expectedPerCard * size * 2);
+  it("garde le booster de set plus cher que deux fois la valeur de recyclage d'un booster gratuit", () => {
+    const { layouts, setBoosterPrice } = gameConfig.boosters;
+    for (const layout of Object.values(layouts)) {
+      const value = layout.reduce((sum, slot) => {
+        const w = slot.tiers as Partial<Record<(typeof TIERS)[number], number>>;
+        const total = TIERS.reduce((s, t) => s + (w[t] ?? 0), 0);
+        return sum + slot.count * TIERS.reduce((s, t) => s + ((w[t] ?? 0) / total) * gameConfig.economy.recycleValue[t], 0);
+      }, 0);
+      expect(setBoosterPrice).toBeGreaterThan(value * 2);
+    }
+  });
+
+  it("compose des boosters de 10 cartes (moderne) et 11 cartes (Wizards)", () => {
+    expect(boosterSize("modern")).toBe(10);
+    expect(boosterSize("classic")).toBe(11);
+    expect(boosterLayoutFor("base")).toBe("classic");
+    expect(boosterLayoutFor("sv")).toBe("modern");
+    expect(boosterLayoutFor(null)).toBe("modern");
   });
 
   it("a un poids de finition pour chaque finition", () => {

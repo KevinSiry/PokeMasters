@@ -1,7 +1,7 @@
 /**
  * Tests d'intégration de l'économie sur Postgres. Ignorés si SKIP_DB_TESTS=1.
  */
-import { gameConfig, officialRarity } from "@pokeflex/config";
+import { boosterLayoutFor, boosterSize, gameConfig, officialRarity } from "@pokeflex/config";
 import { auditLedger, prisma } from "@pokeflex/db";
 import { InsufficientFundsError, seededRng } from "@pokeflex/game";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -65,7 +65,9 @@ describe.skipIf(skip)("économie (Postgres)", () => {
     const price = gameConfig.boosters.setBoosterPrice;
     const userId = await newUser(price * 2);
     const res = await openBooster(userId, { kind: "set", setId }, seededRng(2));
-    expect(res.cards).toHaveLength(gameConfig.boosters.size);
+    const set = await prisma.set.findUniqueOrThrow({ where: { id: setId }, select: { serieId: true } });
+    // Composition du vrai paquet de l'époque du set (11 cartes chez Wizards, 10 aujourd'hui).
+    expect(res.cards).toHaveLength(boosterSize(boosterLayoutFor(set.serieId)));
     const cards = await prisma.card.findMany({ where: { id: { in: res.cards.map((c) => c.id) } }, select: { setId: true } });
     expect(new Set(cards.map((c) => c.setId))).toEqual(new Set([setId]));
     expect(res.balance).toBe(price);

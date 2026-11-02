@@ -1,4 +1,4 @@
-import { gameConfig } from "@pokeflex/config";
+import { boosterSize, gameConfig } from "@pokeflex/config";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -25,7 +25,7 @@ export default function AProposPage() {
         </h2>
         <p>
           Chaque carte du jeu de cartes à collectionner réel est une carte de PokeFlex. Tu reçois un booster gratuit de{" "}
-          {gameConfig.boosters.size} cartes toutes les {minutes} minutes (jusqu&apos;à {gameConfig.boosters.maxStock} en
+          {boosterSize()} cartes toutes les {minutes} minutes (jusqu&apos;à {gameConfig.boosters.maxStock} en
           réserve). Tu peux recycler tes doubles contre des Jetons, acheter des boosters d&apos;un set précis, et vendre
           au marché entre joueurs.
         </p>

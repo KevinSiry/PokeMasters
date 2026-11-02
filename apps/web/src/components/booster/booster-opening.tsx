@@ -33,7 +33,7 @@ interface BoosterOpeningProps {
   refillIntervalMs: number;
   balance: number;
   /** Booster d'un set précis, payé en Jetons. Sans `set` : booster gratuit « Toutes époques ». */
-  set?: { id: string; name: string; logo: string | null; price: number };
+  set?: { id: string; name: string; logo: string | null; price: number; size: number };
   /** Carte vedette illustrée sur la pochette (URL de base de son image). */
   cover?: string | null;
 }
@@ -478,7 +478,7 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
                     {phase === "charging" ? "Ouverture…" : <>Ouvrir · <Jetons value={set.price} /></>}
                   </Button>
                   <p className="text-sm text-muted">
-                    Ton solde : <Jetons value={balance} className="text-fg" /> · 5 cartes de ce set, dont au moins une Peu Commune
+                    Ton solde : <Jetons value={balance} className="text-fg" /> · {set.size} cartes de ce set, dont une Rare ou mieux
                   </p>
                 </>
               ) : (

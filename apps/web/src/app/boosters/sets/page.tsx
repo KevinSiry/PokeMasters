@@ -1,4 +1,4 @@
-import { gameConfig } from "@pokeflex/config";
+import { boosterSize, gameConfig } from "@pokeflex/config";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { BoosterTabs } from "@/components/booster/booster-tabs";
@@ -20,7 +20,7 @@ export default async function SetBoostersPage() {
       <header className="grid gap-2 text-center">
         <h1 className="font-display text-2xl font-bold sm:text-3xl">Boosters de set</h1>
         <p className="mx-auto max-w-[52ch] text-muted">
-          Cible le set qui te manque : 5 cartes de ce set pour <Jetons value={price} className="text-fg" />.{" "}
+          Cible le set qui te manque : un vrai paquet de ce set ({boosterSize()} cartes, 11 pour l&apos;époque Wizards) pour <Jetons value={price} className="text-fg" />.{" "}
           <span className="whitespace-nowrap">
             Ton solde : <Jetons value={player.balance} className="text-[#FFC93C]" />
           </span>
