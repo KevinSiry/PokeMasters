@@ -118,9 +118,15 @@ export const getCard = cache(async (id: string) => {
       },
     },
   });
-  if (!card?.droppable) return null;
+  if (!card) return null;
+  // Carte cachée du catalogue (ex. sans version française) : sa fiche reste ouverte tant que
+  // quelqu'un en possède un exemplaire, pour que la collection ne mène jamais à une page 404.
+  if (!card.droppable && (!card.image || !(await prisma.cardCopy.findFirst({ where: { cardId: id }, select: { id: true } })))) {
+    return null;
+  }
   return {
     ...card,
+    retired: !card.droppable,
     priceEurTrend: card.priceEurTrend ? Number(card.priceEurTrend) : null,
     attacks: card.attacks as unknown as CardAttack[],
     abilities: card.abilities as unknown as CardAbility[],

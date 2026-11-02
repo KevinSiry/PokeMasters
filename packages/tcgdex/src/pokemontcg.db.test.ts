@@ -68,19 +68,27 @@ describe.skipIf(skip)("images de repli dans la synchro", () => {
     prisma.card.findUniqueOrThrow({ where: { id }, select: { image: true, imageLang: true, droppable: true } });
 
   it("complète une carte sans scan TCGdex et la rend tirable", async () => {
-    await syncCatalog({ prisma, client: fakeClient(new Set([ids[0]!])), mode: "full", onlySets: [SET], restart: true, fetch: ptcgFetch });
+    await syncCatalog({ prisma, client: fakeClient(new Set([ids[0]!])), mode: "full", onlySets: [SET], restart: true, fetch: ptcgFetch, frenchOnly: false });
     expect(await card(ids[0]!)).toEqual({ image: "https://assets.tcgdex.net/en/sm/smp/ZZ1", imageLang: "en", droppable: true });
     expect(await card(ids[1]!)).toEqual({ image: "https://images.pokemontcg.io/smp/ZZ2", imageLang: "en", droppable: true });
   });
 
   it("garde l'image de repli quand le set est réimporté sans scan", async () => {
     const failing = (async () => new Response("", { status: 503 })) as unknown as typeof fetch;
-    await syncCatalog({ prisma, client: fakeClient(new Set([ids[0]!])), mode: "full", onlySets: [SET], restart: true, fetch: failing });
+    await syncCatalog({ prisma, client: fakeClient(new Set([ids[0]!])), mode: "full", onlySets: [SET], restart: true, fetch: failing, frenchOnly: false });
     expect((await card(ids[1]!)).image).toBe("https://images.pokemontcg.io/smp/ZZ2");
   });
 
   it("reprend le scan TCGdex dès qu'il est publié", async () => {
-    await syncCatalog({ prisma, client: fakeClient(new Set(ids)), mode: "new-sets", onlySets: [SET], fetch: ptcgFetch });
+    await syncCatalog({ prisma, client: fakeClient(new Set(ids)), mode: "new-sets", onlySets: [SET], fetch: ptcgFetch, frenchOnly: false });
     expect((await card(ids[1]!)).image).toBe("https://assets.tcgdex.net/en/sm/smp/ZZ2");
+  });
+
+  it("catalogue 100 % français : une carte anglaise est cachée, sans toucher aux cartes françaises", async () => {
+    const frBefore = await prisma.card.count({ where: { lang: "fr", imageLang: "fr", droppable: true } });
+    await syncCatalog({ prisma, client: fakeClient(new Set(ids)), mode: "full", onlySets: [SET], restart: true, fetch: ptcgFetch, frenchOnly: true });
+    expect((await card(ids[0]!)).droppable).toBe(false);
+    expect((await card(ids[1]!)).droppable).toBe(false);
+    expect(await prisma.card.count({ where: { lang: "fr", imageLang: "fr", droppable: true } })).toBe(frBefore);
   });
 });

@@ -16,6 +16,7 @@ import type { TcgdexClient, TcgdexLang } from "./client";
 import { buildFrenchNameIndex, frenchNameFor } from "./names";
 import { isExcludedSerie, needsResync, toCardRecord, toSetRecord, type CardRecord } from "./normalize";
 import { PTCG_IMAGE_HOST, fillFallbackImages } from "./pokemontcg";
+import { fillPokepediaImages } from "./pokepedia";
 import type { CardSummary, SetDetail } from "./schemas";
 
 export type SyncMode = "full" | "new-sets" | "prices";
@@ -32,6 +33,10 @@ export interface SyncOptions {
   now?: () => Date;
   /** `fetch` des images de repli (tests). */
   fetch?: typeof fetch;
+  /** Par défaut `catalog.frenchOnly` (tests). */
+  frenchOnly?: boolean;
+  /** `fetch` de l'API Poképédia (tests ; par défaut `fetch`). */
+  pokepediaFetch?: typeof fetch;
 }
 
 export interface SyncStats {
@@ -89,6 +94,7 @@ export async function syncCatalog(opts: SyncOptions): Promise<SyncStats & { runI
   }
   run ??= await prisma.syncRun.create({ data: { kind: mode, cursor: { doneSets: [] } } });
 
+  const frenchOnly = opts.frenchOnly ?? gameConfig.catalog.frenchOnly;
   const stats: SyncStats = { sets: 0, cards: 0, cardsEnOnly: 0, failed: [], skippedSets: 0 };
 
   try {
@@ -193,7 +199,8 @@ export async function syncCatalog(opts: SyncOptions): Promise<SyncStats & { runI
               lang: cardLang,
               nameFr: cardLang === "fr" ? card.name : null,
               nameEn: en?.name ?? (cardLang === "en" ? card.name : null),
-              fallbackImage: en?.image ?? null,
+              // Catalogue 100 % FR : pas d'image anglaise de repli (un scan Poképédia peut la remplacer).
+              fallbackImage: frenchOnly ? null : (en?.image ?? null),
             });
             const data = cardData(rec, now());
             // Sans scan TCGdex, on garde l'image de repli déjà posée (voir `pokemontcg.ts`).
@@ -224,8 +231,16 @@ export async function syncCatalog(opts: SyncOptions): Promise<SyncStats & { runI
     const named = await fillFrenchNames(prisma);
     if (named) log(`• ${named} cartes anglaises ont reçu leur nom français.`);
 
-    const filled = await fillFallbackImages(prisma, { fetch: opts.fetch, log });
-    if (filled) log(`• ${filled} cartes sans scan TCGdex ont reçu une image anglaise (Pokémon TCG API).`);
+    const pokepedia = await fillPokepediaImages(prisma, { fetch: opts.pokepediaFetch, log, onlySets: opts.onlySets });
+    if (pokepedia) log(`• ${pokepedia} cartes françaises sans scan TCGdex ont reçu le scan de Poképédia.`);
+
+    if (!frenchOnly) {
+      const filled = await fillFallbackImages(prisma, { fetch: opts.fetch, log, frenchOnly });
+      if (filled) log(`• ${filled} cartes sans scan TCGdex ont reçu une image anglaise (Pokémon TCG API).`);
+    }
+
+    const policy = await applyLanguagePolicy(prisma, frenchOnly);
+    log(`• Catalogue : ${policy.visible} cartes visibles, ${policy.hidden} cachées.`);
 
     // Date de la première sortie de chaque série, pour les ordonner chronologiquement.
     await prisma.$executeRaw`
@@ -245,6 +260,27 @@ export async function syncCatalog(opts: SyncOptions): Promise<SyncStats & { runI
     });
     throw err;
   }
+}
+
+/**
+ * Recalcule `droppable` pour tout le catalogue selon `catalog.frenchOnly` (voir `isPlayable`) :
+ * à lancer après un changement de cette option (`npm run sync:catalog -- --french`).
+ * Les exemplaires déjà possédés ne sont pas touchés.
+ */
+export async function applyLanguagePolicy(
+  prisma: PrismaClient,
+  frenchOnly: boolean = gameConfig.catalog.frenchOnly,
+): Promise<{ visible: number; hidden: number }> {
+  if (frenchOnly) {
+    await prisma.$executeRaw`
+      UPDATE "Card" SET droppable = (image IS NOT NULL AND lang = 'fr' AND "imageLang" = 'fr')
+      WHERE droppable IS DISTINCT FROM (image IS NOT NULL AND lang = 'fr' AND "imageLang" = 'fr')`;
+  } else {
+    await prisma.$executeRaw`
+      UPDATE "Card" SET droppable = (image IS NOT NULL) WHERE droppable IS DISTINCT FROM (image IS NOT NULL)`;
+  }
+  const [visible, total] = await Promise.all([prisma.card.count({ where: { droppable: true } }), prisma.card.count()]);
+  return { visible, hidden: total - visible };
 }
 
 /**

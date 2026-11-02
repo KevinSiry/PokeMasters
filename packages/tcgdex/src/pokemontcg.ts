@@ -6,6 +6,7 @@
  * Comme pour TCGdex, on ne stocke que l'URL : l'image est affichée depuis ce CDN,
  * jamais re-hébergée. Les images sont en anglais (`imageLang = en`).
  */
+import { gameConfig } from "@pokeflex/config";
 import type { PrismaClient } from "@pokeflex/db";
 import { z } from "zod";
 
@@ -138,6 +139,8 @@ export function matchFallbackImages(
 
 export interface FallbackImageOptions {
   fetch?: typeof fetch;
+  /** Par défaut `catalog.frenchOnly` : une image anglaise ne rend alors pas la carte tirable. */
+  frenchOnly?: boolean;
   log?: (line: string) => void;
 }
 
@@ -149,6 +152,7 @@ export interface FallbackImageOptions {
 export async function fillFallbackImages(prisma: PrismaClient, opts: FallbackImageOptions = {}): Promise<number> {
   const doFetch = opts.fetch ?? fetch;
   const log = opts.log ?? (() => {});
+  const frenchOnly = opts.frenchOnly ?? gameConfig.catalog.frenchOnly;
   const missing = await prisma.card.findMany({
     where: { image: null, setId: { in: Object.keys(PTCG_SETS) } },
     select: { id: true, localId: true, setId: true, nameEn: true },
@@ -173,7 +177,7 @@ export async function fillFallbackImages(prisma: PrismaClient, opts: FallbackIma
     }
     const found = matchFallbackImages(cards, ptcgCards, { byName: target.byName });
     for (const [id, image] of found) {
-      await prisma.card.update({ where: { id }, data: { image, imageLang: "en", droppable: true } });
+      await prisma.card.update({ where: { id }, data: { image, imageLang: "en", droppable: !frenchOnly } });
     }
     filled += found.size;
   }

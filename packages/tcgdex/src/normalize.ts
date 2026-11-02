@@ -175,8 +175,7 @@ export function toCardRecord({ detail, lang, nameFr, nameEn, fallbackImage }: Ca
     resistances: (detail.resistances ?? []).map((w) => ({ type: typeCode(w.type) ?? w.type, value: w.value != null ? String(w.value) : null })),
     variants: finishesOf(detail),
     priceEur: priceEurOf(detail),
-    // Une carte sans image n'est jamais tirée : l'ouverture d'un booster doit rester belle.
-    droppable: image !== null,
+    droppable: isPlayable({ image, lang, imageLang }),
   };
 }
 export type CardRecord = ReturnType<typeof toCardRecord>;
@@ -195,6 +194,18 @@ export function toSetRecord(set: SetDetail, lang: "fr" | "en", nameEn: string | 
     cardCountTotal: Math.max(set.cardCount.total, set.cards.length),
     lang,
   };
+}
+
+/**
+ * Une carte est visible et tirable si elle a une image (l'ouverture d'un booster doit rester
+ * belle) et, en mode `catalog.frenchOnly`, si ses données et son image sont en français.
+ */
+export function isPlayable(
+  card: { image: string | null; lang: string; imageLang: string | null },
+  frenchOnly: boolean = gameConfig.catalog.frenchOnly,
+): boolean {
+  if (card.image === null) return false;
+  return !frenchOnly || (card.lang === "fr" && card.imageLang === "fr");
 }
 
 /** Séries exclues par configuration (TCG Pocket par défaut). */

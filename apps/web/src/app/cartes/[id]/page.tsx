@@ -14,7 +14,7 @@ import { ListingTile } from "@/components/market/listing-tile";
 import { EnergyIcon } from "@/components/energy-icon";
 import { TierBadge } from "@/components/tier-badge";
 import { TiltCard } from "@/components/tilt-card";
-import { cardImageUrl } from "@/lib/card-image";
+import { cardImageUrl, pokepediaFilePage } from "@/lib/card-image";
 import { getCard, getSamePokemon, getSetNeighbours } from "@/lib/catalog";
 import { getMyCopies } from "@/lib/collection";
 import { getCurrentPlayerSafe } from "@/lib/player";
@@ -32,6 +32,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     title: `${card.name} — ${card.set.name}`,
     description: `${card.name} (${card.set.name}, ${card.localId}/${card.set.cardCountOfficial}) : tier ${TIER_LABELS_FR[card.tier]}${card.illustrator ? `, illustrée par ${card.illustrator}` : ""}.`,
     openGraph: img ? { images: [{ url: img }] } : undefined,
+    robots: card.retired ? { index: false } : undefined,
   };
 }
 
@@ -61,6 +62,7 @@ export default async function CardPage({ params }: { params: Params }) {
     : [null, null, []];
   const finishes = (Object.keys(FINISH_LABELS_FR) as Finish[]).filter((f) => card.variants?.[f]);
   const price = formatEur(card.priceEurTrend);
+  const scanCredit = pokepediaFilePage(card.image);
 
   return (
     <div className="grid grid-cols-1 gap-10 py-6 sm:py-10">
@@ -110,8 +112,12 @@ export default async function CardPage({ params }: { params: Params }) {
                 <span className="rounded-full border border-line px-2.5 py-1 text-xs text-muted">{card.rarityRaw}</span>
               )}
               <span className="rounded-full border border-line px-2.5 py-1 text-xs text-muted">{CATEGORY_LABELS[card.category]}</span>
-              {card.lang === "en" && (
-                <span className="rounded-full bg-elev px-2.5 py-1 font-mono text-xs font-bold">EN · pas de version FR</span>
+              {card.retired ? (
+                <span className="rounded-full bg-elev px-2.5 py-1 text-xs font-bold">Retirée du catalogue (pas de version française)</span>
+              ) : (
+                card.lang === "en" && (
+                  <span className="rounded-full bg-elev px-2.5 py-1 font-mono text-xs font-bold">EN · pas de version FR</span>
+                )
               )}
             </div>
             <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
@@ -273,6 +279,22 @@ export default async function CardPage({ params }: { params: Params }) {
                       <Palette aria-hidden="true" className="size-3.5" />
                       {card.illustrator}
                     </Link>
+                  </dd>
+                </div>
+              )}
+              {scanCredit && (
+                <div className="flex items-center justify-between gap-3 sm:block">
+                  <dt className="text-muted">Scan</dt>
+                  <dd>
+                    <a
+                      href={scanCredit}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="pf-hit relative font-semibold text-accent hover:underline"
+                      title="Scan Poképédia, licence CC BY-NC-SA 3.0"
+                    >
+                      Poképédia (CC BY-NC-SA)
+                    </a>
                   </dd>
                 </div>
               )}
