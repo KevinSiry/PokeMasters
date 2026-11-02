@@ -27,12 +27,15 @@ export interface RecyclableCopy {
   tier: Tier;
   finish: Finish;
   obtainedAt: Date;
+  /** Exemplaire protégé (cadenas ou classeur) : jamais recyclé, et c'est lui qu'on garde. */
+  locked?: boolean;
 }
 
 /**
  * Doublons à recycler : pour chaque carte, garde un exemplaire (la plus belle finition,
  * puis le plus ancien) et renvoie tous les autres. `tiers` limite le recyclage à certains tiers ;
- * les cartes de `keepCardIds` (favoris du joueur) gardent tous leurs exemplaires.
+ * les cartes de `keepCardIds` (favoris du joueur) gardent tous leurs exemplaires. Un exemplaire
+ * protégé n'est jamais renvoyé et compte comme l'exemplaire gardé.
  */
 export function pickDuplicates(
   copies: readonly RecyclableCopy[],
@@ -47,11 +50,12 @@ export function pickDuplicates(
     if (group.length < 2) continue;
     const sorted = [...group].sort(
       (a, b) =>
+        Number(!!b.locked) - Number(!!a.locked) ||
         FINISH_KEEP_RANK[b.finish] - FINISH_KEEP_RANK[a.finish] ||
         a.obtainedAt.getTime() - b.obtainedAt.getTime() ||
         a.id.localeCompare(b.id),
     );
-    for (const c of sorted.slice(1)) if (allowed.has(c.tier)) out.push(c);
+    for (const c of sorted.slice(1)) if (allowed.has(c.tier) && !c.locked) out.push(c);
   }
   return out;
 }

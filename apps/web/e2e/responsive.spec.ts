@@ -13,6 +13,7 @@ const PAGES = [
   "/recherche?q=dra",
   "/collection",
   "/collection?vue=cartes",
+  "/collection?vue=classeurs",
   "/boosters",
   "/boosters/sets",
   "/marche",

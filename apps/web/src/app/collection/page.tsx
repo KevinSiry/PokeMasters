@@ -1,9 +1,11 @@
 import { FINISH_LABELS_FR, gameConfig } from "@pokeflex/config";
-import { getFavoriteCardIds, getFavorites, getWishlist, getWishlistSummary } from "@pokeflex/server";
-import { CheckCircle2, ChevronDown, GalleryVerticalEnd, Heart, Sparkles, Star, Store } from "lucide-react";
+import { getFavoriteCardIds, getFavorites, getWishlist, getWishlistSummary, listBinders } from "@pokeflex/server";
+import { BookOpen, CheckCircle2, ChevronDown, GalleryVerticalEnd, Heart, Sparkles, Star, Store } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { BinderList } from "@/components/binders/binder-list";
+import { CreateBinder } from "@/components/binders/create-binder";
 import { CardTile } from "@/components/catalog/card-tile";
 import { RecycleDuplicates } from "@/components/economy/recycle-duplicates";
 import { Jetons } from "@/components/jetons";
@@ -34,6 +36,7 @@ const VIEWS = [
   { id: "cartes", label: "Mes cartes" },
   { id: "favoris", label: "Favoris" },
   { id: "wishlist", label: "Wishlist" },
+  { id: "classeurs", label: "Classeurs" },
   { id: "pokedex", label: "Pokédex" },
   { id: "illustrateurs", label: "Illustrateurs" },
 ] as const;
@@ -110,6 +113,7 @@ export default async function CollectionPage({ searchParams }: { searchParams: S
           {view === "cartes" && <CardsView userId={player.id} sort={(SORTS.find((s) => s.id === sp.tri)?.id ?? "recent") as CollectionSort} page={sp.page} />}
           {view === "favoris" && <FavoritesView userId={player.id} page={sp.page} />}
           {view === "wishlist" && <WishlistView userId={player.id} page={sp.page} />}
+          {view === "classeurs" && <BindersView userId={player.id} />}
           {view === "pokedex" && <DexView userId={player.id} gen={Number(sp.gen ?? 1)} />}
           {view === "illustrateurs" && <IllustratorsView userId={player.id} />}
         </>
@@ -226,6 +230,26 @@ function PageCount({ info }: { info: PageInfo }) {
     <p className="text-sm text-muted">
       Cartes {(info.start + 1).toLocaleString("fr-FR")} à {info.end.toLocaleString("fr-FR")} sur {info.total.toLocaleString("fr-FR")}
     </p>
+  );
+}
+
+async function BindersView({ userId }: { userId: string }) {
+  const binders = await listBinders(userId);
+  return (
+    <div className="grid grid-cols-1 gap-4">
+      <p className="max-w-prose text-sm text-muted">
+        Range tes plus belles cartes dans des classeurs et partage-les sur ton profil. Une carte rangée est protégée : elle ne peut être ni
+        vendue, ni recyclée, ni échangée par erreur. {plural(binders.length, "classeur")} sur {gameConfig.binders.maxPerUser}.
+      </p>
+      {binders.length < gameConfig.binders.maxPerUser && <CreateBinder />}
+      {binders.length === 0 ? (
+        <ListEmpty icon={<BookOpen aria-hidden="true" className="size-7 text-accent" />} title="Aucun classeur">
+          Crée ton premier classeur, puis ouvre la fiche d&apos;une carte de ta collection et touche « Classeur » pour l&apos;y ranger.
+        </ListEmpty>
+      ) : (
+        <BinderList binders={binders} showPrivacy />
+      )}
+    </div>
   );
 }
 

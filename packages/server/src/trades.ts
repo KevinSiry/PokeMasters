@@ -112,7 +112,7 @@ export async function proposeTrade(userId: string, input: ProposeTradeInput, now
 
       const copies = await tx.cardCopy.findMany({
         where: { id: { in: [...give, ...take] } },
-        select: { id: true, ownerId: true, status: true, cardId: true, finish: true },
+        select: { id: true, ownerId: true, status: true, cardId: true, finish: true, lockedAt: true },
       });
       const byId = new Map(copies.map((c) => [c.id, c]));
       const check = (ids: string[], owner: string) =>
@@ -120,6 +120,12 @@ export async function proposeTrade(userId: string, input: ProposeTradeInput, now
           const c = byId.get(id);
           if (!c || c.ownerId !== owner || c.status !== "owned") {
             throw new TradeError("not_available", owner === userId ? "Un de tes exemplaires n'est plus disponible (vendu, recyclé ou en vente)." : "Une carte demandée n'est plus disponible chez ce joueur.");
+          }
+          if (c.lockedAt) {
+            throw new TradeError(
+              "not_available",
+              owner === userId ? "Un de tes exemplaires est protégé (cadenas ou classeur) : déverrouille-le pour l'échanger." : "Une carte demandée n'est plus disponible chez ce joueur.",
+            );
           }
           return c;
         });
@@ -181,9 +187,11 @@ export async function acceptTrade(userId: string, tradeId: string, now = new Dat
 
       const items = await tx.tradeItem.findMany({
         where: { tradeId },
-        select: { copyId: true, fromUserId: true, cardId: true, copy: { select: { ownerId: true, status: true } } },
+        select: { copyId: true, fromUserId: true, cardId: true, copy: { select: { ownerId: true, status: true, lockedAt: true } } },
       });
-      const unavailable = items.some((i) => !i.copyId || !i.copy || i.copy.ownerId !== i.fromUserId || i.copy.status !== "owned");
+      const unavailable = items.some(
+        (i) => !i.copyId || !i.copy || i.copy.ownerId !== i.fromUserId || i.copy.status !== "owned" || i.copy.lockedAt !== null,
+      );
       if (unavailable) {
         await tx.trade.update({ where: { id: tradeId }, data: { status: "unavailable", closedAt: now } });
         return { unavailable: true as const };
@@ -202,7 +210,7 @@ export async function acceptTrade(userId: string, tradeId: string, now = new Dat
       for (const i of items) {
         const to = i.fromUserId === t.proposerId ? t.recipientId : t.proposerId;
         const moved = await tx.cardCopy.updateMany({
-          where: { id: i.copyId!, ownerId: i.fromUserId, status: "owned" },
+          where: { id: i.copyId!, ownerId: i.fromUserId, status: "owned", lockedAt: null },
           data: { ownerId: to, obtainedVia: "trade", obtainedAt: now, openingId: null },
         });
         if (moved.count !== 1) throw new Error(`Exemplaire ${i.copyId} modifié pendant l'échange ${tradeId}`);
@@ -398,12 +406,12 @@ interface GroupFilter {
  * « Recycler les doublons ». Un exemplaire en vente au marché ne compte pas : il n'est ni échangeable ni recyclable.
  */
 const isDuplicate = (ownerId: string) =>
-  Prisma.sql`(SELECT count(*) FROM "CardCopy" d WHERE d."ownerId" = ${ownerId} AND d."cardId" = cc."cardId" AND d.status = 'owned') >= 2`;
+  Prisma.sql`(SELECT count(*) FROM "CardCopy" d WHERE d."ownerId" = ${ownerId} AND d."cardId" = cc."cardId" AND d.status = 'owned' AND d."lockedAt" IS NULL) >= 2`;
 
 /** Conditions SQL communes : exemplaires libres (ni en vente ni favoris) et filtres du sélecteur. */
 function groupWhere(ownerId: string, wisherId: string | null, f: GroupFilter) {
   const q = f.q?.trim().slice(0, 80) ?? "";
-  return Prisma.sql`cc."ownerId" = ${ownerId} AND cc.status = 'owned'
+  return Prisma.sql`cc."ownerId" = ${ownerId} AND cc.status = 'owned' AND cc."lockedAt" IS NULL
       AND NOT EXISTS (SELECT 1 FROM "FavoriteCard" f WHERE f."userId" = ${ownerId} AND f."cardId" = cc."cardId")
       ${q ? Prisma.sql`AND pf_unaccent(lower(c.name || ' ' || s.name)) LIKE '%' || pf_unaccent(lower(${q})) || '%'` : Prisma.empty}
       ${f.onlyWished ? Prisma.sql`AND EXISTS (SELECT 1 FROM "WishlistCard" w WHERE w."userId" = ${wisherId} AND w."cardId" = cc."cardId")` : Prisma.empty}
@@ -537,7 +545,7 @@ export async function getTradeSuggestions(userId: string, take = 6): Promise<Tra
   const rows = await prisma.$queryRaw<{ ownerId: string; matches: number; cardIds: string[] }[]>`
     SELECT cc."ownerId", count(DISTINCT cc."cardId")::int AS matches, (array_agg(DISTINCT cc."cardId"))[1:4] AS "cardIds"
     FROM "WishlistCard" w
-    JOIN "CardCopy" cc ON cc."cardId" = w."cardId" AND cc.status = 'owned' AND cc."ownerId" <> ${userId}
+    JOIN "CardCopy" cc ON cc."cardId" = w."cardId" AND cc.status = 'owned' AND cc."lockedAt" IS NULL AND cc."ownerId" <> ${userId}
     JOIN "User" u ON u.id = cc."ownerId" AND u.handle IS NOT NULL
     WHERE w."userId" = ${userId}
       AND NOT EXISTS (SELECT 1 FROM "FavoriteCard" f WHERE f."userId" = cc."ownerId" AND f."cardId" = cc."cardId")
@@ -567,7 +575,7 @@ export async function getCardTraders(cardId: string, viewerId: string, take = 8)
     SELECT cc."ownerId", count(*)::int AS copies
     FROM "CardCopy" cc
     JOIN "User" u ON u.id = cc."ownerId" AND u.handle IS NOT NULL
-    WHERE cc."cardId" = ${cardId} AND cc.status = 'owned' AND cc."ownerId" <> ${viewerId}
+    WHERE cc."cardId" = ${cardId} AND cc.status = 'owned' AND cc."lockedAt" IS NULL AND cc."ownerId" <> ${viewerId}
       AND NOT EXISTS (SELECT 1 FROM "FavoriteCard" f WHERE f."userId" = cc."ownerId" AND f."cardId" = cc."cardId")
       AND NOT EXISTS (SELECT 1 FROM "Block" b WHERE (b."userId" = ${viewerId} AND b."blockedId" = cc."ownerId") OR (b."userId" = cc."ownerId" AND b."blockedId" = ${viewerId}))
       AND (${friendsOnly} = false OR EXISTS (SELECT 1 FROM "Friendship" fr WHERE fr."userId" = ${viewerId} AND fr."friendId" = cc."ownerId" AND fr.status = 'accepted'))
