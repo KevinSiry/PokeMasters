@@ -34,7 +34,7 @@ interface BoosterOpeningProps {
   refillIntervalMs: number;
   balance: number;
   /** Booster d'un set précis, payé en Jetons. Sans `set` : booster gratuit « Toutes époques ». */
-  set?: { id: string; name: string; logo: string | null; price: number; size: number };
+  set?: { id: string; name: string; logo: string | null; price: number; size: number; weekly?: boolean };
   /** Carte vedette illustrée sur la pochette (URL de base de son image). */
   cover?: string | null;
 }
@@ -472,6 +472,11 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
           </motion.button>
 
           <div className="grid justify-items-center gap-3 text-center">
+            {set?.weekly && (
+              <p className="rounded-full bg-[#FFC93C] px-3 py-1 font-mono text-xs font-bold tracking-[0.12em] text-bg uppercase">
+                Set de la semaine · prix réduit
+              </p>
+            )}
             {set ? (
               canOpen ? (
                 <>

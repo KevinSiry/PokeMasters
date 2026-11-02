@@ -1,6 +1,6 @@
 import { TIERS, type Tier, boosterSize, gameConfig, tierRank } from "@pokeflex/config";
 import { describe, expect, it } from "vitest";
-import { EmptyPoolError, drawBoosterSlots, drawFinish, drawIndex, rollGodPack } from "./booster";
+import { EmptyPoolError, drawBoosterSlots, drawFinish, drawIndex, pickWeeklySet, rollGodPack, weeklyBoosterPrice } from "./booster";
 import { seededRng } from "./rng";
 
 const cfg = gameConfig.boosters;
@@ -112,5 +112,27 @@ describe("drawIndex", () => {
       expect(k).toBeLessThan(17);
     }
     expect(() => drawIndex(0, rng)).toThrow(EmptyPoolError);
+  });
+});
+
+describe("set de la semaine", () => {
+  const sets = ["sv01", "sv02", "base1", "swsh1"];
+  it("donne le même set pour une même semaine, quel que soit l'ordre de la liste", () => {
+    const a = pickWeeklySet("2026-11-02", sets, new Set());
+    expect(sets).toContain(a);
+    expect(pickWeeklySet("2026-11-02", [...sets].reverse(), new Set())).toBe(a);
+  });
+  it("évite les sets récents tant qu'il en reste d'autres", () => {
+    expect(pickWeeklySet("2026-11-09", sets, new Set(["sv01", "sv02", "base1"]))).toBe("swsh1");
+    expect(sets).toContain(pickWeeklySet("2026-11-09", sets, new Set(sets)));
+    expect(pickWeeklySet("2026-11-09", [], new Set())).toBeNull();
+  });
+  it("change d'une semaine à l'autre", () => {
+    const weeks = Array.from({ length: 20 }, (_, i) => pickWeeklySet(`2026-${String(i + 1).padStart(2, "0")}-01`, sets, new Set()));
+    expect(new Set(weeks).size).toBeGreaterThan(1);
+  });
+  it("réduit le prix", () => {
+    expect(weeklyBoosterPrice(150, 0.6)).toBe(90);
+    expect(weeklyBoosterPrice(1, 0.1)).toBe(1);
   });
 });

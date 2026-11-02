@@ -37,13 +37,24 @@ function norm(s: string) {
 }
 
 /** Vitrine des boosters de set : recherche, filtres et progression du joueur sur chaque set. */
-export function SetShop({ sets, balance, price }: { sets: ShopSet[]; balance: number; price: number }) {
+export function SetShop({
+  sets,
+  balance,
+  price,
+  weekly = null,
+}: {
+  sets: ShopSet[];
+  balance: number;
+  price: number;
+  /** Set de la semaine : son booster coûte moins cher. */
+  weekly?: { setId: string; price: number } | null;
+}) {
   const params = useSearchParams();
   const [q, setQ] = useState(() => params.get("filtre") ?? "");
   const [filter, setFilter] = useState<Filter>(() => FILTER_PARAM.find((f) => f[1] === params.get("statut"))?.[0] ?? "all");
   useUrlFilters({ filtre: q.trim() || null, statut: FILTER_PARAM.find((f) => f[0] === filter)?.[1] ?? null });
   const query = useDeferredValue(q);
-  const affordable = balance >= price;
+  const costOf = (setId: string) => (weekly?.setId === setId ? weekly.price : price);
 
   const groups = useMemo(() => {
     const nq = norm(query.trim());
@@ -110,7 +121,7 @@ export function SetShop({ sets, balance, price }: { sets: ShopSet[]; balance: nu
                   className="group grid gap-2.5 rounded-[var(--radius-card)] border border-line bg-surface p-3 transition-[border-color,transform] hover:-translate-y-0.5 hover:border-accent"
                 >
                   <div className="relative mx-auto w-[78%] transition-transform group-hover:-rotate-2">
-                    <BoosterPackArt label={s.name} logo={s.logo} cover={s.cover} count={boosterSize(boosterLayoutFor(s.serieId))} coverQuality="low" palette={s.id} empty={!affordable} className="shadow-none" />
+                    <BoosterPackArt label={s.name} logo={s.logo} cover={s.cover} count={boosterSize(boosterLayoutFor(s.serieId))} coverQuality="low" palette={s.id} empty={balance < costOf(s.id)} className="shadow-none" />
                     {s.completed && (
                       <span className="absolute -top-2 -right-2 grid size-7 place-items-center rounded-full bg-lime text-bg" title="Set complété">
                         <CheckCircle2 aria-label="Set complété" className="size-4" />
@@ -123,7 +134,7 @@ export function SetShop({ sets, balance, price }: { sets: ShopSet[]; balance: nu
                       <span className={cn("font-mono", s.completed ? "text-lime" : "text-muted")}>
                         {s.owned}/{s.droppable}
                       </span>
-                      <Jetons value={price} className={affordable ? "text-[#FFC93C]" : "text-muted"} />
+                      <Jetons value={costOf(s.id)} className={balance >= costOf(s.id) ? "text-[#FFC93C]" : "text-muted"} />
                     </div>
                     <ProgressBar value={s.owned} max={s.droppable} label={`Complétion ${s.name}`} />
                   </div>
