@@ -53,6 +53,8 @@ export interface PulledCard {
   name: string;
   image: string | null;
   tier: Tier;
+  /** Rareté officielle brute (TCGdex), affichée via `rarityLabel`. */
+  rarityRaw: string | null;
   finish: Finish;
   lang: "fr" | "en";
   localId: string;
@@ -119,7 +121,7 @@ export async function openBooster(userId: string, what: BoosterKind, rng: Rng = 
     const ids = tiers.map((t) => pools[t][drawIndex(pools[t].length, rng)]!);
     const cards = await tx.card.findMany({
       where: { id: { in: ids } },
-      select: { id: true, name: true, image: true, tier: true, lang: true, localId: true, variants: true, setId: true, set: { select: { name: true } } },
+      select: { id: true, name: true, image: true, tier: true, rarityRaw: true, lang: true, localId: true, variants: true, setId: true, set: { select: { name: true } } },
     });
     const byId = new Map(cards.map((c) => [c.id, c]));
     const owned = new Set(
@@ -179,6 +181,7 @@ export async function openBooster(userId: string, what: BoosterKind, rng: Rng = 
         image: c.image,
         // Le tier du tirage fait foi (la carte a pu changer de tier depuis la mise en cache du pool).
         tier: tiers[i]!,
+        rarityRaw: c.rarityRaw,
         finish: finishes[i]!,
         lang: c.lang,
         localId: c.localId,

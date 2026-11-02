@@ -31,6 +31,8 @@ export interface CardTile {
   name: string;
   image: string | null;
   tier: Tier;
+  /** Rareté officielle brute (TCGdex), affichée via `rarityLabel`. */
+  rarityRaw: string | null;
   category: "pokemon" | "trainer" | "energy";
   types: string[];
   lang: "fr" | "en";
@@ -44,6 +46,7 @@ export const cardTileSelect = {
   name: true,
   image: true,
   tier: true,
+  rarityRaw: true,
   category: true,
   types: true,
   lang: true,
@@ -186,7 +189,7 @@ export async function searchCards(
   if (term.length < 2) return [];
   return prisma.$queryRaw<SearchResult[]>`
     WITH q AS (SELECT lower(pf_unaccent(${term})) AS t)
-    SELECT c.id, c."localId", c.name, c."nameEn", c.image, c.tier::text AS tier, c.category::text AS category,
+    SELECT c.id, c."localId", c.name, c."nameEn", c.image, c.tier::text AS tier, c."rarityRaw", c.category::text AS category,
            c.types, c.lang::text AS lang, c.droppable, s.name AS "setName"
     FROM "Card" c JOIN "Set" s ON s.id = c."setId", q
     WHERE c.droppable

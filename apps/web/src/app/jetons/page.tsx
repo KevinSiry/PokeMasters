@@ -21,6 +21,7 @@ const ICONS: Partial<Record<LedgerReason, typeof Gift>> = {
   recycle: Recycle,
   set_booster: Library,
   set_bonus: Trophy,
+  rarity_bonus: Trophy,
   quest: Target,
   duel_win: Swords,
   duel_draw: Swords,
@@ -28,7 +29,7 @@ const ICONS: Partial<Record<LedgerReason, typeof Gift>> = {
 };
 
 function detail(reason: LedgerReason, meta: unknown): string | null {
-  const m = (meta ?? {}) as { count?: number; byTier?: Partial<Record<Tier, number>>; name?: string; setId?: string };
+  const m = (meta ?? {}) as { count?: number; byTier?: Partial<Record<Tier, number>>; name?: string; setId?: string; rarity?: string };
   if (reason === "recycle" && m.count) {
     const tiers = Object.entries(m.byTier ?? {})
       .map(([t, n]) => `${n} ${TIER_LABELS_FR[t as Tier]}`)
@@ -36,6 +37,7 @@ function detail(reason: LedgerReason, meta: unknown): string | null {
     return `${m.count} carte${m.count > 1 ? "s" : ""}${tiers ? ` (${tiers})` : ""}`;
   }
   if (reason === "set_bonus" && m.name) return m.name;
+  if (reason === "rarity_bonus" && m.name) return `${m.name} · toutes les ${m.rarity ?? "cartes"}`;
   return null;
 }
 

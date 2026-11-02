@@ -1,4 +1,4 @@
-import { FINISH_LABELS_FR, TIER_LABELS_FR } from "@pokeflex/config";
+import { FINISH_LABELS_FR, rarityLabel } from "@pokeflex/config";
 import { closeAuction, getCardMarket, getListing, getOwnedCopyCounts } from "@pokeflex/server";
 import { Check } from "lucide-react";
 import type { Metadata } from "next";
@@ -43,7 +43,7 @@ export default async function ListingPage({ params }: { params: Params }) {
         <div className="grid min-w-0 gap-5">
           <header className="grid gap-2">
             <div className="flex flex-wrap items-center gap-2">
-              <TierBadge tier={l.card.tier} />
+              <TierBadge tier={l.card.tier} rarityRaw={l.card.rarityRaw} />
               {l.finish !== "normal" && (
                 <span className="rounded-full bg-gradient-to-r from-accent-strong to-coral-strong px-2.5 py-1 text-xs font-bold">{FINISH_LABELS_FR[l.finish]}</span>
               )}
@@ -90,7 +90,7 @@ export default async function ListingPage({ params }: { params: Params }) {
               Cote de la carte
             </h2>
             {market.stats.count === 0 ? (
-              <p className="text-sm text-muted">Aucune vente ces 30 derniers jours. Rareté : {TIER_LABELS_FR[l.card.tier]}.</p>
+              <p className="text-sm text-muted">Aucune vente ces 30 derniers jours. Rareté : {rarityLabel(l.card)}.</p>
             ) : (
               <dl className="grid grid-cols-3 gap-3 text-sm">
                 <div>

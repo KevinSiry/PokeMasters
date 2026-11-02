@@ -252,6 +252,7 @@ const listingCardSelect = {
   name: true,
   image: true,
   tier: true,
+  rarityRaw: true,
   lang: true,
   localId: true,
   set: { select: { id: true, name: true } },
@@ -271,7 +272,17 @@ export interface ListingView {
   currentBidderId: string | null;
   /** Acheteur, une fois la carte vendue. */
   buyerId: string | null;
-  card: { id: string; name: string; image: string | null; tier: Tier; lang: "fr" | "en"; localId: string; setId: string; setName: string };
+  card: {
+    id: string;
+    name: string;
+    image: string | null;
+    tier: Tier;
+    rarityRaw: string | null;
+    lang: "fr" | "en";
+    localId: string;
+    setId: string;
+    setName: string;
+  };
 }
 
 type ListingWithJoins = Prisma.ListingGetPayload<{
@@ -300,6 +311,7 @@ function toView(l: ListingWithJoins): ListingView {
       id: l.card.id,
       name: l.card.name,
       image: l.card.image,
+      rarityRaw: l.card.rarityRaw,
       tier: l.card.tier,
       lang: l.card.lang,
       localId: l.card.localId,

@@ -1,4 +1,4 @@
-import { TIER_LABELS_FR, type Tier } from "@pokeflex/config";
+import { TIER_LABELS_FR, rarityLabel, type Tier } from "@pokeflex/config";
 import { cn } from "@/lib/utils";
 
 /** Chaque tier a une couleur ET une forme : lisible sans distinguer les couleurs. */
@@ -20,7 +20,11 @@ export const TIER_TEXT: Record<Tier, string> = {
   mythic: "text-tier-mythic",
 };
 
-export function TierBadge({ tier, className }: { tier: Tier; className?: string }) {
+/**
+ * Badge de rareté. Avec `rarityRaw`, affiche la rareté officielle de la carte (« Double Rare »),
+ * aux couleurs de son tier ; sans, le nom du tier (groupes de raretés : taux, recyclage…).
+ */
+export function TierBadge({ tier, rarityRaw, className }: { tier: Tier; rarityRaw?: string | null; className?: string }) {
   return (
     <span
       className={cn(
@@ -30,7 +34,7 @@ export function TierBadge({ tier, className }: { tier: Tier; className?: string 
       )}
     >
       <span aria-hidden="true">{TIER_ICON[tier]}</span>
-      {TIER_LABELS_FR[tier]}
+      {rarityRaw === undefined ? TIER_LABELS_FR[tier] : rarityLabel({ tier, rarityRaw })}
     </span>
   );
 }

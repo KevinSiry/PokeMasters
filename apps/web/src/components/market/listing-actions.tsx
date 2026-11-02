@@ -1,6 +1,6 @@
 "use client";
 
-import { gameConfig } from "@pokeflex/config";
+import { completionTitle, gameConfig } from "@pokeflex/config";
 import { minNextBid } from "@pokeflex/game/market";
 import { Gavel, ShoppingBag, X } from "lucide-react";
 import { motion } from "motion/react";
@@ -68,7 +68,7 @@ export function ListingActions({ listing: l, viewer }: Props) {
       setConfirm(false);
       setBought(true);
       emitBalance(res.data.balance);
-      for (const s of res.data.completedSets) toast({ title: `Set complété : ${s.name}`, jetons: s.bonus });
+      for (const s of res.data.completedSets) toast({ title: `${completionTitle(s)} : ${s.name}`, jetons: s.bonus });
       router.refresh();
     });
   }

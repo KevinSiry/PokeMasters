@@ -1,7 +1,7 @@
 import { gameConfig } from "@pokeflex/config";
 import { prisma } from "@pokeflex/db";
 import { setCompletionBonus } from "@pokeflex/game";
-import { getFavoriteCardIds, getWishlistCardIds } from "@pokeflex/server";
+import { getFavoriteCardIds, getWishlistCardIds, rarityProgress } from "@pokeflex/server";
 import { CheckCircle2, Sparkles } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -34,21 +34,30 @@ export default async function SetPage({ params }: { params: Params }) {
   const set = await getSet(setId);
   if (!set) notFound();
   const [cards, player, logo] = await Promise.all([getSetCards(set.id), getCurrentPlayerSafe(), resolveLogo(set.logo)]);
-  const [owned, completion, favoriteIds, wishlistIds] = player
+  const [owned, completion, rarityDone, favoriteIds, wishlistIds] = player
     ? await Promise.all([
         getOwnedCounts(player.id, set.id),
         prisma.setCompletion.findUnique({ where: { userId_setId: { userId: player.id, setId: set.id } } }),
+        prisma.setRarityCompletion.findMany({ where: { userId: player.id, setId: set.id }, select: { rarity: true } }),
         getFavoriteCardIds(player.id),
         getWishlistCardIds(
           player.id,
           cards.map((c) => c.id),
         ),
       ])
-    : [null, null, null, null];
+    : [null, null, null, null, null];
   // Seules les cartes tirables (avec image) comptent pour compléter un set.
   const collectable = cards.filter((c) => c.droppable);
   const ownedCount = owned ? collectable.filter((c) => owned[c.id]).length : 0;
   const bonus = setCompletionBonus(set.cardCountOfficial, gameConfig.economy.setCompletionBonusPerCard);
+  // Progression par rareté officielle (bonus unique quand toutes les cartes d'une rareté sont possédées).
+  const rarities = owned
+    ? rarityProgress(
+        collectable,
+        new Set(collectable.filter((c) => owned[c.id]).map((c) => c.id)),
+      )
+    : [];
+  const doneRarities = new Set(rarityDone?.map((r) => r.rarity));
   // Seules les listes de ce set partent vers le client.
   const setCardIds = new Set(cards.map((c) => c.id));
   const inSet = (id: string) => setCardIds.has(id);
@@ -115,6 +124,37 @@ export default async function SetPage({ params }: { params: Params }) {
                   </>
                 )}
               </p>
+              {rarities.length > 1 && (
+                <ul className="flex flex-wrap gap-1.5 pt-1" aria-label="Progression par rareté">
+                  {rarities.map((r) => {
+                    const done = r.owned >= r.total;
+                    return (
+                      <li
+                        key={r.rarity}
+                        className={
+                          done
+                            ? "inline-flex items-center gap-1 rounded-full bg-lime/15 px-2.5 py-1 text-xs font-semibold text-lime"
+                            : "inline-flex items-center gap-1 rounded-full border border-line px-2.5 py-1 text-xs"
+                        }
+                        title={
+                          r.bonus === 0
+                            ? "Trop peu de cartes pour un bonus"
+                            : doneRarities.has(r.rarity)
+                              ? `Bonus de ${r.bonus} Jetons reçu`
+                              : `Toutes les ${r.rarity} : ${r.bonus} Jetons`
+                        }
+                      >
+                        {done && <CheckCircle2 aria-hidden="true" className="size-3.5" />}
+                        {r.rarity}
+                        <span className="font-mono">
+                          {r.owned}/{r.total}
+                        </span>
+                        {r.bonus > 0 && !doneRarities.has(r.rarity) && <Jetons value={r.bonus} className="text-muted" />}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </div>
           )}
           {player && hasBooster && (

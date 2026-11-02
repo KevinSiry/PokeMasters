@@ -8,6 +8,7 @@ import {
   pickDuplicates,
   recyclePayout,
   setCompletionBonus,
+  rarityCompletionBonus,
   type RecyclableCopy,
 } from "./economy";
 import { seededRng } from "./rng";
@@ -112,5 +113,15 @@ describe("équilibrage", () => {
     const ratio = setBoosterPrice / expectedBoosterValue(tierWeights, values, size);
     expect(ratio).toBeGreaterThan(2.8);
     expect(ratio).toBeLessThan(3.6);
+  });
+});
+
+describe("rarityCompletionBonus", () => {
+  it("vaut perCard × nombre de cartes du tier", () => {
+    expect(rarityCompletionBonus(16, 6, 3)).toBe(96);
+  });
+  it("ne donne rien sous le minimum de cartes", () => {
+    expect(rarityCompletionBonus(2, 50, 3)).toBe(0);
+    expect(rarityCompletionBonus(3, 50, 3)).toBe(150);
   });
 });

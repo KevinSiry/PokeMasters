@@ -1,4 +1,4 @@
-import { gameConfig, TIERS } from "@pokeflex/config";
+import { RARITY_SHOWCASE, gameConfig, officialRarityTier } from "@pokeflex/config";
 import { Layers, Sparkles, Store } from "lucide-react";
 import Link from "next/link";
 import { TierBadge } from "@/components/tier-badge";
@@ -20,7 +20,7 @@ const STEPS = [
   {
     icon: Sparkles,
     title: "Ouvre",
-    body: `Un booster de ${gameConfig.boosters.size} cartes toutes les ${minutes} minutes, jusqu'à ${gameConfig.boosters.maxStock} en réserve. Au moins une Peu commune garantie.`,
+    body: `Un booster de ${gameConfig.boosters.size} cartes toutes les ${minutes} minutes, jusqu'à ${gameConfig.boosters.maxStock} en réserve. Au moins une Peu Commune garantie.`,
   },
   {
     icon: Layers,
@@ -94,16 +94,16 @@ export default async function HomePage() {
 
       <section aria-labelledby="tiers" className="grid gap-4 py-8">
         <h2 id="tiers" className="font-display text-xl font-bold">
-          Six tiers de rareté
+          Les vraies raretés
         </h2>
         <p className="max-w-[60ch] text-muted">
-          Calculés à partir de la rareté officielle de chaque carte. Plus le tier est haut, plus le reflet holo est
-          intense.
+          Chaque carte garde sa rareté officielle, de la Commune à l&apos;Illustration Spéciale Rare. Plus elle est rare,
+          plus le reflet holo est intense.
         </p>
         <ul className="flex flex-wrap gap-2">
-          {TIERS.map((t) => (
-            <li key={t}>
-              <TierBadge tier={t} />
+          {RARITY_SHOWCASE.map((r) => (
+            <li key={r}>
+              <TierBadge tier={officialRarityTier(r)} rarityRaw={r} />
             </li>
           ))}
         </ul>

@@ -56,6 +56,7 @@ export const LEDGER_LABELS_FR: Record<LedgerReason, string> = {
   recycle: "Recyclage",
   set_booster: "Booster de set",
   set_bonus: "Set complété",
+  rarity_bonus: "Rareté complétée",
   quest: "Quête du jour",
   duel_win: "Duel gagné",
   duel_draw: "Duel nul",

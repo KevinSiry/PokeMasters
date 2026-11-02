@@ -1,12 +1,12 @@
 /**
  * Tests d'intégration de l'économie sur Postgres. Ignorés si SKIP_DB_TESTS=1.
  */
-import { gameConfig } from "@pokeflex/config";
+import { gameConfig, officialRarity } from "@pokeflex/config";
 import { auditLedger, prisma } from "@pokeflex/db";
 import { InsufficientFundsError, seededRng } from "@pokeflex/game";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { BoosterError, getBoosterSets, openBooster } from "./boosters";
-import { checkSetCompletions } from "./completion";
+import { checkSetCompletions, rarityProgress } from "./completion";
 import { applyLedger } from "./ledger";
 import { claimQuest, getDailyQuests, QuestError } from "./quests";
 import { previewDuplicates, recycleCopy, recycleDuplicates, RecycleError } from "./recycle";
@@ -122,13 +122,31 @@ describe.skipIf(skip)("économie (Postgres)", () => {
     const set = await prisma.set.findUniqueOrThrow({ where: { id: setId } });
     const cards = await prisma.card.findMany({ where: { setId, droppable: true }, select: { id: true } });
     await prisma.cardCopy.createMany({ data: cards.slice(1).map((c) => ({ ownerId: userId, cardId: c.id, obtainedVia: "test" })) });
-    expect(await prisma.$transaction((tx) => checkSetCompletions(tx, userId, [setId]))).toEqual([]);
+    const first = await prisma.$transaction((tx) => checkSetCompletions(tx, userId, [setId]));
+    expect(first.filter((c) => c.kind === "set")).toEqual([]);
     await prisma.cardCopy.create({ data: { ownerId: userId, cardId: cards[0]!.id, obtainedVia: "test" } });
     const done = await prisma.$transaction((tx) => checkSetCompletions(tx, userId, [setId, setId]));
     const bonus = set.cardCountOfficial * gameConfig.economy.setCompletionBonusPerCard;
-    expect(done).toEqual([{ setId, name: set.name, bonus }]);
+    expect(done.filter((c) => c.kind === "set")).toEqual([{ setId, name: set.name, bonus, kind: "set" }]);
     expect(await prisma.$transaction((tx) => checkSetCompletions(tx, userId, [setId]))).toEqual([]);
-    expect((await prisma.user.findUniqueOrThrow({ where: { id: userId } })).balance).toBe(bonus);
+    const rarityBonuses = [...first, ...done].filter((c) => c.kind === "rarity").reduce((n, c) => n + c.bonus, 0);
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: userId } })).balance).toBe(bonus + rarityBonuses);
+    await expectAuditClean();
+  });
+
+  it("verse le bonus d'une rareté officielle complétée une seule fois", async () => {
+    const userId = await newUser();
+    const cards = await prisma.card.findMany({ where: { setId, droppable: true }, select: { id: true, rarityRaw: true } });
+    const progress = rarityProgress(cards, new Set());
+    const target = progress.find((p) => p.bonus > 0 && p.total >= 2)!;
+    const ofRarity = cards.filter((c) => officialRarity(c.rarityRaw) === target.rarity);
+    await prisma.cardCopy.createMany({ data: ofRarity.slice(1).map((c) => ({ ownerId: userId, cardId: c.id, obtainedVia: "test" })) });
+    expect(await prisma.$transaction((tx) => checkSetCompletions(tx, userId, [setId]))).toEqual([]);
+    await prisma.cardCopy.create({ data: { ownerId: userId, cardId: ofRarity[0]!.id, obtainedVia: "test" } });
+    const done = await prisma.$transaction((tx) => checkSetCompletions(tx, userId, [setId]));
+    expect(done).toEqual([expect.objectContaining({ setId, kind: "rarity", rarity: target.rarity, bonus: target.bonus })]);
+    expect(await prisma.$transaction((tx) => checkSetCompletions(tx, userId, [setId]))).toEqual([]);
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: userId } })).balance).toBe(target.bonus);
     await expectAuditClean();
   });
 
