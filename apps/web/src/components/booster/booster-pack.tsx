@@ -1,3 +1,4 @@
+import { boosterSize } from "@pokeflex/config";
 import { PackCover } from "@/components/booster/pack-cover";
 import { PackLogo } from "@/components/booster/pack-logo";
 import type { CardImageQuality } from "@/lib/card-image";
@@ -58,7 +59,7 @@ interface BoosterPackArtProps {
  */
 export function BoosterPackArt({
   label = "Toutes époques",
-  count = 5,
+  count = boosterSize(),
   className,
   empty,
   logo,

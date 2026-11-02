@@ -261,7 +261,7 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
   }, [available, nextAt, initialBalance, phase]);
 
   const canOpen = set ? balance >= set.price : countdown.shown > 0;
-  const packProps = set ? { label: set.name, logo: set.logo, palette: set.id, cover } : { cover };
+  const packProps = set ? { label: set.name, logo: set.logo, palette: set.id, cover, count: set.size } : { cover };
 
   const cards = useMemo(() => result?.cards ?? [], [result]);
   const current = cards[index];
