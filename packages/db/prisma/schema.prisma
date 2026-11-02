@@ -41,32 +41,33 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  accounts    Account[]
-  sessions    Session[]
-  copies      CardCopy[]
-  openings    BoosterOpening[]
-  ledger      LedgerEntry[]
-  completions SetCompletion[]
-  quests      DailyQuest[]
-  listings    Listing[]        @relation("seller")
-  bids        Bid[]
-  purchases   Sale[]           @relation("buyer")
-  sales       Sale[]           @relation("seller")
-  friendsOut  Friendship[]     @relation("friendFrom")
-  friendsIn   Friendship[]     @relation("friendTo")
-  blocks      Block[]          @relation("blocker")
-  blockedBy   Block[]          @relation("blocked")
-  reports     Report[]         @relation("reporter")
-  reported    Report[]         @relation("reportedUser")
-  guildMember GuildMember?
-  guildsOwned Guild[]
-  guildMessages GuildMessage[]
-  sentMessages     DirectMessage[] @relation("dmSender")
-  receivedMessages DirectMessage[] @relation("dmRecipient")
-  favorites   FavoriteCard[]
-  wishlist    WishlistCard[]
-  tradesOut   Trade[]          @relation("tradeProposer")
-  tradesIn    Trade[]          @relation("tradeRecipient")
+  accounts          Account[]
+  sessions          Session[]
+  copies            CardCopy[]
+  openings          BoosterOpening[]
+  ledger            LedgerEntry[]
+  completions       SetCompletion[]
+  rarityCompletions SetRarityCompletion[]
+  quests            DailyQuest[]
+  listings          Listing[]             @relation("seller")
+  bids              Bid[]
+  purchases         Sale[]                @relation("buyer")
+  sales             Sale[]                @relation("seller")
+  friendsOut        Friendship[]          @relation("friendFrom")
+  friendsIn         Friendship[]          @relation("friendTo")
+  blocks            Block[]               @relation("blocker")
+  blockedBy         Block[]               @relation("blocked")
+  reports           Report[]              @relation("reporter")
+  reported          Report[]              @relation("reportedUser")
+  guildMember       GuildMember?
+  guildsOwned       Guild[]
+  guildMessages     GuildMessage[]
+  sentMessages      DirectMessage[]       @relation("dmSender")
+  receivedMessages  DirectMessage[]       @relation("dmRecipient")
+  favorites         FavoriteCard[]
+  wishlist          WishlistCard[]
+  tradesOut         Trade[]               @relation("tradeProposer")
+  tradesIn          Trade[]               @relation("tradeRecipient")
 }
 
 // ───────── Modèles standard Auth.js (adaptateur Prisma) ─────────
@@ -148,9 +149,9 @@ model Serie {
 }
 
 model Set {
-  id                String          @id
+  id                String                @id
   serieId           String
-  serie             Serie           @relation(fields: [serieId], references: [id])
+  serie             Serie                 @relation(fields: [serieId], references: [id])
   name              String
   nameEn            String?
   logo              String?
@@ -158,22 +159,23 @@ model Set {
   releaseDate       DateTime?
   cardCountOfficial Int
   cardCountTotal    Int
-  lang              Lang            @default(fr)
-  syncedAt          DateTime        @default(now())
+  lang              Lang                  @default(fr)
+  syncedAt          DateTime              @default(now())
   cards             Card[]
   completions       SetCompletion[]
+  rarityCompletions SetRarityCompletion[]
 
   @@index([serieId, releaseDate])
   @@index([releaseDate])
 }
 
 model Card {
-  id             String       @id
+  id             String         @id
   localId        String
   /// Ordre naturel dans le set (numéro de carte quand il est numérique).
-  sortKey        Int          @default(0)
+  sortKey        Int            @default(0)
   setId          String
-  set            Set          @relation(fields: [setId], references: [id])
+  set            Set            @relation(fields: [setId], references: [id])
   nameFr         String?
   nameEn         String?
   /// Nom affiché (FR si disponible, sinon EN).
@@ -204,18 +206,18 @@ model Card {
   energyType     String?
   regulationMark String?
   /// [{ name, cost[], damage, effect }]
-  attacks        Json         @default("[]")
-  abilities      Json         @default("[]")
+  attacks        Json           @default("[]")
+  abilities      Json           @default("[]")
   /// [{ type, value }] avec type canonique.
-  weaknesses     Json         @default("[]")
-  resistances    Json         @default("[]")
+  weaknesses     Json           @default("[]")
+  resistances    Json           @default("[]")
   /// { normal, reverse, holo, firstEdition }
-  variants       Json         @default("{}")
-  priceEurTrend  Decimal?     @db.Decimal(10, 2)
+  variants       Json           @default("{}")
+  priceEurTrend  Decimal?       @db.Decimal(10, 2)
   priceUpdatedAt DateTime?
   /// Exclure du tirage (carte sans image, etc.).
-  droppable      Boolean      @default(true)
-  syncedAt       DateTime     @default(now())
+  droppable      Boolean        @default(true)
+  syncedAt       DateTime       @default(now())
   copies         CardCopy[]
   listings       Listing[]
   sales          Sale[]
@@ -261,17 +263,17 @@ enum CopyStatus {
 
 /// Un exemplaire possédé = une ligne. Un exemplaire listé au marché change de statut.
 model CardCopy {
-  id          String     @id @default(cuid())
+  id          String      @id @default(cuid())
   ownerId     String
-  owner       User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner       User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   cardId      String
-  card        Card       @relation(fields: [cardId], references: [id])
-  finish      Finish     @default(normal)
-  status      CopyStatus @default(owned)
+  card        Card        @relation(fields: [cardId], references: [id])
+  finish      Finish      @default(normal)
+  status      CopyStatus  @default(owned)
   /// booster | set_booster | market | trade | seed
   obtainedVia String
   openingId   String?
-  obtainedAt  DateTime   @default(now())
+  obtainedAt  DateTime    @default(now())
   listings    Listing[]
   tradeItems  TradeItem[]
 
@@ -305,6 +307,8 @@ enum LedgerReason {
   recycle
   set_booster
   set_bonus
+  /// Toutes les cartes d'une rareté officielle d'un set possédées (bonus unique).
+  rarity_bonus
   quest
   /// Historique uniquement : les duels ont été retirés du jeu.
   duel_win
@@ -349,6 +353,20 @@ model SetCompletion {
   completedAt DateTime @default(now())
 
   @@id([userId, setId])
+}
+
+/// Rareté officielle complétée dans un set (« toutes les Peu Communes ») : toutes ses cartes tirables
+/// de cette rareté possédées. Bonus versé une fois. `rarity` = libellé canonique (`officialRarity`).
+model SetRarityCompletion {
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  setId       String
+  set         Set      @relation(fields: [setId], references: [id])
+  rarity      String
+  bonus       Int
+  completedAt DateTime @default(now())
+
+  @@id([userId, setId, rarity])
 }
 
 /// Quêtes du jour, créées à la première visite de la journée (fuseau de `config.quests.timeZone`).

@@ -59,9 +59,9 @@ function Podium({ entries, kind }: { entries: LeaderboardEntry[]; kind: Leaderbo
       {PODIUM.map(({ place, height, ring, text }) => {
         const e = entries[place - 1];
         return (
-          <li key={place} className={cn("grid justify-items-center gap-2 text-center", place === 1 ? "order-2" : place === 2 ? "order-1" : "order-3")}>
+          <li key={place} className={cn("grid min-w-0 justify-items-center gap-2 text-center", place === 1 ? "order-2" : place === 2 ? "order-1" : "order-3")}>
             {e ? (
-              <Link href={`/joueurs/${e.handle}`} className="grid min-w-0 justify-items-center gap-1.5">
+              <Link href={`/joueurs/${e.handle}`} className="grid w-full min-w-0 justify-items-center gap-1.5">
                 {place === 1 && <Crown aria-hidden="true" className="size-6 text-[#FFC93C]" />}
                 <PlayerAvatar name={e.name} image={e.image} size={place === 1 ? "lg" : "md"} className={cn("ring-4", ring)} />
                 <span className="w-full truncate text-sm font-semibold">{e.name}</span>
@@ -153,7 +153,7 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
           {board.entries.length > 3 && (
             <ol className="grid gap-1.5" start={4}>
               {board.entries.slice(3).map((e) => (
-                <li key={e.id}>
+                <li key={e.id} className="min-w-0">
                   <Link
                     href={`/joueurs/${e.handle}`}
                     className={cn(

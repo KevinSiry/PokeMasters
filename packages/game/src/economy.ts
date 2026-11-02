@@ -78,6 +78,14 @@ export function setCompletionBonus(officialCount: number, perCard: number): numb
   return Math.max(1, officialCount) * perCard;
 }
 
+/**
+ * Bonus de rareté complétée dans un set : `perCard` × nombre de cartes de cette rareté, ou 0 si
+ * elle compte moins de `minCards` cartes (trop facile).
+ */
+export function rarityCompletionBonus(cardCount: number, perCard: number, minCards: number): number {
+  return cardCount >= minCards ? cardCount * perCard : 0;
+}
+
 /** Valeur de recyclage moyenne d'un booster (sans la garantie), pour l'équilibrage. */
 export function expectedBoosterValue(
   weights: Readonly<Record<Tier, number>>,

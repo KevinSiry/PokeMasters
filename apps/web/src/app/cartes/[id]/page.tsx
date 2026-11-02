@@ -1,4 +1,4 @@
-import { FINISH_LABELS_FR, gameConfig, TIER_LABELS_FR, type Finish } from "@pokeflex/config";
+import { FINISH_LABELS_FR, gameConfig, rarityLabel, type Finish } from "@pokeflex/config";
 import { countWishers, getCardListState, getCardMarket, getCardTraders } from "@pokeflex/server";
 import { ChevronLeft, ChevronRight, Heart, Palette, Repeat2 } from "lucide-react";
 import type { Metadata } from "next";
@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const img = cardImageUrl(card.image, "high");
   return {
     title: `${card.name} — ${card.set.name}`,
-    description: `${card.name} (${card.set.name}, ${card.localId}/${card.set.cardCountOfficial}) : tier ${TIER_LABELS_FR[card.tier]}${card.illustrator ? `, illustrée par ${card.illustrator}` : ""}.`,
+    description: `${card.name} (${card.set.name}, ${card.localId}/${card.set.cardCountOfficial})  : ${rarityLabel(card)}${card.illustrator ? `, illustrée par ${card.illustrator}` : ""}.`,
     openGraph: img ? { images: [{ url: img }] } : undefined,
   };
 }
@@ -105,10 +105,7 @@ export default async function CardPage({ params }: { params: Params }) {
         <div className="grid min-w-0 gap-8">
           <header className="grid gap-4">
             <div className="flex flex-wrap items-center gap-2">
-              <TierBadge tier={card.tier} />
-              {card.rarityRaw && (
-                <span className="rounded-full border border-line px-2.5 py-1 text-xs text-muted">{card.rarityRaw}</span>
-              )}
+              <TierBadge tier={card.tier} rarityRaw={card.rarityRaw} />
               <span className="rounded-full border border-line px-2.5 py-1 text-xs text-muted">{CATEGORY_LABELS[card.category]}</span>
               {card.lang === "en" && (
                 <span className="rounded-full bg-elev px-2.5 py-1 font-mono text-xs font-bold">EN · pas de version FR</span>

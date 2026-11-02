@@ -5,7 +5,7 @@ test.describe("pages publiques", () => {
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Toutes les cartes depuis 1999");
     await expect(page.getByRole("link", { name: "Commencer à collectionner" })).toBeVisible();
-    await expect(page.getByText("Mythique")).toBeVisible();
+    await expect(page.getByRole("listitem").filter({ hasText: "Illustration Spéciale Rare" })).toBeVisible();
   });
 
   test("le pied de page porte les mentions de fan game", async ({ page }) => {

@@ -188,6 +188,11 @@ Chaque entrée : la décision, pourquoi, et qui l'a prise. Les plus récentes en
 - **La wishlist n'accepte que des cartes tirables**, comme le reste du catalogue.
 - Pas d'espace d'administration dans le jeu : le rôle `admin` existe en base mais aucune page ni action ne l'utilise. Les ajustements de Jetons passent par le registre (motif `admin`).
 
+## Raretés officielles (idées HoloPocket, 2026-11-02)
+
+- **Raretés officielles partout** (choix de Kevin) : une carte affiche toujours sa rareté officielle en français (« Double Rare », « Illustration Spéciale Rare »…), comme HoloPocket et les vraies cartes. Les libellés FR et EN de TCGdex sont ramenés à un nom canonique (`OFFICIAL_RARITIES` et `officialRarity` dans `config/rarities.ts`). Les six tiers restent internes : couleurs, reflets, taux de tirage, recyclage, montée liée au prix. Quand on parle d'un groupe de raretés (filtres, recyclage, taux), un tier porte le nom de la rareté la plus représentative : Commune, Peu Commune, Rare, Double Rare, Ultra Rare, Rare Secrète.
+- **Bonus par rareté complétée** : posséder toutes les cartes tirables d'une rareté officielle d'un set (« toutes les Peu Communes ») verse une fois `rarityCompletion.bonusPerCard[tier de la rareté]` × nombre de ces cartes (Commune 2, Peu Commune 3, Rare 6, Double Rare 12, Ultra Rare 25, Rare Secrète 50 par carte), si la rareté compte au moins 3 cartes. Table `SetRarityCompletion`, mouvement `rarity_bonus`. Annoncé comme le set complété (booster, échange, achat), progression par rareté sur la page du set.
+
 ## GitHub
 
 - **Règles du dépôt reprises de Kroniq et Chabowt** (demande de Kevin, 2026-10-12) : sur `main`, suppression et force-push interdits, et le job de CI Linux doit être vert pour fusionner (le job Windows a été retiré le 2026-10-17 pour économiser les minutes GitHub Actions, comptées double sous Windows). Le ruleset est versionné dans `.github/rulesets/protect-main.json` (à importer dans *Settings → Rules → Rulesets → New ruleset → Import a ruleset*). Réglages de fusion identiques aux deux projets : auto-merge activé, branche supprimée après fusion.

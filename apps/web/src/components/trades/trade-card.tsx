@@ -1,6 +1,6 @@
 "use client";
 
-import { FINISH_LABELS_FR } from "@pokeflex/config";
+import { FINISH_LABELS_FR, completionTitle } from "@pokeflex/config";
 import type { TradeItemView, TradeView } from "@pokeflex/server";
 import { ArrowDownLeft, ArrowUpRight, Check, Clock, Loader2, Repeat2, X } from "lucide-react";
 import Link from "next/link";
@@ -71,8 +71,8 @@ export function TradeCard({ trade }: { trade: TradeView }) {
       pingTrade(trade.id);
       if (kind === "accept") {
         toast({ title: "Échange conclu !", description: "Tes nouvelles cartes sont dans ta collection." });
-        const sets = (res.data as { completedSets?: { name: string; bonus: number }[] }).completedSets ?? [];
-        for (const s of sets) toast({ title: `Set complété : ${s.name}`, jetons: s.bonus });
+        const sets = (res.data as { completedSets?: { name: string; bonus: number; kind?: "set" | "rarity"; rarity?: string }[] }).completedSets ?? [];
+        for (const s of sets) toast({ title: `${completionTitle(s)} : ${s.name}`, jetons: s.bonus });
       } else {
         toast({ title: kind === "decline" ? "Proposition refusée" : "Proposition annulée", tone: "info" });
       }

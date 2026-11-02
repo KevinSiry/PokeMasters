@@ -1,6 +1,6 @@
 "use client";
 
-import { FINISH_LABELS_FR, TIER_LABELS_FR, tierRank, type Tier } from "@pokeflex/config";
+import { FINISH_LABELS_FR, completionTitle, rarityLabel, tierRank, type Tier } from "@pokeflex/config";
 import { CheckCircle2, Layers, Recycle, Sparkles, Star, Target, Zap } from "lucide-react";
 import { AnimatePresence, motion, useIsPresent, useReducedMotion, type PanInfo, type TargetAndTransition } from "motion/react";
 import Link from "next/link";
@@ -161,9 +161,9 @@ function PullBadges({ card, className, compact }: { card: PulledCard; className?
   if (compact) {
     return (
       <div className={cn("flex items-center justify-center gap-1 text-[11px] font-bold", className)}>
-        <span data-tier={card.tier} className="pf-tier-pip" title={TIER_LABELS_FR[card.tier]}>
+        <span data-tier={card.tier} className="pf-tier-pip" title={rarityLabel(card)}>
           <span aria-hidden="true">{TIER_ICON[card.tier]}</span>
-          <span className="sr-only">{TIER_LABELS_FR[card.tier]}</span>
+          <span className="sr-only">{rarityLabel(card)}</span>
         </span>
         {card.isNew && <span className="rounded-full bg-lime px-1.5 text-[10px] font-black text-bg">NEW</span>}
         {card.finish !== "normal" && (
@@ -181,7 +181,7 @@ function PullBadges({ card, className, compact }: { card: PulledCard; className?
         className="pf-tier-pip inline-flex items-center gap-1 rounded-full border border-line bg-surface px-2.5 py-1 text-xs font-bold"
       >
         <span aria-hidden="true">{TIER_ICON[card.tier]}</span>
-        {TIER_LABELS_FR[card.tier]}
+        {rarityLabel(card)}
       </span>
       {card.isNew && (
         <span className="rounded-full bg-lime px-2.5 py-1 text-xs font-black tracking-wide text-bg">NOUVELLE</span>
@@ -478,7 +478,7 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
                     {phase === "charging" ? "Ouverture…" : <>Ouvrir · <Jetons value={set.price} /></>}
                   </Button>
                   <p className="text-sm text-muted">
-                    Ton solde : <Jetons value={balance} className="text-fg" /> · 5 cartes de ce set, dont au moins une Peu commune
+                    Ton solde : <Jetons value={balance} className="text-fg" /> · 5 cartes de ce set, dont au moins une Peu Commune
                   </p>
                 </>
               ) : (
@@ -648,7 +648,7 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
                           }}
                           onPointerMove={onCardPointerMove}
                           onPointerLeave={onCardPointerLeave}
-                          aria-label={flipped ? `${current.name}, ${TIER_LABELS_FR[current.tier]}. Carte suivante` : "Retourner la carte"}
+                          aria-label={flipped ? `${current.name}, ${rarityLabel(current)}. Carte suivante` : "Retourner la carte"}
                           data-tier={current.tier}
                           className={cn("relative block w-full rounded-[var(--radius-card-image)] [perspective:1200px]", suspense && "pf-leak")}
                           animate={
@@ -743,7 +743,7 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
                     <li
                       key={c.copyId}
                       data-tier={c.tier}
-                      aria-label={i < index || (i === index && flipped) ? TIER_LABELS_FR[c.tier] : "Face cachée"}
+                      aria-label={i < index || (i === index && flipped) ? rarityLabel(c) : "Face cachée"}
                       className={cn(
                         "size-2.5 rounded-full transition-colors",
                         i < index || (i === index && flipped) ? "bg-[var(--tier)]" : i === index ? "bg-fg" : "bg-line",
@@ -773,14 +773,14 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
             <h2 className="font-display text-2xl font-bold sm:text-3xl">{set ? set.name : "Ton booster"}</h2>
             {best && (
               <p className="text-muted">
-                Meilleure carte : <strong className="text-fg">{best.name}</strong> ({TIER_LABELS_FR[best.tier]})
+                Meilleure carte : <strong className="text-fg">{best.name}</strong> ({rarityLabel(best)})
                 {cards.some((c) => c.isNew) && <> · {cards.filter((c) => c.isNew).length} nouvelle{cards.filter((c) => c.isNew).length > 1 ? "s" : ""}</>}
               </p>
             )}
           </div>
           {result.completedSets.map((cs) => (
             <motion.div
-              key={cs.setId}
+              key={`${cs.setId}-${cs.rarity ?? "set"}`}
               className="relative grid w-full max-w-md justify-items-center gap-1 overflow-hidden rounded-[var(--radius-card)] border-2 border-[#FFC93C] bg-[radial-gradient(120%_120%_at_50%_0%,rgb(255_201_60/0.28),transparent_60%)] p-5 text-center shadow-[0_0_60px_-12px_#FFC93C]"
               initial={reduced ? { opacity: 0 } : { scale: 0.7, opacity: 0, rotate: -3 }}
               animate={{ scale: 1, opacity: 1, rotate: 0 }}
@@ -789,7 +789,7 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
               <CoinBurst count={18} />
               <p className="inline-flex items-center gap-1.5 font-mono text-xs font-bold tracking-[0.2em] text-[#FFC93C] uppercase">
                 <CheckCircle2 aria-hidden="true" className="size-4" />
-                Set complété
+                {completionTitle(cs)}
               </p>
               <p className="font-display text-xl font-bold">{cs.name}</p>
               <p className="text-muted">
@@ -818,7 +818,7 @@ export function BoosterOpening({ available, nextAt, maxStock, refillIntervalMs, 
                 animate={{ opacity: 1, y: 0, rotate: 0 }}
                 transition={{ delay: reduced ? 0 : i * 0.07, type: "spring", stiffness: 220, damping: 20 }}
               >
-                <Link href={`/cartes/${c.id}`} className="rounded-[var(--radius-card-image)]" aria-label={`${c.name}, ${TIER_LABELS_FR[c.tier]}`}>
+                <Link href={`/cartes/${c.id}`} className="rounded-[var(--radius-card-image)]" aria-label={`${c.name}, ${rarityLabel(c)}`}>
                   <TiltCard image={c.image} name={c.name} tier={c.tier} quality="high" />
                 </Link>
                 <FavoriteStar

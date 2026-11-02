@@ -36,3 +36,18 @@ describe("gameConfig", () => {
     expect(gameConfig.boosters.initialStock).toBeLessThanOrEqual(gameConfig.boosters.maxStock);
   });
 });
+
+describe("raretés officielles", () => {
+  it("chaque rareté connue de TCGdex (FR et EN) a un libellé officiel", async () => {
+    const { RARITY_TIERS, officialRarity } = await import("./rarities");
+    for (const raw of Object.keys(RARITY_TIERS)) expect(officialRarity(raw), raw).not.toBeNull();
+  });
+  it("ramène les libellés FR et EN au même nom", async () => {
+    const { officialRarity, rarityLabel } = await import("./rarities");
+    expect(officialRarity("Double rare")).toBe("Double Rare");
+    expect(officialRarity("Special illustration rare")).toBe("Illustration Spéciale Rare");
+    expect(officialRarity("Holo Rare")).toBe(officialRarity("Rare Holo"));
+    expect(officialRarity("Double Rare")).toBe("Double Rare");
+    expect(rarityLabel({ rarityRaw: null, tier: "rare" })).toBe("Rare");
+  });
+});

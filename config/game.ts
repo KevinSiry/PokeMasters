@@ -11,13 +11,18 @@
 export const TIERS = ["common", "uncommon", "rare", "epic", "legendary", "mythic"] as const;
 export type Tier = (typeof TIERS)[number];
 
+/**
+ * Nom de chaque tier quand on parle d'un groupe de raretés (filtres, taux, recyclage). Les tiers
+ * restent internes : une carte affiche toujours sa rareté officielle (`rarityLabel`). Les noms
+ * reprennent la rareté officielle la plus représentative du groupe (choix de Kevin, 2026-11-02).
+ */
 export const TIER_LABELS_FR: Record<Tier, string> = {
   common: "Commune",
-  uncommon: "Peu commune",
+  uncommon: "Peu Commune",
   rare: "Rare",
-  epic: "Épique",
-  legendary: "Légendaire",
-  mythic: "Mythique",
+  epic: "Double Rare",
+  legendary: "Ultra Rare",
+  mythic: "Rare Secrète",
 };
 
 /** Finitions physiques d'un exemplaire (tirées parmi les variantes existantes de la carte). */
@@ -113,6 +118,23 @@ export const gameConfig = {
     } satisfies Record<Tier, number>,
     /** Bonus unique de set complété = multiplicateur × nombre officiel de cartes du set. */
     setCompletionBonusPerCard: 5,
+    /**
+     * Bonus unique par rareté officielle complétée dans un set (idée reprise d'HoloPocket) :
+     * posséder toutes les cartes tirables d'une rareté du set (« toutes les Peu Communes »)
+     * rapporte `bonusPerCard[tier de cette rareté]` × nombre de ces cartes. Une rareté qui compte
+     * moins de `minCards` cartes dans le set ne donne pas de bonus.
+     */
+    rarityCompletion: {
+      minCards: 3,
+      bonusPerCard: {
+        common: 2,
+        uncommon: 3,
+        rare: 6,
+        epic: 12,
+        legendary: 25,
+        mythic: 50,
+      } satisfies Record<Tier, number>,
+    },
     /** Solde de départ d'un nouveau joueur. */
     startingBalance: 0,
   },

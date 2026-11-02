@@ -95,7 +95,7 @@ export default async function CollectionPage({ searchParams }: { searchParams: S
             </Button>
           }
         >
-          Ouvre ton premier booster : 5 cartes tirées dans tout le catalogue, dont au moins une Peu commune.
+          Ouvre ton premier booster : 5 cartes tirées dans tout le catalogue, dont au moins une Peu Commune.
         </EmptyState>
       ) : (
         <>
